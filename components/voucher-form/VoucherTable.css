@@ -1,0 +1,55 @@
+.voucher-table-wrapper {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-bg-primary, #ffffff);
+}
+
+.voucher-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm, 13px);
+  line-height: var(--leading-normal, 1.5);
+  color: var(--color-text-primary, #0f172a);
+}
+
+.voucher-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.voucher-table thead tr {
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+.voucher-table th {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  text-align: left;
+  font-weight: var(--font-semibold, 600);
+  font-size: var(--text-xs, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary, #64748b);
+  border-bottom: 1px solid var(--color-border-default, #e2e8f0);
+  white-space: nowrap;
+}
+
+.voucher-table td {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--color-border-light, #f1f5f9);
+  vertical-align: middle;
+}
+
+.voucher-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.voucher-table--compact th,
+.voucher-table--compact td {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+}

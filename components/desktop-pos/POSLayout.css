@@ -1,0 +1,6 @@
+/* POSLayout — legacy grid layout */
+.pos-legacy-grid {
+  display: grid;
+  grid-template-columns: 1fr 30%;
+  gap: 16px;
+}

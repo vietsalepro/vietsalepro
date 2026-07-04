@@ -1,0 +1,723 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  VIETSALE PRO — Inventory Count Page Styles
+ *  Phase 1: Foundation CSS for InventoryCount.tsx
+ *  Design Tokens Only — no hardcoded values.
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Page container ─────────────────────────────────────── */
+.inventory-count-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* ── Page header ──────────────────────────────────────── */
+.inventory-count-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+}
+
+.inventory-count-page__title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-lg);
+  background: var(--color-purple-100);
+  color: var(--color-purple-600);
+  flex-shrink: 0;
+}
+
+.inventory-count-page__title-icon svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.inventory-count-page__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ── Toolbar ──────────────────────────────────────────── */
+.inventory-count-page__toolbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: var(--space-1);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.inventory-count-page__toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-family-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard),
+              background-color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-page__toolbar-btn:hover {
+  background: var(--color-bg-secondary);
+}
+
+.inventory-count-page__toolbar-btn svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.inventory-count-page__toolbar-btn--sample:hover {
+  color: var(--color-purple-600);
+}
+
+.inventory-count-page__toolbar-btn--import:hover {
+  color: var(--color-emerald-600);
+}
+
+.inventory-count-page__toolbar-btn--export:hover {
+  color: var(--color-info-600);
+}
+
+.inventory-count-page__toolbar-divider {
+  width: var(--border-width-default);
+  height: var(--space-6);
+  background: var(--color-border-default);
+  margin: 0 var(--space-1);
+}
+
+/* ── Actions wrapper (toolbar + primary buttons) ─────── */
+.inventory-count-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Filter bar (complement to FilterBar.css) ─────────── */
+.inventory-count-page__filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Bulk actions bar ─────────────────────────────────── */
+.inventory-count-page__bulk-bar {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-xl);
+  z-index: var(--z-fixed);
+  animation: mmFadeUp var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-page__bulk-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-3);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-family-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-danger-600);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-page__bulk-bar-btn:hover {
+  background: var(--color-danger-50);
+}
+
+.inventory-count-page__bulk-bar-btn svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.inventory-count-page__bulk-bar-divider {
+  width: var(--border-width-default);
+  height: var(--space-6);
+  background: var(--color-border-default);
+}
+
+.inventory-count-page__bulk-bar-count {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.inventory-count-page__bulk-bar-count span {
+  color: var(--color-primary-600);
+}
+
+.inventory-count-page__bulk-bar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  margin-left: var(--space-2);
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard),
+              background-color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-page__bulk-bar-close:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+}
+
+.inventory-count-page__bulk-bar-close svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .inventory-count-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inventory-count-page__toolbar {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ── Custom data table (V1 fallback) ───────────────────── */
+.inventory-count-table__wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--space-6));
+}
+
+.inventory-count-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  vertical-align: middle;
+  padding: 0 var(--space-6);
+}
+
+.inventory-count-table__head {
+  border-bottom: var(--border-width-default) var(--border-style-default) var(--color-border-light);
+}
+
+.inventory-count-table__body .inventory-count-table__row + .inventory-count-table__row {
+  border-top: var(--border-width-default) var(--border-style-default) var(--color-border-light);
+}
+
+.inventory-count-table__head-cell {
+  height: 52px;
+  padding: 0 var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.0125em;
+  color: var(--color-text-secondary);
+  text-align: left;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-table__head-cell--sortable {
+  cursor: pointer;
+}
+
+.inventory-count-table__head-cell--sortable:hover {
+  color: var(--color-text-primary);
+}
+
+.inventory-count-table__head-cell--center {
+  text-align: center;
+}
+
+.inventory-count-table__head-cell--right {
+  text-align: right;
+}
+
+.inventory-count-table__head-cell--checkbox {
+  width: var(--space-12);
+  padding-left: var(--space-5);
+}
+
+.inventory-count-table__row {
+  height: 56px;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+  cursor: pointer;
+}
+
+.inventory-count-table__row:hover {
+  background: var(--color-bg-secondary);
+}
+
+.inventory-count-table__cell {
+  padding: var(--space-4) var(--space-5);
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: var(--text-sm);
+}
+
+.inventory-count-table__cell--center {
+  text-align: center;
+}
+
+.inventory-count-table__cell--right {
+  text-align: right;
+}
+
+.inventory-count-table__cell--checkbox {
+  padding-left: var(--space-5);
+}
+
+.inventory-count-table__checkbox {
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-sm);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  color: var(--color-purple-600);
+  accent-color: var(--color-purple-600);
+  cursor: pointer;
+}
+
+.inventory-count-table__checkbox:focus-visible {
+  outline: var(--border-width-medium) var(--border-style-default) var(--color-purple-500);
+  outline-offset: 2px;
+}
+
+.inventory-count-table__icon-wrap {
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--color-purple-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.inventory-count-table__icon-wrap svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-purple-500);
+}
+
+.inventory-count-table__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.inventory-count-table__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard),
+              background-color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-table__action-btn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+}
+
+.inventory-count-table__action-btn--cancel:hover {
+  color: var(--color-amber-600);
+  background: var(--color-amber-50);
+}
+
+.inventory-count-table__action-btn--delete:hover {
+  color: var(--color-danger-600);
+  background: var(--color-danger-50);
+}
+
+.inventory-count-table__action-btn svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.inventory-count-table__empty-cell {
+  padding: var(--space-8) var(--space-6);
+}
+
+/* ── Pagination ─────────────────────────────────────────── */
+.inventory-count-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-top: var(--border-width-default) var(--border-style-default) var(--color-border-light);
+  padding-top: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .inventory-count-pagination {
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+.inventory-count-pagination--mobile {
+  justify-content: center;
+  padding: var(--space-2);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-light);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-card);
+  margin-top: 0;
+  border-top: none;
+  padding-top: var(--space-2);
+}
+
+.inventory-count-pagination__info {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.inventory-count-pagination__info span {
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+.inventory-count-pagination__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-secondary);
+}
+
+.inventory-count-pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard),
+              background-color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-pagination__btn:hover:not(:disabled) {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-primary);
+}
+
+.inventory-count-pagination__btn:disabled {
+  opacity: var(--opacity-40);
+  cursor: not-allowed;
+}
+
+.inventory-count-pagination__btn svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.inventory-count-pagination__btn--active {
+  color: var(--color-primary-600);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.inventory-count-pagination__ellipsis {
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  user-select: none;
+  cursor: default;
+}
+
+/* ── Mobile card view ───────────────────────────────────── */
+.inventory-count-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: var(--space-20);
+}
+
+@media (min-width: 768px) {
+  .inventory-count-mobile-list {
+    display: none;
+  }
+}
+
+.inventory-count-mobile-card {
+  background: var(--color-bg-primary);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-light);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: box-shadow var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-mobile-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.inventory-count-mobile-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-2);
+}
+
+.inventory-count-mobile-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inventory-count-mobile-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  border-radius: var(--radius-full);
+  background: var(--color-purple-50);
+  flex-shrink: 0;
+}
+
+.inventory-count-mobile-card__icon svg {
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+  color: var(--color-purple-500);
+}
+
+.inventory-count-mobile-card__code {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.inventory-count-mobile-card__date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.inventory-count-mobile-card__date svg {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+.inventory-count-mobile-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: var(--border-width-default) var(--border-style-default) var(--color-border-light);
+  padding-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.inventory-count-mobile-card__items {
+  color: var(--color-text-secondary);
+}
+
+.inventory-count-mobile-card__diff {
+  font-weight: var(--font-semibold);
+}
+
+.inventory-count-mobile-card__diff--up {
+  color: var(--color-emerald-600);
+}
+
+.inventory-count-mobile-card__diff--down {
+  color: var(--color-red-600);
+}
+
+.inventory-count-mobile-card__diff--zero {
+  color: var(--color-text-muted);
+}
+
+/* ── V2 DataGrid styles (moved from Inventory.css) ─────── */
+.inventory-count-v2-index {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+.inventory-count-v2-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.inventory-count-v2-code:hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+.inventory-count-v2-code__icon {
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-purple-500);
+}
+
+.inventory-count-v2-date {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+}
+
+.inventory-count-v2-items {
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
+}
+
+.inventory-count-v2-diff {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+}
+
+.inventory-count-v2-diff--up {
+  color: var(--color-emerald-600);
+}
+
+.inventory-count-v2-diff--down {
+  color: var(--color-danger-600);
+}
+
+.inventory-count-v2-diff--zero {
+  color: var(--color-text-muted);
+}
+
+.inventory-count-v2-value {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.inventory-count-v2-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+/* ── Stats grid (moved from inline Tailwind) ─────────────── */
+.inventory-count-page__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .inventory-count-page__stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .inventory-count-page__stats-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* ── DataGridBox desktop only ───────────────────────────── */
+.inventory-count-page__data-grid-box {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .inventory-count-page__data-grid-box {
+    display: flex;
+  }
+}
+
+/* ── DataGrid flex fill ─────────────────────────────────── */
+.inventory-count-page__data-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Hidden file input ──────────────────────────────────── */
+.inventory-count-page__file-input {
+  display: none;
+}
+
+/* ── Icon size inside btn-primary on this page ───────────── */
+.inventory-count-page__btn-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+  flex-shrink: 0;
+}
+
+/* ── Empty state icon on this page ───────────────────────── */
+.inventory-count-page__empty-icon {
+  width: var(--space-10);
+  height: var(--space-10);
+  color: var(--color-purple-500);
+}

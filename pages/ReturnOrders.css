@@ -1,0 +1,155 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  RETURN ORDERS PAGE V2 STYLES — Sprint_29
+ *  DataGrid integration for the ReturnOrders list.
+ *  All values use design tokens from design-system-tokens.css.
+ *  ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── V2 DataGrid container ─────────────────────────────── */
+.return-orders-v2-datagrid {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Return ID column ──────────────────────────────────── */
+.return-orders-v2-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.return-orders-v2-code:hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+.return-orders-v2-code-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background-color: var(--color-purple-50);
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+}
+
+/* ── STT column ────────────────────────────────────────── */
+.return-orders-v2-stt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-8);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background-color: var(--color-slate-50);
+  border-radius: var(--radius-md);
+}
+
+/* ── Customer column ───────────────────────────────────── */
+.return-orders-v2-customer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.return-orders-v2-customer-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.return-orders-v2-customer-phone {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ── Date column ───────────────────────────────────────── */
+.return-orders-v2-date {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+}
+
+.return-orders-v2-time {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ── Money columns ─────────────────────────────────────── */
+.return-orders-v2-refund {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-danger-500);
+}
+
+.return-orders-v2-refund.zero {
+  color: var(--color-emerald-500);
+}
+
+.return-orders-v2-cash {
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  color: var(--color-emerald-600);
+}
+
+.return-orders-v2-debt-reduction {
+  font-size: var(--text-sm);
+  color: var(--color-amber-600);
+}
+
+/* ── Row action buttons ────────────────────────────────── */
+.return-orders-v2-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+/* ── Body 2-column grid layout ─────────────────────────── */
+.return-orders-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+}
+
+/* ── Panel flex (50/50 split) ──────────────────────────── */
+.return-orders-panel-half {
+  flex: 1 1 50%;
+}
+
+/* ── Return/exchange table column widths ───────────────── */
+.return-orders-items-table col:nth-child(1) { width: 40px; }
+.return-orders-items-table col:nth-child(2) { width: 36px; }
+.return-orders-items-table col:nth-child(4) { width: 70px; }
+.return-orders-items-table col:nth-child(5) { width: 130px; }
+.return-orders-items-table col:nth-child(6) { width: 110px; }
+.return-orders-items-table col:nth-child(7) { width: 120px; }
+
+/* ── Sidebar full height ───────────────────────────────── */
+.return-orders-sidebar {
+  height: 100%;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .return-orders-v2-datagrid {
+    min-height: 0;
+  }
+}

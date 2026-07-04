@@ -1,0 +1,17 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  CHECKOUT SIDEBAR COMPONENT — Desktop POS Checkout
+ *  Right-hand checkout sidebar layout container.
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All visual values use var(--color-*), var(--space-*),
+ *    var(--border-*) — no hardcoded values.
+ */
+
+/* ─── Section divider ───────────────────────────────── */
+
+.checkout-sidebar__divider {
+  border-top: var(--border-width-default) var(--border-style-default)
+    var(--color-border-default);
+}

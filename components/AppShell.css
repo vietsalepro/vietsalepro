@@ -1,0 +1,28 @@
+/* ═══════════════════════════════════════════════════════════════
+   APP SHELL — Standardized application layout
+   Source: MASTER_APP_SHELL_STANDARD_V1.md + MASTER_PAGE_LAYOUT_STANDARD_V1.md
+   ═══════════════════════════════════════════════════════════════ */
+
+.app-shell {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+}
+
+.app-shell__content {
+  flex: 1;
+  margin-top: var(--space-16);
+  height: calc(100vh - var(--space-16));
+  overflow: auto;
+  padding: var(--space-6);
+  box-sizing: border-box;
+  background: var(--color-bg-secondary);
+}
+
+/* POS view: full remaining height, no padding so the page can manage its own layout */
+.app-shell__content--pos {
+  padding: 0;
+  overflow: hidden;
+}

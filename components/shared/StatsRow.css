@@ -1,0 +1,161 @@
+/* StatsRow.css — Shared stats cards row component
+   Synced with /return-orders stat-card style (rounded-2xl, soft shadow, icon, sparkline).
+   Used across: CategoryManagement, Orders, Customers, Suppliers, ImportGoods, Disposals, etc.
+   Design tokens from: design-system-tokens.css
+*/
+
+/* ── Grid container ─────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 1400px) {
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Card (ReturnOrders style) ──────────────────── */
+.stats-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.015);
+  transition:
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Sparkline decoration ───────────────────────── */
+.stats-card__sparkline {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 96px;
+  height: 48px;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stats-card__sparkline--purple { color: var(--color-purple-100); }
+.stats-card__sparkline--blue   { color: var(--color-info-100); }
+.stats-card__sparkline--orange { color: var(--color-amber-100); }
+.stats-card__sparkline--red    { color: var(--color-danger-100); }
+.stats-card__sparkline--green  { color: var(--color-emerald-100); }
+.stats-card__sparkline--cyan   { color: var(--color-cyan-100); }
+
+/* ── Icon wrapper ───────────────────────────────── */
+.stats-card__icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.stats-card__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Color schemes */
+.stats-card__icon--purple {
+  background: var(--color-purple-50);
+  color: var(--color-purple-600);
+}
+
+.stats-card__icon--blue {
+  background: var(--color-info-50);
+  color: var(--color-info-600);
+}
+
+.stats-card__icon--orange {
+  background: var(--color-amber-50);
+  color: var(--color-amber-600);
+}
+
+.stats-card__icon--red {
+  background: var(--color-danger-50);
+  color: var(--color-danger-600);
+}
+
+.stats-card__icon--green {
+  background: var(--color-emerald-50);
+  color: var(--color-emerald-600);
+}
+
+.stats-card__icon--cyan {
+  background: var(--color-cyan-50);
+  color: var(--color-cyan-600);
+}
+
+/* ── Text body ───────────────────────────────────── */
+.stats-card__body {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.stats-card__label {
+  font-size: 13px;
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 4px;
+}
+
+.stats-card__value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-card__subtext {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

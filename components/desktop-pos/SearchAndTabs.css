@@ -1,0 +1,186 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  SEARCH AND TABS — Desktop POS
+ *  Combines product search and invoice tab navigation into one card.
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All visual values use var(--color-*), var(--space-*),
+ *    var(--text-*), var(--font-*), var(--radius-*),
+ *    var(--motion-*), var(--ease-*) — no hardcoded values.
+ */
+
+/* ─── Root container ────────────────────────────────── */
+
+.search-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+}
+
+/* ─── Search wrapper ────────────────────────────────── */
+
+.search-tabs__search {
+  position: relative;
+}
+
+/* ─── Tab list ──────────────────────────────────────── */
+
+.search-tabs__tab-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  overflow-x: auto;
+}
+
+/* ─── Individual tab ────────────────────────────────── */
+
+.search-tabs__tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--motion-normal) var(--ease-standard);
+  user-select: none;
+  flex-shrink: 0;
+  background-color: var(--color-bg-primary);
+  border: var(--border-width-default) var(--border-style-default)
+    var(--color-border-light);
+}
+
+.search-tabs__tab:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-default);
+}
+
+.search-tabs__tab--active {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-200);
+  box-shadow: var(--shadow-sm);
+}
+
+.search-tabs__tab--active:hover {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-200);
+}
+
+/* ─── Active indicator dot ──────────────────────────── */
+
+.search-tabs__indicator {
+  position: absolute;
+  bottom: calc(var(--space-px) * -1);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-500);
+}
+
+/* ─── Tab name ──────────────────────────────────────── */
+
+.search-tabs__name {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.search-tabs__tab:hover .search-tabs__name {
+  color: var(--color-text-primary);
+}
+
+.search-tabs__tab--active .search-tabs__name {
+  color: var(--color-primary-500);
+}
+
+/* ─── Cart count badge ──────────────────────────────── */
+
+.search-tabs__badge {
+  background-color: var(--color-primary-500);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-full);
+  line-height: 1;
+}
+
+/* ─── Close button ──────────────────────────────────── */
+
+.search-tabs__close {
+  padding: var(--space-0-5);
+  border-radius: var(--radius-sm);
+  transition: all var(--motion-normal) var(--ease-standard);
+  opacity: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.search-tabs__close svg {
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+}
+
+.search-tabs__tab:hover .search-tabs__close {
+  opacity: 1;
+}
+
+.search-tabs__close--hidden {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.search-tabs__close--active {
+  color: var(--color-primary-400);
+}
+
+.search-tabs__close--active:hover {
+  background-color: var(--color-primary-100);
+  color: var(--color-primary-700);
+}
+
+.search-tabs__close:not(.search-tabs__close--active) {
+  color: var(--color-slate-300);
+}
+
+.search-tabs__close:not(.search-tabs__close--active):hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-slate-600);
+}
+
+/* ─── Add tab button ────────────────────────────────── */
+
+.search-tabs__add {
+  flex-shrink: 0;
+  width: var(--space-9);
+  height: var(--space-9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  border: var(--border-width-medium) dashed var(--color-border-light);
+  color: var(--color-text-secondary);
+  background: none;
+  cursor: pointer;
+  transition: all var(--motion-normal) var(--ease-standard);
+}
+
+.search-tabs__add:hover {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+  background-color: color-mix(in srgb, var(--color-primary-50) 50%, transparent);
+}
+
+.search-tabs__add svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}

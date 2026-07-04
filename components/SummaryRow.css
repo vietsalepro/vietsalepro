@@ -1,0 +1,19 @@
+.summary-row-value--danger {
+  color: var(--color-danger-600);
+  font-weight: var(--font-bold);
+}
+
+.summary-row-value--success {
+  color: var(--color-success-600);
+  font-weight: var(--font-bold);
+}
+
+.summary-row-value--neutral {
+  color: var(--color-text-primary);
+  font-weight: var(--font-bold);
+}
+
+.summary-row-value--warning {
+  color: var(--color-warning-600);
+  font-weight: var(--font-bold);
+}

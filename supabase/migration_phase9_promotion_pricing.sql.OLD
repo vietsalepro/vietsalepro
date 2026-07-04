@@ -1,0 +1,36 @@
+-- ╔══════════════════════════════════════════════════════════════════════╗
+-- ║  PHASE 9 — Khuyến mãi / Pricing                                      ║
+-- ║  Mục tiêu: Thêm thứ tự ưu tiên, điều kiện áp dụng, và quy tắc cộng dồn ║
+-- ║  cho bảng promotions, khớp với quy tắc ERPNext Pricing Rule.          ║
+-- ╚══════════════════════════════════════════════════════════════════════╝
+-- ⚠️ CẢNH BÁO: Migration này đã deploy thì KHÔNG được chạy lại.
+--    Nếu cần chỉnh sửa sau này, hãy tạo migration mới (phase9b, phase9c...).
+--    Chạy lại file này sẽ ghi đè/reset các cột priority/min_order_value/max_discount/stackable.
+
+-- 1. Thêm các cột mới (nếu chưa có)
+ALTER TABLE public.promotions
+  ADD COLUMN IF NOT EXISTS priority INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS min_order_value NUMERIC(15,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS max_discount NUMERIC(15,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS stackable BOOLEAN NOT NULL DEFAULT false;
+
+-- 2. Backfill dữ liệu cũ (idempotent — chỉ chạy khi cột vừa được thêm)
+UPDATE public.promotions
+SET priority = 0,
+    min_order_value = 0,
+    max_discount = 0,
+    stackable = false
+WHERE priority IS NULL
+   OR min_order_value IS NULL
+   OR max_discount IS NULL
+   OR stackable IS NULL;
+
+-- 3. Index để truy vấn và sắp xếp theo ưu tiên nhanh hơn
+CREATE INDEX IF NOT EXISTS idx_promotions_priority ON public.promotions(priority);
+CREATE INDEX IF NOT EXISTS idx_promotions_active_dates ON public.promotions(is_active, start_date, end_date);
+
+-- 4. Comment mô tả quy tắc nghiệp vụ
+COMMENT ON COLUMN public.promotions.priority IS 'Số nhỏ = ưu tiên cao (priority 1 áp trước priority 2)';
+COMMENT ON COLUMN public.promotions.min_order_value IS 'Giá trị giỏ hàng tối thiểu (tổng tiền trước giảm) mới được áp khuyến mãi';
+COMMENT ON COLUMN public.promotions.max_discount IS 'Số tiền giảm tối đa cho khuyến mãi này';
+COMMENT ON COLUMN public.promotions.stackable IS 'TRUE = cho phép cộng dồn với các khuyến mãi khác (giống ERPNext Apply Multiple Pricing Rules)';

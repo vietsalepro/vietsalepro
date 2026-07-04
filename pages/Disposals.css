@@ -1,0 +1,47 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  DISPOSALS PAGE V2 STYLES — Sprint_28
+ *  DataGrid integration for the Disposals list.
+ *  All values use design tokens from design-system-tokens.css.
+ *  ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Index column (STT) ────────────────────────────────── */
+.disposals-v2-index {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+/* ── Code link column ──────────────────────────────────── */
+.disposals-v2-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.disposals-v2-code:hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+/* ── Row action buttons ────────────────────────────────── */
+.disposals-v2-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  /* (container styles now handled by DataGridBox) */
+}

@@ -1,0 +1,32 @@
+.voucher-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+  vertical-align: top;
+}
+
+.voucher-field--full-width {
+  width: 100%;
+  display: flex;
+}
+
+.voucher-field__label {
+  align-self: flex-start;
+}
+
+.voucher-field__control {
+  display: flex;
+  flex-direction: column;
+}
+
+.voucher-field__hint {
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-muted, #94a3b8);
+  line-height: var(--leading-normal, 1.5);
+}
+
+.voucher-field__error {
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-danger, #991b1b);
+  line-height: var(--leading-normal, 1.5);
+}

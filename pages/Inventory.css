@@ -1,0 +1,65 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  INVENTORY PAGE V2 STYLES — Sprint_27
+ *  DataGrid integration for the Inventory product list.
+ *  All values use design tokens from design-system-tokens.css.
+ *  ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Product name column ───────────────────────────────── */
+.inventory-v2-product-name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.inventory-v2-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inventory-v2-sub {
+  font-size: var(--text-sm);
+  font-weight: var(--font-normal);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Row action buttons ────────────────────────────────── */
+.inventory-v2-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+/* ── Product table column widths ───────────────────────── */
+.prd-table col:nth-child(1) { width: 44px; }
+.prd-table col:nth-child(2) { width: 32%; }
+.prd-table col:nth-child(3) { width: 140px; }
+.prd-table col:nth-child(4) { width: 140px; }
+.prd-table col:nth-child(5) { width: 140px; }
+.prd-table col:nth-child(6) { width: 130px; }
+.prd-table col:nth-child(7) { width: 110px; }
+
+/* ── Product table header text alignments ──────────────── */
+.prd-table thead th:nth-child(4) { text-align: right; }
+.prd-table thead th:nth-child(5) { text-align: right; }
+.prd-table thead th:nth-child(6) { text-align: center; }
+.prd-table thead th:nth-child(7) { text-align: right; }
+
+/* ── Product table empty state ─────────────────────────── */
+.prd-table-empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--color-neutral-400);
+}
+
+

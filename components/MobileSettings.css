@@ -1,0 +1,39 @@
+/* ============================================
+   MOBILE SETTINGS — Print Preview & Select Dropdowns
+   ============================================ */
+
+/* Preview logo max width */
+.ms-preview-logo {
+  max-width: 60%;
+}
+
+/* Preview accent color (store name, invoice title, totals, etc.) */
+.ms-preview-accent {
+  color: #0056b3;
+}
+
+/* Preview store name */
+.ms-preview-store-name {
+  color: #0056b3;
+  font-size: 1.15em;
+}
+
+/* Preview invoice title */
+.ms-preview-invoice-title {
+  color: #0056b3;
+  font-size: 1.2em;
+}
+
+/* Preview total row */
+.ms-preview-total {
+  font-size: 1.15em;
+}
+
+/* Custom select dropdown arrow — reused across print size, font size, font family selects */
+.ms-select-dropdown {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}

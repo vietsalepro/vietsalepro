@@ -1,0 +1,209 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  VIETSALE PRO — DisposalLotSelector V2 Styles
+ *  Design System: Master Design System
+ *  Source: MASTER_DESIGN_TOKENS_V1
+ * ═══════════════════════════════════════════════════════════════
+ *
+ *  Rules:
+ *    - All values use design tokens: var(--color-*), var(--space-*),
+ *      var(--text-*), var(--font-*), var(--radius-*), var(--shadow-*),
+ *      var(--z-*)
+ *    - No inline styles in the V2 render path
+ *    - No vsp-* typography utility classes in the V2 render path
+ */
+
+/* ── Root ─────────────────────────────────────────── */
+.disposal-lot-selector {
+  position: relative;
+}
+
+/* ── Empty State ──────────────────────────────────── */
+.disposal-lot-selector__empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Trigger Button ───────────────────────────────── */
+.disposal-lot-selector__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--motion-fast) ease;
+}
+
+.disposal-lot-selector__trigger:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.disposal-lot-selector__trigger-icon {
+  color: var(--color-text-secondary);
+}
+
+.disposal-lot-selector__trigger-code {
+  font-weight: var(--font-medium);
+}
+
+.disposal-lot-selector__trigger-expiry {
+  margin-left: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.disposal-lot-selector__trigger-placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* ── Overlay ──────────────────────────────────────── */
+.disposal-lot-selector__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown);
+}
+
+/* ── Popover ──────────────────────────────────────── */
+.disposal-lot-selector__popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-1);
+  z-index: var(--z-popover);
+  width: var(--space-80);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  font-family: var(--font-family-primary);
+  font-size: var(--text-md);
+}
+
+/* ── Header ───────────────────────────────────────── */
+.disposal-lot-selector__header {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-light);
+  background-color: var(--color-bg-secondary);
+}
+
+.disposal-lot-selector__header-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.disposal-lot-selector__header-code {
+  color: var(--color-text-secondary);
+}
+
+.disposal-lot-selector__header-subtitle {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ── List ─────────────────────────────────────────── */
+.disposal-lot-selector__list {
+  max-height: var(--space-64);
+  overflow-y: auto;
+}
+
+/* ── Clear Button ─────────────────────────────────── */
+.disposal-lot-selector__clear {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background-color var(--motion-fast) ease;
+}
+
+.disposal-lot-selector__clear:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.disposal-lot-selector__clear-check {
+  color: var(--color-success-600);
+  font-weight: var(--font-semibold);
+}
+
+/* ── Lot Item ─────────────────────────────────────── */
+.disposal-lot-selector__item {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background-color var(--motion-fast) ease;
+}
+
+.disposal-lot-selector__item:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.disposal-lot-selector__item--selected {
+  background-color: var(--color-success-50);
+}
+
+.disposal-lot-selector__item-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.disposal-lot-selector__item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.disposal-lot-selector__item-code-row {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.disposal-lot-selector__item-code {
+  font-weight: var(--font-bold);
+}
+
+.disposal-lot-selector__item-expiry {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.disposal-lot-selector__item-expiry-value {
+  font-weight: var(--font-medium);
+}
+
+.disposal-lot-selector__item-quantity {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+
+.disposal-lot-selector__item-qty-value {
+  font-weight: var(--font-semibold);
+}
+
+.disposal-lot-selector__item-check {
+  color: var(--color-success-600);
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.disposal-lot-selector__footer {
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}

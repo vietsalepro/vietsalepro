@@ -1,0 +1,180 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  VIETSALE PRO — NotificationSystem Styles
+ *  Design Standard: MASTER_NOTIFICATION_STANDARD_V1
+ *  Design Tokens Only — no hardcoded colors, spacing, or shadows
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Notification Root ──────────────────────────── */
+.notification-system {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 380px;
+  min-height: 56px;
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  border-width: var(--border-width-default);
+  border-style: var(--border-style-default);
+  box-shadow: var(--shadow-lg);
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border-default);
+
+  /* Transition for enter/exit */
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity var(--motion-normal) var(--ease-standard),
+    transform var(--motion-normal) var(--ease-standard);
+}
+
+/* ── Exit State (for CSS transition) ────────────── */
+.notification-system--exiting {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+/* ── Enter Animation ────────────────────────────── */
+@keyframes notificationSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-system {
+  animation: notificationSlideIn var(--motion-normal) var(--ease-standard);
+}
+
+/* ── Icon Container ─────────────────────────────── */
+.notification-system__icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+/* ── Content Area ───────────────────────────────── */
+.notification-system__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* ── Title ──────────────────────────────────────── */
+.notification-system__title {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-compact);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* ── Message ────────────────────────────────────── */
+.notification-system__message {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── Dismiss Button ─────────────────────────────── */
+.notification-system__dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.notification-system__dismiss:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.notification-system__dismiss:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.notification-system__dismiss svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Success Variant ────────────────────────────── */
+.notification-system--success {
+  background-color: var(--color-bg-success);
+  border-color: var(--color-border-success);
+}
+
+.notification-system--success .notification-system__icon {
+  color: var(--color-success-500);
+}
+
+.notification-system--success .notification-system__title {
+  color: var(--color-text-success);
+}
+
+/* ── Error Variant ──────────────────────────────── */
+.notification-system--error {
+  background-color: var(--color-bg-danger);
+  border-color: var(--color-border-danger);
+}
+
+.notification-system--error .notification-system__icon {
+  color: var(--color-danger-500);
+}
+
+.notification-system--error .notification-system__title {
+  color: var(--color-text-danger);
+}
+
+/* ── Warning Variant ────────────────────────────── */
+.notification-system--warning {
+  background-color: var(--color-bg-warning);
+  border-color: var(--color-border-warning);
+}
+
+.notification-system--warning .notification-system__icon {
+  color: var(--color-warning-500);
+}
+
+.notification-system--warning .notification-system__title {
+  color: var(--color-text-warning);
+}
+
+/* ── Info Variant ───────────────────────────────── */
+.notification-system--info {
+  background-color: var(--color-bg-info);
+  border-color: var(--color-border-info);
+}
+
+.notification-system--info .notification-system__icon {
+  color: var(--color-info-500);
+}
+
+.notification-system--info .notification-system__title {
+  color: var(--color-text-info);
+}

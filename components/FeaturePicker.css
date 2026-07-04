@@ -1,0 +1,10 @@
+.feature-picker__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-inverse);
+  background: var(--feature-gradient, var(--color-primary-500));
+}

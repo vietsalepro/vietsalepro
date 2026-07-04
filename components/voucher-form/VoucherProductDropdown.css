@@ -1,0 +1,107 @@
+.voucher-product-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1, 4px));
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--color-bg-primary, #ffffff);
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  overflow: hidden;
+  animation: mmSlideUp var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+}
+
+.voucher-product-dropdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border-bottom: 1px solid var(--color-border-default, #e2e8f0);
+  background: var(--color-bg-secondary, #f8fafc);
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-secondary, #64748b);
+}
+
+.voucher-product-dropdown__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5, 2px);
+}
+
+.voucher-product-dropdown__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1, 4px);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.voucher-product-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5, 10px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+}
+
+.voucher-product-dropdown__item:hover,
+.voucher-product-dropdown__item--active {
+  background: var(--color-primary-50, #f0f0ff);
+}
+
+.voucher-product-dropdown__item--active {
+  outline: 1px solid var(--color-primary-200, #c4b5ff);
+}
+
+.voucher-product-dropdown__thumb {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-secondary, #f8fafc);
+  color: var(--color-text-muted, #94a3b8);
+  overflow: hidden;
+}
+
+.voucher-product-dropdown__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.voucher-product-dropdown__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.voucher-product-dropdown__name {
+  font-size: var(--text-sm, 13px);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-primary, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voucher-product-dropdown__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-0-5, 2px);
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-secondary, #64748b);
+}
+
+.voucher-product-dropdown__code {
+  display: inline-flex;
+  padding: 1px var(--space-1-5, 6px);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-neutral-100, #f1f5f9);
+  color: var(--color-neutral-700, #334155);
+}

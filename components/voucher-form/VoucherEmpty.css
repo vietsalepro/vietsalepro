@@ -1,0 +1,33 @@
+.voucher-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-8, 32px) var(--space-6, 24px);
+  border: 2px dashed var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-bg-secondary, #f8fafc);
+  text-align: center;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.voucher-empty__icon {
+  display: inline-flex;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.voucher-empty__title {
+  font-size: var(--text-md, 14px);
+  font-weight: var(--font-semibold, 600);
+  color: var(--color-text-primary, #0f172a);
+}
+
+.voucher-empty__description {
+  font-size: var(--text-sm, 13px);
+  line-height: var(--leading-normal, 1.5);
+}
+
+.voucher-empty__action {
+  margin-top: var(--space-2, 8px);
+}

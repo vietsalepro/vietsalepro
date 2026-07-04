@@ -1,0 +1,193 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  CART SECTION COMPONENT — Desktop POS
+ *  POS cart list with header, table, empty state and note footer.
+ *  Style: Import Goods (ig-card, slate) — uses --ig-* tokens.
+ * ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All visual values use var(--ig-*) / var(--vsp-*) /
+ *    var(--space-*) / var(--radius-*) / var(--font-*) — no
+ *    hardcoded values.
+ */
+
+/* ─── Colgroup column widths ───────────────────── */
+.cart-col-stt { width: 40px; }
+.cart-col-code { width: 110px; }
+.cart-col-qty { width: 140px; }
+.cart-col-price { width: 110px; }
+.cart-col-total { width: 130px; }
+.cart-col-action { width: 44px; }
+
+/* ─── Note footer ───────────────────────────────── */
+.cart-section__note-footer {
+  border-top: var(--border-width-default) var(--border-style-default)
+    var(--ig-border);
+  background-color: var(--ig-surface-alt);
+  padding: var(--space-3);
+}
+
+.cart-section__note-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.cart-section__note-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--vsp-font-size-xxs);
+  font-weight: var(--font-semibold);
+  color: var(--ig-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cart-section__note-label svg {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+.cart-section__note-textarea {
+  width: 100%;
+  font-size: var(--vsp-font-size-sm);
+  padding: var(--space-2-5);
+  border-radius: var(--radius-md);
+  border: var(--border-width-default) var(--border-style-default)
+    var(--ig-border);
+  background-color: var(--ig-surface);
+  resize: none;
+  min-height: 60px;
+  outline: none;
+}
+
+.cart-section__note-textarea:focus {
+  border-color: var(--ig-accent);
+  box-shadow: 0 0 0 2px var(--ig-focus-ring);
+}
+
+/* ─── Empty state ──────────────────────────────── */
+.cart-section__empty-body {
+  text-align: center;
+}
+
+.cart-section__empty-icon-wrap {
+  width: var(--space-16);
+  height: var(--space-16);
+  border-radius: var(--radius-md);
+  background-color: var(--ig-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+}
+
+.cart-section__empty-icon-wrap svg {
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--ig-text-muted);
+}
+
+.cart-section__empty-title {
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--font-medium);
+  color: var(--ig-text-secondary);
+}
+
+.cart-section__empty-subtitle {
+  font-size: var(--vsp-font-size-xxs);
+  color: var(--ig-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* ─── Cart header ──────────────────────────────── */
+.cart-section__header {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: var(--border-width-default) var(--border-style-default)
+    var(--ig-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.cart-section__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cart-section__title {
+  font-size: var(--vsp-font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--ig-text);
+}
+
+.cart-section__count-badge {
+  background-color: var(--ig-accent);
+  color: var(--ig-surface);
+  font-size: var(--vsp-font-size-xxxs);
+  font-weight: var(--font-bold);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-full);
+  line-height: 1;
+}
+
+.cart-section__clear-btn {
+  font-size: var(--vsp-font-size-xxs);
+  color: var(--ig-text-secondary);
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.cart-section__clear-btn:hover {
+  color: var(--ig-danger);
+  background-color: var(--ig-danger-bg);
+}
+
+.cart-section__clear-btn svg {
+  width: var(--space-3-5);
+  height: var(--space-3-5);
+}
+
+/* ─── Cart body / table ────────────────────────── */
+.cart-section__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-5);
+  min-height: 0;
+}
+
+.cart-section__head {
+  position: sticky;
+  top: 0;
+  background-color: var(--ig-surface);
+  z-index: var(--z-sticky, 10);
+}
+
+.cart-section__head-row {
+  font-size: var(--vsp-font-size-xxxs);
+  color: var(--ig-text-secondary);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cart-section__th {
+  padding: var(--space-3) var(--space-2);
+}
+
+/* Per-column right padding (preserves original column breathing room) */
+.cart-section__head th:nth-child(1) { padding-right: var(--space-2); }
+.cart-section__head th:nth-child(2) { padding-right: var(--space-3); }
+.cart-section__head th:nth-child(3) { padding-right: var(--space-4); }
+.cart-section__head th:nth-child(4) { padding-right: var(--space-4); }
+.cart-section__head th:nth-child(5) { padding-right: var(--space-4); }
+.cart-section__head th:nth-child(6) { padding-right: var(--space-4); }
+.cart-section__head th:nth-child(7) { padding-right: 0; }

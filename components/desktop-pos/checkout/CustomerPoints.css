@@ -1,0 +1,85 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  CUSTOMER POINTS COMPONENT — Desktop POS Checkout
+ *  Displays the active customer's loyalty points balance.
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All visual values use var(--color-*), var(--space-*),
+ *    var(--text-*), var(--font-*), var(--radius-*),
+ *    var(--motion-*) — no hardcoded values.
+ */
+
+/* ─── Root container ────────────────────────────────── */
+
+.customer-points {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background-color: var(--color-success-50);
+  border: var(--border-width-default) var(--border-style-default)
+    var(--color-success-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+}
+
+/* ─── Icon badge ────────────────────────────────────── */
+
+.customer-points__icon {
+  width: var(--space-9);
+  height: var(--space-9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-success-600);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.customer-points__icon-svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-text-inverse);
+}
+
+/* ─── Body ──────────────────────────────────────────── */
+
+.customer-points__body {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.customer-points__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.customer-points__value {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-slate-800);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Earn badge ────────────────────────────────────── */
+
+.customer-points__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-success-700);
+  background-color: var(--color-success-100);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.customer-points__badge-svg {
+  width: var(--space-1-5);
+  height: var(--space-1-5);
+  fill: currentColor;
+}

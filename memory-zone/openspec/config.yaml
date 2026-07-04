@@ -1,0 +1,45 @@
+schema: import-goods-bugfix
+
+context: |
+  Project: VietSale Pro v7
+  Tech stack: React SPA + Vite + TypeScript + Supabase
+  Project path: C:/Users/SUACAUBA/Downloads/Project/vietsale-pro-v7
+  No git repository present. Backups are created by copying the project folder.
+  Build / verification:
+    - Typecheck: npm run lint (runs tsc --noEmit)
+    - Production build: npm run build
+    - Dev server: npm run dev
+  ImportGoods bugfix conventions:
+    - Reference PLAN_REFINED.md at docs/plans/import-goods-bugfix/PLAN_REFINED.md.
+    - Each phase is split into sub-phases with their own acceptance criteria.
+    - Business logic, handlers, validation, API calls, state management, types.ts, and database/Supabase/migrations may be touched as required by the plan.
+    - After each sub-phase run npm run lint. After each major phase run npm run build and manual test one flow.
+    - Backup naming convention: vietsale-pro-v7_backup_import_goods_bugfix_<phase>_<YYYYMMDD_HHMMSS>
+
+rules:
+  proposal:
+    - Include explicit scope, non-goals, and rollback plan
+    - Identify affected files, service functions, RPCs, and database changes
+    - Reference docs/plans/import-goods-bugfix/PLAN_REFINED.md
+  specs:
+    - Use ADDED/MODIFIED/REMOVED delta sections
+    - Each requirement MUST have at least one GIVEN/WHEN/THEN scenario
+    - Focus on observable behavior and data contracts, not implementation details
+  design:
+    - Document decisions about state management, service/RPC changes, data mapping, validation, and prop changes
+    - Include risk level and mitigation for each phase
+  tasks:
+    - Group tasks under numbered phase headings (e.g., 1. Sub-phase A, 2. Sub-phase B, 3. Verification)
+    - Each task must be a checkbox: - [ ] X.Y Task description
+    - Include acceptance criteria checkboxes, lint/build verification, and manual test steps
+    - Keep each task completable in one session
+  review:
+    - Verify acceptance criteria from PLAN_REFINED are covered
+    - Verify intended business logic, types.ts, and Supabase changes are documented
+    - Verify dead-code list is complete
+  rollback:
+    - Provide exact backup/restore command for Windows PowerShell
+    - List files and database migrations that can be restored independently if safe
+  handoff:
+    - Summarize what was done, what is verified, and the next phase to start
+    - Note any blockers or decisions that need to be made in the next session

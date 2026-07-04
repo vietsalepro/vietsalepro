@@ -1,0 +1,88 @@
+.voucher-popover {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-primary, #ffffff);
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1));
+  overflow: hidden;
+  font-family: var(--font-family-primary, inherit);
+  color: var(--color-text-primary, #0f172a);
+  animation: voucher-popover-fade-in var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+}
+
+.voucher-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  min-height: 44px;
+}
+
+.voucher-popover__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5, 6px);
+  min-width: 0;
+}
+
+.voucher-popover__title-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.voucher-popover__title-text {
+  font-size: var(--text-sm, 13px);
+  font-weight: var(--font-semibold, 600);
+  line-height: var(--leading-compact, 1.2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voucher-popover__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--color-text-muted, #94a3b8);
+  cursor: pointer;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              color var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+}
+
+.voucher-popover__close:hover {
+  background: var(--color-bg-secondary, #f8fafc);
+  color: var(--color-text-primary, #0f172a);
+}
+
+.voucher-popover__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-100, #e0e0ff);
+}
+
+.voucher-popover__content {
+  padding: var(--space-4, 16px);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+@keyframes voucher-popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

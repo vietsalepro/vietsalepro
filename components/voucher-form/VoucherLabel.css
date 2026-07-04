@@ -1,0 +1,13 @@
+.voucher-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5, 2px);
+  font-size: var(--text-sm, 13px);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-secondary, #64748b);
+  line-height: var(--leading-normal, 1.5);
+}
+
+.voucher-label__required {
+  color: var(--color-danger-500, #ef4444);
+}

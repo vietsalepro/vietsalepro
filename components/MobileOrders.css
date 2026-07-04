@@ -1,0 +1,700 @@
+/* =========================================================
+   MobileOrders.css — Extracted presentation for MobileOrders.tsx
+   Uses existing Design Tokens (design-system-tokens.css + index.css).
+   No new tokens introduced.
+   ========================================================= */
+
+/* ── Page shell ─────────────────────────────────── */
+.mord-page {
+  min-height: 100vh;
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+/* ── Header row ─────────────────────────────────── */
+.mord-header { margin-bottom: var(--space-4); }
+.mord-title {
+  font-size: var(--vsp-font-size-xl);
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+  letter-spacing: var(--tracking-heading);
+}
+.mord-subtitle {
+  font-size: var(--vsp-font-size-xs);
+  color: var(--color-slate-500);
+  margin-top: 0.125rem;
+}
+
+/* Filter toggle button */
+.mord-filter-btn {
+  padding: 0.625rem;
+  border-radius: var(--radius-2xl);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+.mord-filter-btn:active { transform: scale(0.9); }
+.mord-filter-btn--inactive {
+  background: var(--color-bg-primary);
+  color: var(--color-slate-600);
+  box-shadow: var(--m-shadow-card);
+  border: 1px solid var(--color-slate-100);
+}
+.mord-filter-btn--active {
+  background: linear-gradient(to bottom right, var(--color-purple-500), var(--color-indigo-500));
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-lg);
+}
+.mord-filter-btn-icon { width: 1.25rem; height: 1.25rem; }
+
+/* ── Collapsible filters ─────────────────────────── */
+.mord-filters {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.mord-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.mord-filter-label {
+  display: block;
+  font-size: var(--vsp-font-size-xxs);
+  font-weight: var(--vsp-font-weight-semibold);
+  color: var(--color-slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.mord-filter-input-wrap { position: relative; }
+.mord-filter-input-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-slate-400);
+  pointer-events: none;
+}
+.mord-filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+.mord-filter-clear-btn {
+  padding: 0.625rem 1.25rem;
+}
+
+/* ── Loading spinner ─────────────────────────────── */
+.mord-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-12) 0;
+}
+.mord-loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 4px solid var(--color-purple-500);
+  border-top-color: transparent;
+  border-radius: var(--radius-full);
+  animation: mmSpin 0.8s linear infinite;
+}
+
+/* ── Empty state ─────────────────────────────────── */
+.mord-empty {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+}
+.mord-empty-icon-wrap {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto;
+  border-radius: var(--radius-3xl);
+  background: var(--color-purple-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+.mord-empty-icon { width: 1.75rem; height: 1.75rem; color: var(--color-purple-400); }
+.mord-empty-title {
+  color: var(--color-slate-700);
+  font-weight: var(--vsp-font-weight-semibold);
+}
+.mord-empty-hint {
+  color: var(--color-slate-400);
+  font-size: var(--vsp-font-size-sm);
+  margin-top: 0.25rem;
+}
+
+/* ── Order card ──────────────────────────────────── */
+.mord-card { padding: var(--space-4); }
+.mord-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+.mord-card-id-wrap { display: flex; align-items: center; gap: 0.625rem; }
+.mord-card-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(to bottom right, var(--color-purple-500), var(--color-indigo-500));
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+.mord-card-id {
+  display: block;
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+  font-size: var(--vsp-font-size-sm);
+}
+.mord-card-date {
+  font-size: var(--vsp-font-size-xs);
+  color: var(--color-slate-400);
+}
+
+/* Status badge (compact, on card) */
+.mord-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: var(--vsp-font-size-xxxs);
+  font-weight: var(--vsp-font-weight-bold);
+  border: 1px solid;
+}
+.mord-status-badge--cancelled {
+  background: var(--color-slate-100);
+  color: var(--color-slate-600);
+  border-color: var(--color-slate-200);
+}
+.mord-status-badge--returned {
+  background: var(--color-amber-50);
+  color: var(--color-amber-700);
+  border-color: var(--color-amber-100);
+}
+.mord-status-badge--debt {
+  background: var(--color-red-50);
+  color: var(--color-red-700);
+  border-color: var(--color-red-100);
+}
+.mord-status-badge--completed {
+  background: var(--color-emerald-50);
+  color: var(--color-emerald-700);
+  border-color: var(--color-emerald-100);
+}
+.mord-status-badge-icon { width: 0.75rem; height: 0.75rem; }
+
+/* Customer row inside card */
+.mord-customer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--vsp-font-size-sm);
+  color: var(--color-slate-600);
+  margin-bottom: var(--space-3);
+  background: var(--color-slate-50);
+  padding: 0.5rem var(--space-3);
+  border-radius: var(--radius-xl);
+}
+.mord-customer-icon { width: 0.875rem; height: 0.875rem; color: var(--color-slate-400); }
+.mord-customer-name { font-weight: var(--vsp-font-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Card stats footer */
+.mord-card-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-slate-100);
+}
+.mord-stat-label {
+  font-size: var(--vsp-font-size-xxxs);
+  color: var(--color-slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--vsp-font-weight-semibold);
+}
+.mord-stat-total {
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-purple-600);
+  font-size: var(--vsp-font-size-lg);
+}
+.mord-stat-paid {
+  font-weight: var(--vsp-font-weight-semibold);
+  color: var(--color-emerald-600);
+  font-size: var(--vsp-font-size-sm);
+}
+.mord-stat-right { text-align: right; }
+
+/* Debt note inside card */
+.mord-debt-note {
+  margin-top: 0.5rem;
+  font-size: var(--vsp-font-size-xs);
+  color: var(--color-red-600);
+  background: var(--color-red-50);
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--color-red-100);
+}
+.mord-debt-note-icon { width: 0.875rem; height: 0.875rem; }
+.mord-debt-note-value { font-weight: var(--vsp-font-weight-bold); }
+
+/* Pay-debt CTA on card */
+.mord-pay-debt-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(to right, var(--color-emerald-500), var(--color-cyan-500));
+  color: var(--color-text-inverse);
+  font-weight: var(--vsp-font-weight-semibold);
+  font-size: var(--vsp-font-size-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.25);
+  transition: transform 0.15s ease;
+}
+.mord-pay-debt-btn:active { transform: scale(0.95); }
+.mord-pay-debt-btn-icon { width: 0.875rem; height: 0.875rem; }
+
+/* ── Pagination ──────────────────────────────────── */
+.mord-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+  padding: 0.75rem var(--space-4);
+}
+.mord-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: var(--vsp-font-size-sm);
+  color: var(--color-slate-600);
+  background: var(--color-slate-100);
+  border-radius: var(--radius-xl);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.mord-page-btn:active { transform: scale(0.95); }
+.mord-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.mord-page-btn-icon { width: 1rem; height: 1rem; }
+.mord-page-info {
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-semibold);
+  color: var(--color-slate-700);
+}
+
+/* ── Modal shell ─────────────────────────────────── */
+.mord-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .mord-modal-overlay { align-items: center; }
+}
+.mord-modal {
+  background: var(--color-bg-primary);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  width: 100%;
+  height: 92vh;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  animation: mmSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  box-shadow: var(--shadow-2xl);
+}
+@media (min-width: 768px) {
+  .mord-modal {
+    border-radius: var(--radius-2xl);
+    max-width: 42rem;
+    height: auto;
+    animation: mmScaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+}
+
+/* Drag handle */
+.mord-modal-drag {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+@media (min-width: 768px) {
+  .mord-modal-drag { display: none; }
+}
+.mord-modal-drag-handle {
+  width: 2.5rem;
+  height: 0.25rem;
+  border-radius: var(--radius-full);
+  background: var(--color-slate-200);
+}
+
+/* Modal header */
+.mord-modal-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-slate-100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mord-modal-header-id-wrap { display: flex; align-items: center; gap: var(--space-3); }
+.mord-modal-header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-2xl);
+  background: linear-gradient(to bottom right, var(--color-purple-500), var(--color-indigo-500));
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+.mord-modal-header-icon-svg { width: 1.25rem; height: 1.25rem; }
+.mord-modal-title {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-base);
+  color: var(--color-slate-800);
+}
+.mord-modal-subtitle {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-slate-400);
+}
+.mord-modal-close {
+  padding: 0.5rem;
+  border-radius: var(--radius-xl);
+  background: var(--color-slate-100);
+  color: var(--color-slate-500);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.mord-modal-close:active { transform: scale(0.9); }
+.mord-modal-close-icon { width: 1.25rem; height: 1.25rem; }
+
+/* Modal body */
+.mord-modal-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.mord-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+/* Info / status tiles in modal */
+.mord-info-tile {
+  padding: var(--space-3);
+  border-radius: var(--radius-2xl);
+  border: 1px solid;
+}
+.mord-info-tile--customer {
+  background: var(--color-purple-50);
+  border-color: var(--color-purple-100);
+}
+.mord-info-tile-label {
+  font-size: var(--vsp-font-size-xxxs);
+  font-weight: var(--vsp-font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.mord-info-tile-label--customer { color: var(--color-purple-500); }
+.mord-info-tile-value {
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+  font-size: var(--vsp-font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mord-info-tile-value-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+.mord-info-tile-value-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Status tile variants */
+.mord-status-tile--cancelled {
+  background: var(--color-slate-100);
+  border-color: var(--color-slate-200);
+}
+.mord-status-tile--returned {
+  background: var(--color-amber-50);
+  border-color: var(--color-amber-100);
+}
+.mord-status-tile--debt {
+  background: var(--color-red-50);
+  border-color: var(--color-red-100);
+}
+.mord-status-tile--completed {
+  background: var(--color-emerald-50);
+  border-color: var(--color-emerald-100);
+}
+.mord-status-tile-label--cancelled { color: var(--color-slate-500); }
+.mord-status-tile-label--returned { color: var(--color-amber-600); }
+.mord-status-tile-label--debt { color: var(--color-red-500); }
+.mord-status-tile-label--completed { color: var(--color-emerald-600); }
+.mord-status-tile-value {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.mord-status-tile-value--cancelled { color: var(--color-slate-700); }
+.mord-status-tile-value--returned { color: var(--color-amber-700); }
+.mord-status-tile-value--debt { color: var(--color-red-700); }
+.mord-status-tile-value--completed { color: var(--color-emerald-700); }
+.mord-status-tile-icon { width: 1rem; height: 1rem; }
+
+/* ── Items list ──────────────────────────────────── */
+.mord-section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mord-section-title-icon { width: 0.875rem; height: 0.875rem; }
+.mord-section-title--reward { color: var(--color-purple-600); }
+
+.mord-items-card { overflow: hidden; }
+.mord-item {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-slate-100);
+}
+.mord-item:last-child { border-bottom: none; }
+.mord-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+.mord-item-name {
+  font-weight: var(--vsp-font-weight-semibold);
+  color: var(--color-slate-800);
+  font-size: var(--vsp-font-size-sm);
+}
+.mord-item-total {
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+  font-size: var(--vsp-font-size-sm);
+}
+.mord-item-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.mord-item-qty {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-slate-400);
+}
+.mord-item-tags { display: flex; align-items: center; gap: 0.375rem; }
+.mord-item-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--vsp-font-size-xxs);
+  font-weight: var(--vsp-font-weight-medium);
+  border: 1px solid;
+}
+.mord-item-tag--lot {
+  background: var(--color-indigo-50);
+  color: var(--color-indigo-700);
+  border-color: var(--color-indigo-100);
+}
+.mord-item-tag--expiry {
+  background: var(--color-amber-50);
+  color: var(--color-amber-700);
+  border-color: var(--color-amber-100);
+}
+
+/* ── Rewards block ───────────────────────────────── */
+.mord-rewards-card {
+  background: var(--color-purple-50);
+  border: 1px solid var(--color-purple-100);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+}
+.mord-reward-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-purple-100);
+}
+.mord-reward-row:last-child { border-bottom: none; }
+.mord-reward-name {
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-purple-900);
+  font-size: var(--vsp-font-size-sm);
+}
+.mord-reward-cost {
+  color: var(--color-purple-700);
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-semibold);
+}
+
+/* ── Summary block ───────────────────────────────── */
+.mord-summary {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mord-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mord-summary-label {
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-slate-600);
+  font-size: var(--vsp-font-size-sm);
+}
+.mord-summary-value {
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+}
+.mord-summary-paid-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-regular);
+}
+.mord-summary-paid-label { color: var(--color-slate-500); }
+.mord-summary-paid-value {
+  font-weight: var(--vsp-font-weight-semibold);
+  color: var(--color-emerald-600);
+}
+.mord-summary-debt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--vsp-font-size-sm);
+  background: var(--color-red-50);
+  padding: 0.5rem var(--space-3);
+  border-radius: var(--radius-xl);
+  color: var(--color-red-700);
+  border: 1px solid var(--color-red-100);
+}
+.mord-summary-debt-label { display: flex; align-items: center; gap: 0.375rem; }
+.mord-summary-debt-icon { width: 1rem; height: 1rem; }
+.mord-summary-debt-value { font-weight: var(--vsp-font-weight-bold); }
+
+/* ── Footer ──────────────────────────────────────── */
+.mord-footer {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-slate-100);
+}
+.mord-footer-actions {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-slate-100);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mord-readonly-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: var(--space-3);
+  padding: 0.5rem var(--space-3);
+  background: var(--color-slate-100);
+  border-radius: var(--radius-xl);
+  color: var(--color-slate-600);
+  font-size: var(--vsp-font-size-xs);
+}
+.mord-readonly-notice-icon { width: 1rem; height: 1rem; }
+
+.mord-print-btn {
+  width: 100%;
+  padding: 0.75rem 0;
+  border-radius: var(--radius-2xl);
+  font-size: var(--vsp-font-size-xs);
+}
+.mord-print-btn-icon { width: 1rem; height: 1rem; }
+
+.mord-detail-pay-btn {
+  width: 100%;
+  padding: 0.75rem 0;
+  border-radius: var(--radius-2xl);
+  background: linear-gradient(to right, var(--color-emerald-500), var(--color-cyan-500));
+  color: var(--color-text-inverse);
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.15s ease;
+}
+.mord-detail-pay-btn:active { transform: scale(0.95); }
+.mord-detail-pay-btn-icon { width: 1rem; height: 1rem; }
+
+.mord-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.mord-action-btn {
+  padding: 0.75rem 0;
+  border-radius: var(--radius-2xl);
+  font-size: var(--vsp-font-size-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.mord-action-btn:active { transform: scale(0.95); }
+.mord-action-btn--cancel { /* extends btn-danger */ }
+.mord-action-btn--return {
+  background: var(--color-amber-500);
+  color: var(--color-text-inverse);
+  font-weight: var(--vsp-font-weight-semibold);
+}
+.mord-action-btn-icon { width: 1rem; height: 1rem; }

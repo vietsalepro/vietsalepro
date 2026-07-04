@@ -1,0 +1,7 @@
+.voucher-section {
+  background: var(--color-bg-primary);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}

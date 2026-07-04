@@ -1,0 +1,131 @@
+/* ═══════════════════════════════════════════════════════════════
+ *  ACTION BUTTON STYLES — Sprint_03
+ *  Source: MASTER_ACTION_BUTTON_STANDARD_V1.md
+ *  All values use design tokens — no hardcoded colors.
+ * ═══════════════════════════════════════════════════════════════ */
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-compact);
+  font-family: var(--font-family-primary);
+  cursor: pointer;
+  opacity: var(--opacity-100);
+  outline: none;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+              opacity var(--motion-fast) var(--ease-standard);
+  user-select: none;
+  white-space: nowrap;
+  min-width: var(--space-10);
+  min-height: var(--space-9);
+}
+
+.action-button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-60);
+}
+
+.action-button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Full Width ─── */
+.action-button--full {
+  width: 100%;
+}
+
+/* ── Size: sm ─── */
+.action-button--sm {
+  height: var(--space-9);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
+  gap: var(--space-2);
+}
+
+/* ── Size: md ─── */
+.action-button--md {
+  height: var(--space-11);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
+  gap: var(--space-2);
+}
+
+/* ── Size: lg ─── */
+.action-button--lg {
+  height: calc(var(--space-12) + var(--space-1));
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-xl);
+  font-size: var(--text-md);
+  gap: var(--space-2);
+}
+
+/* ── Variant: primary ─── */
+.action-button--primary {
+  background-color: var(--color-primary-500);
+  color: var(--color-text-on-primary);
+  border: none;
+}
+
+.action-button--primary:not(:disabled):hover {
+  background-color: var(--color-primary-600);
+}
+
+/* ── Variant: secondary ─── */
+.action-button--secondary {
+  background-color: var(--color-purple-50);
+  color: var(--color-primary-600);
+  border: 1px solid var(--color-purple-200);
+}
+
+.action-button--secondary:not(:disabled):hover {
+  background-color: var(--color-purple-100);
+}
+
+/* ── Variant: danger ─── */
+.action-button--danger {
+  background-color: var(--color-danger-500);
+  color: var(--color-text-on-primary);
+  border: none;
+}
+
+.action-button--danger:not(:disabled):hover {
+  background-color: var(--color-danger-600);
+}
+
+/* ── Variant: ghost ─── */
+.action-button--ghost {
+  background-color: transparent;
+  color: var(--color-neutral-600);
+  border: 1px solid var(--color-border-default);
+}
+
+.action-button--ghost:not(:disabled):hover {
+  background-color: var(--color-neutral-50);
+}
+
+/* ── Spinner ─── */
+.action-button__spinner {
+  display: inline-block;
+  width: var(--text-md);
+  height: var(--text-md);
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: var(--radius-full);
+  animation: mmSpin var(--motion-slow) linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Icon Wrapper ─── */
+.action-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--text-lg);
+  height: var(--text-lg);
+  flex-shrink: 0;
+}

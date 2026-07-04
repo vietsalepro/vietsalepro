@@ -1,0 +1,111 @@
+/* ═══════════════════════════════════════════════════════════════
+ *  BATCH ACTIONS BAR STYLES
+ *  Floating toolbar for bulk selection actions.
+ *  All values use design tokens — no hardcoded colors.
+ * ═══════════════════════════════════════════════════════════════ */
+
+.batch-actions-bar {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-bg-primary);
+  border: var(--border-width-default) solid var(--color-neutral-200);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  z-index: var(--z-fixed);
+  animation: mmFadeUp var(--motion-normal) var(--ease-standard);
+}
+
+/* ── Selection count ─── */
+.batch-actions-bar__count {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+.batch-actions-bar__count-value {
+  color: var(--color-primary-600);
+}
+
+/* ── Divider ─── */
+.batch-actions-bar__divider {
+  width: var(--border-width-default);
+  height: var(--space-6);
+  background-color: var(--color-neutral-200);
+}
+
+/* ── Actions group ─── */
+.batch-actions-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Icon ─── */
+.batch-actions-bar__icon {
+  flex-shrink: 0;
+}
+
+/* ── Action button (neutral) ─── */
+.batch-actions-bar__btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-700);
+  border: none;
+  border-radius: var(--radius-lg);
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.batch-actions-bar__btn:hover {
+  background-color: var(--color-neutral-100);
+}
+
+/* ── Action button (danger) ─── */
+.batch-actions-bar__btn--danger {
+  color: var(--color-danger-600);
+}
+
+.batch-actions-bar__btn--danger:hover {
+  background-color: var(--color-danger-50);
+}
+
+/* ── Button label (hidden on small screens) ─── */
+.batch-actions-bar__btn-label {
+  /* visibility toggled via media query below */
+}
+
+@media (max-width: 640px) {
+  .batch-actions-bar__btn-label {
+    display: none;
+  }
+}
+
+/* ── Clear selection button ─── */
+.batch-actions-bar__clear {
+  margin-left: var(--space-2);
+  padding: var(--space-1);
+  color: var(--color-neutral-400);
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+
+.batch-actions-bar__clear:hover {
+  color: var(--color-neutral-600);
+  background-color: var(--color-neutral-100);
+}

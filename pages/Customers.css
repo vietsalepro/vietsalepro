@@ -1,0 +1,137 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  CUSTOMERS PAGE V2 STYLES — Sprint_29
+ *  DataGrid integration for the Customers list.
+ *  All values use design tokens from design-system-tokens.css.
+ *  ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── V2 DataGrid container ─────────────────────────────── */
+.customers-v2-datagrid {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Customer name link column ─────────────────────────── */
+.customers-v2-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.customers-v2-name:hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+/* ── Code column ───────────────────────────────────────── */
+.customers-v2-code {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+/* ── Phone column ──────────────────────────────────────── */
+.customers-v2-phone {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+}
+
+/* ── Address column ────────────────────────────────────── */
+.customers-v2-address {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Money columns ───────────────────────────────────────── */
+.customers-v2-money {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.customers-v2-debt {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-danger-600);
+}
+
+.customers-v2-debt.paid {
+  color: var(--color-emerald-600);
+}
+
+/* ── Points column ─────────────────────────────────────── */
+.customers-v2-points {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-primary-600);
+}
+
+/* ── Rank badge in DataGrid ────────────────────────────── */
+.customers-v2-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  background-color: var(--color-purple-100);
+  color: var(--color-purple-700);
+}
+
+/* ── Row action buttons ────────────────────────────────── */
+.customers-v2-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+/* ── Customers table column widths ─────────────────────── */
+.crm-table colgroup col:nth-child(1) { width: 44px; }
+.crm-table colgroup col:nth-child(2) { width: 110px; }
+.crm-table colgroup col:nth-child(3) { width: 220px; }
+.crm-table colgroup col:nth-child(4) { width: 140px; }
+.crm-table colgroup col:nth-child(5) { width: 260px; }
+.crm-table colgroup col:nth-child(6) { width: 150px; }
+.crm-table colgroup col:nth-child(7) { width: 170px; }
+.crm-table colgroup col:nth-child(8) { width: 80px; }
+.crm-table colgroup col:nth-child(9) { width: 120px; }
+.crm-table colgroup col:nth-child(10) { width: 100px; }
+
+/* ── Customer modal overlay override ───────────────────── */
+.customer-modal-overlay {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* ── Customer modal content dimensions ─────────────────── */
+.customer-modal-content {
+  width: 1658px;
+  height: 728px;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .customers-v2-datagrid {
+    min-height: 0;
+  }
+}

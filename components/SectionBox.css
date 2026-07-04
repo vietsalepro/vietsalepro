@@ -1,0 +1,77 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  VIETSALE PRO — SectionBox Component Styles
+ *  Design Standard: MASTER_SECTION_BOX_STANDARD_V1
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens Only:
+ *    - var(--color-*)  → background, border, text
+ *    - var(--space-*)  → padding, gap, margin
+ *    - var(--radius-*) → border-radius
+ *    - var(--shadow-*) → box-shadow
+ *    - var(--text-*)   → font-size
+ *    - var(--font-*)   → font-weight
+ *    - var(--border-*) → border width / style
+ */
+
+/* ── SectionBox ──────────────────────────────────── */
+.section-box {
+  background: var(--color-bg-primary);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* ── SectionHeader ───────────────────────────────── */
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+.section-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.section-header__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.section-header__title {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-compact);
+  color: var(--color-text-primary);
+  margin: 0;
+  padding: 0;
+}
+
+.section-header__subtitle {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-regular);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding: 0;
+}
+
+.section-header__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── SectionContent ──────────────────────────────── */
+.section-content {
+  padding: var(--space-4) var(--space-5);
+}

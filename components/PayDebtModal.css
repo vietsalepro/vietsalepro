@@ -1,0 +1,432 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  PAYDEBT MODAL — V2 Design Tokens & Component Styles
+ *  Source: UI_MIGRATION_MASTER_ROADMAP.md — Sprint_19 / Sprint_20
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All values use var(--color-*), var(--space-*), var(--radius-*),
+ *    var(--text-*), var(--font-*), var(--shadow-*), var(--border-*) —
+ *    no hardcoded values.
+ *  ═══════════════════════════════════════════════════════════════
+ */
+
+/* ─── Debt Info Section ──────────────────────────────── */
+.pay-debt-debt-info {
+  margin-bottom: var(--space-4);
+}
+
+.pay-debt-debt-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-6);
+}
+
+.pay-debt-debt-info-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.pay-debt-debt-info-value {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.pay-debt-debt-info-value.pay-debt-debt-info-amount {
+  color: var(--color-danger-600);
+  font-size: var(--text-lg);
+}
+
+.pay-debt-debt-info-divider {
+  grid-column: 1 / -1;
+  height: var(--border-width-default);
+  background: var(--color-border-default);
+  margin: var(--space-1) 0;
+}
+
+/* ─── Payment Form Section ────────────────────────────── */
+.pay-debt-form {
+  margin-bottom: var(--space-4);
+}
+
+.pay-debt-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* ─── Quick Fill Buttons ─────────────────────────────── */
+.pay-debt-quick-fill {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.pay-debt-quick-fill-btn {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.pay-debt-quick-fill-btn--primary {
+  background: var(--color-purple-50);
+  color: var(--color-primary-600);
+}
+
+.pay-debt-quick-fill-btn--primary:hover {
+  background: var(--color-purple-100);
+}
+
+.pay-debt-quick-fill-btn--secondary {
+  background: var(--color-slate-50);
+  color: var(--color-slate-600);
+}
+
+.pay-debt-quick-fill-btn--secondary:hover {
+  background: var(--color-slate-100);
+}
+
+/* ─── Multi-mode Quick Actions ───────────────────────── */
+.pay-debt-quick-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.pay-debt-quick-actions-count {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.pay-debt-quick-actions-buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ─── Multi-mode Table ───────────────────────────────── */
+.pay-debt-table-wrapper {
+  border: var(--border-width-default) var(--border-style-default)
+    var(--color-border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.pay-debt-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pay-debt-table-header th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  border-bottom: var(--border-width-default) var(--border-style-default)
+    var(--color-border-default);
+  white-space: nowrap;
+}
+
+.pay-debt-table-header th.pay-debt-table-header-right {
+  text-align: right;
+}
+
+.pay-debt-table-cell {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  border-bottom: var(--border-width-default) var(--border-style-default)
+    var(--color-border-light);
+  vertical-align: middle;
+}
+
+.pay-debt-table-row:last-child .pay-debt-table-cell {
+  border-bottom: none;
+}
+
+.pay-debt-table-cell.pay-debt-table-cell-amount {
+  text-align: right;
+  font-weight: var(--font-semibold);
+}
+
+.pay-debt-table-cell.pay-debt-table-cell-debt {
+  color: var(--color-danger-600);
+}
+
+.pay-debt-table-row.pay-debt-table-row-paid .pay-debt-table-cell {
+  text-decoration: line-through;
+  opacity: var(--opacity-60);
+}
+
+.pay-debt-table-checkbox-cell {
+  width: var(--space-8);
+  text-align: center;
+}
+
+.pay-debt-table-checkbox {
+  width: var(--space-4);
+  height: var(--space-4);
+  cursor: pointer;
+  accent-color: var(--color-primary-600);
+}
+
+/* ─── Table: Order Info Row ──────────────────────────── */
+.pay-debt-table-order-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.pay-debt-table-order-icon {
+  color: var(--color-primary-500);
+  margin-top: var(--space-0-5);
+  flex-shrink: 0;
+}
+
+.pay-debt-table-order-id {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.pay-debt-table-order-date {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-0-5);
+}
+
+/* ─── Table: Payment Input ───────────────────────────── */
+.pay-debt-table-input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  text-align: right;
+  font-size: var(--text-sm);
+  border: var(--border-width-default) var(--border-style-default)
+    var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font-weight: var(--font-regular);
+  outline: none;
+  box-sizing: border-box;
+  min-height: var(--space-8);
+}
+
+.pay-debt-table-input:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 var(--border-width-default) var(--color-primary-500);
+}
+
+.pay-debt-table-input--full {
+  border-color: var(--color-success-300);
+  background: var(--color-success-50);
+  color: var(--color-success-700);
+  font-weight: var(--font-semibold);
+}
+
+/* ─── Table: "Trả đủ" Button ────────────────────────── */
+.pay-debt-table-fill-btn {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.pay-debt-table-fill-btn:hover {
+  background: var(--color-primary-100);
+}
+
+/* ─── Total Row ──────────────────────────────────────── */
+.pay-debt-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-top: var(--border-width-medium) var(--border-style-default)
+    var(--color-border-default);
+  margin-top: var(--space-2);
+}
+
+.pay-debt-total-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+.pay-debt-total-value {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.pay-debt-total-value.pay-debt-total-value-debt {
+  color: var(--color-danger-600);
+}
+
+.pay-debt-total-value.pay-debt-total-value-paid {
+  color: var(--color-success-600);
+}
+
+.pay-debt-total-row-inner {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.pay-debt-total-remaining {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ─── Empty State ─────────────────────────────────────── */
+.pay-debt-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.pay-debt-empty-state-icon {
+  font-size: var(--space-8);
+  margin-bottom: var(--space-3);
+  opacity: var(--opacity-50);
+}
+
+.pay-debt-empty-state-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ─── Footer ─────────────────────────────────────────── */
+.pay-debt-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: var(--border-width-default) var(--border-style-default)
+    var(--color-border-default);
+  margin-top: var(--space-4);
+}
+
+/* ─── Processing State ───────────────────────────────── */
+.pay-debt-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  gap: var(--space-3);
+}
+
+/* ─── Debt Total Badge ──────────────────────────────── */
+.pay-debt-total-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.pay-debt-total-badge.pay-debt-total-badge-danger {
+  background: var(--color-danger-50);
+  color: var(--color-danger-700);
+}
+
+.pay-debt-total-badge.pay-debt-total-badge-success {
+  background: var(--color-success-50);
+  color: var(--color-success-700);
+}
+
+/* ─── Reprocess Banner ──────────────────────────────── */
+.pay-debt-reprocess-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-warning-50);
+  border: var(--border-width-default) var(--border-style-default)
+    var(--color-warning-200);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.pay-debt-reprocess-banner-icon {
+  color: var(--color-warning-500);
+  flex-shrink: 0;
+  margin-top: var(--space-0-5);
+}
+
+.pay-debt-reprocess-banner-text {
+  font-size: var(--text-sm);
+  color: var(--color-warning-800);
+}
+
+/* ─── Responsive: single column below 640px ──────────── */
+@media (max-width: 639px) {
+  .pay-debt-debt-info-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .pay-debt-form-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .pay-debt-table {
+    font-size: var(--text-xs);
+  }
+
+  .pay-debt-table-header th,
+  .pay-debt-table-cell {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .pay-debt-modal-footer {
+    flex-direction: column-reverse;
+    gap: var(--space-2);
+  }
+
+  .pay-debt-modal-footer > * {
+    width: 100%;
+  }
+
+  .pay-debt-quick-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: stretch;
+  }
+
+  .pay-debt-quick-actions-buttons {
+    justify-content: center;
+  }
+
+  .pay-debt-quick-fill {
+    flex-wrap: wrap;
+  }
+}

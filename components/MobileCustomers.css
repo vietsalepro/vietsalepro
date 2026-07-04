@@ -1,0 +1,600 @@
+/* =========================================================
+   MobileCustomers.css — Extracted presentation for MobileCustomers.tsx
+   Uses existing Design Tokens (design-system-tokens.css + index.css).
+   No new tokens introduced.
+   ========================================================= */
+
+/* ── Page shell ─────────────────────────────────── */
+.mcust-page {
+  min-height: 100vh;
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+/* ── Header row ─────────────────────────────────── */
+.mcust-header { margin-bottom: var(--space-4); }
+.mcust-title {
+  font-size: var(--vsp-font-size-xl);
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+  letter-spacing: var(--tracking-heading);
+}
+.mcust-subtitle {
+  font-size: var(--vsp-font-size-xs);
+  color: var(--color-slate-500);
+  margin-top: 0.125rem;
+}
+.mcust-header-actions { gap: 0.375rem; }
+
+/* Icon button (sort / export / import) — reuses m-card surface */
+.mcust-icon-btn {
+  padding: 0.625rem;
+  color: var(--color-slate-600);
+  transition: transform 0.15s ease;
+}
+.mcust-icon-btn:active { transform: scale(0.9); }
+
+/* Add button — extends shared btn-primary */
+.mcust-add-btn {
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-2xl);
+}
+
+/* ── Sort dropdown ───────────────────────────────── */
+.mcust-sort-dropdown {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-slate-100);
+  padding: 0.5rem 0;
+  z-index: var(--z-popover);
+  min-width: 180px;
+}
+.mcust-sort-option {
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--vsp-font-size-sm);
+  color: var(--color-slate-700);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.mcust-sort-option:hover { background: var(--color-bg-tertiary); }
+.mcust-sort-option--active {
+  color: var(--color-indigo-600);
+  font-weight: var(--vsp-font-weight-medium);
+}
+
+/* ── Search bar input ────────────────────────────── */
+.mcust-search-input {
+  flex: 1;
+  margin-left: var(--space-2);
+  background: transparent;
+  font-size: var(--vsp-font-size-sm);
+  outline: none;
+  color: var(--color-slate-700);
+}
+.mcust-search-input::placeholder { color: var(--color-slate-400); }
+.mcust-search-icon { color: var(--color-slate-400); }
+
+/* ── Loading spinner ─────────────────────────────── */
+.mcust-loading { padding: var(--space-12) 0; }
+.mcust-loading-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-purple-500);
+  animation: mmSpin 0.8s linear infinite;
+}
+
+/* ── Empty state ─────────────────────────────────── */
+.mcust-empty {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+}
+.mcust-empty-icon-wrap {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto;
+  border-radius: var(--radius-3xl);
+  background: var(--color-purple-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+.mcust-empty-icon { width: 1.75rem; height: 1.75rem; color: var(--color-purple-400); }
+.mcust-empty-title {
+  color: var(--color-slate-700);
+  font-weight: var(--vsp-font-weight-semibold);
+}
+.mcust-empty-hint {
+  color: var(--color-slate-400);
+  font-size: var(--vsp-font-size-sm);
+  margin-top: 0.25rem;
+}
+
+/* ── Customer card ───────────────────────────────── */
+.mcust-card { padding: var(--space-4); }
+.mcust-card-row { gap: var(--space-3); }
+.mcust-card-avatar {
+  width: 3rem;
+  height: 3rem;
+  font-size: var(--vsp-font-size-base);
+  flex-shrink: 0;
+}
+.mcust-card-name {
+  font-weight: var(--vsp-font-weight-bold);
+  color: var(--color-slate-800);
+}
+.mcust-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: var(--vsp-font-weight-bold);
+}
+.mcust-card-meta {
+  gap: var(--space-3);
+  font-size: var(--vsp-font-size-xs);
+  color: var(--color-slate-500);
+}
+.mcust-card-meta-icon { width: 0.75rem; height: 0.75rem; }
+.mcust-card-stats {
+  gap: var(--space-4);
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--color-slate-100);
+}
+.mcust-card-stats-group { gap: var(--space-4); }
+.mcust-stat-label {
+  font-size: 10px;
+  color: var(--color-slate-400);
+  text-transform: uppercase;
+  font-weight: var(--vsp-font-weight-bold);
+  letter-spacing: 0.05em;
+}
+.mcust-stat-spent { color: var(--color-purple-600); }
+.mcust-stat-debt--positive { color: var(--color-red-600); }
+.mcust-stat-debt--zero { color: var(--color-slate-400); }
+.mcust-stat-points { color: var(--color-amber-600); }
+.mcust-stat-value {
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-bold);
+}
+
+/* Pay-debt CTA on card */
+.mcust-pay-debt-btn {
+  margin-top: var(--space-2);
+  width: 100%;
+  padding: 0.5rem 0;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(to right, var(--color-emerald-500), var(--color-cyan-500));
+  color: var(--color-text-inverse);
+  font-weight: var(--vsp-font-weight-semibold);
+  font-size: var(--vsp-font-size-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.25);
+  transition: transform 0.15s ease;
+}
+.mcust-pay-debt-btn:active { transform: scale(0.95); }
+.mcust-pay-debt-icon { width: 0.875rem; height: 0.875rem; }
+
+/* ── Pagination ──────────────────────────────────── */
+.mcust-pagination {
+  margin-top: var(--space-4);
+  padding: 0.75rem var(--space-4);
+}
+.mcust-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: var(--vsp-font-size-sm);
+  color: var(--color-slate-600);
+  background: var(--color-slate-100);
+  border-radius: var(--radius-xl);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.mcust-page-btn:active { transform: scale(0.95); }
+.mcust-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.mcust-page-btn-icon { width: 1rem; height: 1rem; }
+.mcust-page-info {
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-semibold);
+  color: var(--color-slate-700);
+}
+
+/* ── Modal shell (shared by detail + add) ────────── */
+.mcust-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .mcust-modal-overlay { align-items: center; }
+}
+.mcust-modal {
+  background: var(--color-bg-primary);
+  border-top-left-radius: var(--radius-2xl);
+  border-top-right-radius: var(--radius-2xl);
+  width: 100%;
+  height: 92vh;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  animation: mmSlideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@media (min-width: 768px) {
+  .mcust-modal {
+    border-radius: var(--radius-2xl);
+    max-width: 32rem;
+    height: auto;
+    animation: mmFadeIn 0.2s ease both;
+  }
+}
+.mcust-modal-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-slate-100);
+  background: var(--color-bg-tertiary);
+  border-top-left-radius: var(--radius-2xl);
+  border-top-right-radius: var(--radius-2xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mcust-modal-close {
+  color: var(--color-slate-400);
+  padding: 0.25rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.mcust-modal-close:hover {
+  color: var(--color-slate-600);
+  background: var(--color-slate-200);
+}
+.mcust-modal-close-icon { width: 1.5rem; height: 1.5rem; }
+.mcust-modal-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ── Detail modal header avatar ──────────────────── */
+.mcust-detail-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-indigo-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-indigo-600);
+  font-size: var(--vsp-font-size-lg);
+  font-weight: var(--vsp-font-weight-bold);
+}
+.mcust-detail-name {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-base);
+  color: var(--color-slate-900);
+}
+.mcust-detail-meta {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-slate-500);
+}
+
+/* ── Tabs ────────────────────────────────────────── */
+.mcust-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-slate-100);
+  padding: 0 var(--space-4);
+}
+.mcust-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.75rem 0;
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  color: var(--color-slate-500);
+}
+.mcust-tab--active {
+  border-bottom-color: var(--color-indigo-600);
+  color: var(--color-indigo-600);
+}
+.mcust-tab-icon { width: 1rem; height: 1rem; }
+
+/* ── Info tab stat tiles ─────────────────────────── */
+.mcust-stat-tile {
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+  border: 1px solid;
+}
+.mcust-stat-tile--spent {
+  background: var(--color-indigo-50);
+  border-color: var(--color-indigo-100);
+}
+.mcust-stat-tile--points {
+  background: var(--color-amber-50);
+  border-color: var(--color-amber-100);
+}
+.mcust-stat-tile-label {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-semibold);
+}
+.mcust-stat-tile-label--spent { color: var(--color-indigo-500); }
+.mcust-stat-tile-label--points { color: var(--color-amber-500); }
+.mcust-stat-tile-value {
+  font-size: var(--vsp-font-size-lg);
+  font-weight: var(--vsp-font-weight-bold);
+}
+.mcust-stat-tile-value--spent { color: var(--color-indigo-700); }
+.mcust-stat-tile-value--points { color: var(--color-amber-700); }
+
+/* ── Info tab summary block ──────────────────────── */
+.mcust-summary-block {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+}
+.mcust-summary-label {
+  color: var(--color-slate-500);
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-regular);
+}
+.mcust-summary-value {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-base);
+}
+.mcust-summary-value--debt-positive { color: var(--color-red-600); }
+.mcust-summary-value--debt-zero { color: var(--color-slate-700); }
+.mcust-summary-value--address {
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-slate-700);
+  font-size: var(--vsp-font-size-sm);
+}
+
+/* ── Detail pay-debt button ──────────────────────── */
+.mcust-detail-pay-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: linear-gradient(to right, var(--color-emerald-500), var(--color-cyan-500));
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-xl);
+  padding: 0.75rem 0;
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-semibold);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: background 0.2s ease;
+}
+.mcust-detail-pay-btn:hover {
+  background: linear-gradient(to right, var(--color-emerald-600), var(--color-cyan-600));
+}
+.mcust-detail-pay-chip {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.2);
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-bold);
+}
+
+/* ── Detail action buttons (edit / delete) ───────── */
+.mcust-action-row { gap: var(--space-3); padding-top: 0.5rem; }
+.mcust-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-xl);
+  padding: 0.75rem 0;
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.mcust-action-btn--edit { background: var(--color-indigo-600); }
+.mcust-action-btn--edit:hover { background: var(--color-indigo-700); }
+.mcust-action-btn--delete { background: var(--color-red-500); }
+.mcust-action-btn--delete:hover { background: var(--color-red-600); }
+.mcust-action-icon { width: 1rem; height: 1rem; }
+
+/* ── History / Points list items ─────────────────── */
+.mcust-list-item {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3);
+}
+.mcust-list-item-id {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-sm);
+  color: var(--color-indigo-600);
+}
+.mcust-list-item-date {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-slate-500);
+}
+.mcust-list-item-amount {
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-slate-900);
+}
+.mcust-debt-chip {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-red-600);
+  background: var(--color-red-50);
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+.mcust-status-chip {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  background: var(--color-success-100);
+  color: var(--color-success-700);
+}
+.mcust-empty-tab {
+  text-align: center;
+  padding: var(--space-8) 0;
+}
+.mcust-empty-tab-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-slate-300);
+  margin: 0 auto 0.5rem;
+}
+.mcust-empty-tab-text {
+  color: var(--color-slate-500);
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+}
+.mcust-tab-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-indigo-600);
+  animation: mmSpin 0.8s linear infinite;
+}
+.mcust-points-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-slate-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3);
+}
+.mcust-points-desc {
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-slate-800);
+}
+.mcust-points-date {
+  font-size: var(--vsp-font-size-xs);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-slate-400);
+}
+.mcust-points-value {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-base);
+}
+.mcust-points-value--positive { color: var(--color-success-600); }
+.mcust-points-value--negative { color: var(--color-red-500); }
+
+/* ── Add customer form ───────────────────────────── */
+.mcust-form { padding: var(--space-5); }
+.mcust-form-field { margin-bottom: var(--space-4); }
+.mcust-form-label {
+  display: block;
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-slate-700);
+  margin-bottom: 0.25rem;
+}
+.mcust-form-input {
+  width: 100%;
+  border: 1px solid var(--color-slate-300);
+  border-radius: var(--radius-xl);
+  padding: 0.625rem var(--space-4);
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-regular);
+  color: var(--color-slate-900);
+  background: var(--color-bg-primary);
+  outline: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.mcust-form-input:focus {
+  border-color: var(--color-indigo-500);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+}
+.mcust-form-submit {
+  width: 100%;
+  background: var(--color-indigo-600);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-xl);
+  padding: 0.75rem 0;
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.mcust-form-submit:hover { background: var(--color-indigo-700); }
+.mcust-form-title {
+  font-weight: var(--vsp-font-weight-bold);
+  font-size: var(--vsp-font-size-lg);
+  color: var(--color-slate-800);
+}
+
+/* ── Toast ───────────────────────────────────────── */
+.mcust-toast-wrap {
+  position: fixed;
+  top: var(--space-4);
+  left: 0;
+  right: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--space-4);
+}
+.mcust-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.625rem var(--space-4);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--vsp-font-size-sm);
+  font-weight: var(--vsp-font-weight-medium);
+  color: var(--color-text-inverse);
+}
+.mcust-toast--error { background: var(--color-red-500); }
+.mcust-toast--success { background: var(--color-success-500); }
+.mcust-toast-close {
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.mcust-toast-close:hover { color: var(--color-text-inverse); }
+.mcust-toast-close-icon { width: 1rem; height: 1rem; }
+
+/* ── Hidden file input ───────────────────────────── */
+.mcust-file-input { display: none; }

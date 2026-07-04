@@ -1,0 +1,87 @@
+.voucher-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;
+}
+
+.voucher-select-wrapper--full-width {
+  width: 100%;
+  display: flex;
+}
+
+.voucher-select-wrapper--full-width .voucher-select {
+  width: 100%;
+  flex: 1;
+}
+
+.voucher-select {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-bg-primary, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  font-family: var(--font-family-primary, inherit);
+  font-weight: var(--font-regular, 400);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              box-shadow var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.voucher-select:focus {
+  border-color: var(--color-border-focus, #6c4dff);
+  box-shadow: 0 0 0 3px var(--color-primary-100, #e0e0ff);
+}
+
+.voucher-select:disabled {
+  background: var(--color-bg-disabled, #f1f5f9);
+  color: var(--color-text-disabled, #cbd5e1);
+  cursor: not-allowed;
+}
+
+.voucher-select-wrapper--error .voucher-select {
+  border-color: var(--color-border-error, #ef4444);
+}
+
+.voucher-select-wrapper--error .voucher-select:focus {
+  border-color: var(--color-danger-600, #dc2626);
+  box-shadow: 0 0 0 3px var(--color-danger-100, #fee2e2);
+}
+
+/* Sizes */
+.voucher-select-wrapper--sm .voucher-select {
+  height: 28px;
+  padding: 0 var(--space-2, 8px);
+  font-size: var(--text-xs, 12px);
+}
+
+.voucher-select-wrapper--md .voucher-select {
+  height: 36px;
+  padding: 0 var(--space-3, 12px);
+  font-size: var(--text-sm, 13px);
+}
+
+.voucher-select-wrapper--lg .voucher-select {
+  height: 44px;
+  padding: 0 var(--space-4, 16px);
+  font-size: var(--text-md, 14px);
+}
+
+.voucher-select option:disabled {
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.voucher-select__error {
+  margin-top: var(--space-1, 4px);
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-danger, #991b1b);
+  line-height: var(--leading-normal, 1.5);
+}

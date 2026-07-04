@@ -1,0 +1,59 @@
+.voucher-textarea-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;
+}
+
+.voucher-textarea-wrapper--full-width {
+  width: 100%;
+  display: flex;
+}
+
+.voucher-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-2-5, 10px) var(--space-3, 12px);
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-bg-primary, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  font-family: var(--font-family-primary, inherit);
+  font-size: var(--text-sm, 13px);
+  line-height: var(--leading-normal, 1.5);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              box-shadow var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+}
+
+.voucher-textarea::placeholder {
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.voucher-textarea:focus {
+  border-color: var(--color-border-focus, #6c4dff);
+  box-shadow: 0 0 0 3px var(--color-primary-100, #e0e0ff);
+}
+
+.voucher-textarea:disabled {
+  background: var(--color-bg-disabled, #f1f5f9);
+  color: var(--color-text-disabled, #cbd5e1);
+  cursor: not-allowed;
+  resize: none;
+}
+
+.voucher-textarea-wrapper--error .voucher-textarea {
+  border-color: var(--color-border-error, #ef4444);
+}
+
+.voucher-textarea-wrapper--error .voucher-textarea:focus {
+  border-color: var(--color-danger-600, #dc2626);
+  box-shadow: 0 0 0 3px var(--color-danger-100, #fee2e2);
+}
+
+.voucher-textarea__error {
+  margin-top: var(--space-1, 4px);
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-danger, #991b1b);
+  line-height: var(--leading-normal, 1.5);
+}

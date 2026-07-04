@@ -1,0 +1,33 @@
+.voucher-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--color-border-default, #ffffff);
+  flex-shrink: 0;
+  background: var(--color-bg-primary, #ffffff);
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+
+.voucher-actions > * {
+  flex: 1;
+}
+
+@media (max-width: 1023px) {
+  .voucher-actions {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 767px) {
+  .voucher-actions {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .voucher-actions > * {
+    width: 100%;
+  }
+}

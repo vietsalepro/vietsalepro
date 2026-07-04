@@ -1,0 +1,83 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  PAYMENT METHOD COMPONENT — Desktop POS Checkout
+ *  Toggle between cash and transfer payment methods.
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All visual values use var(--color-*), var(--space-*),
+ *    var(--text-*), var(--font-*), var(--radius-*),
+ *    var(--shadow-*), var(--motion-*) — no hardcoded values.
+ */
+
+/* ─── Root ──────────────────────────────────────────── */
+
+.payment-method {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Section label ─────────────────────────────────── */
+
+.payment-method__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--space-2);
+}
+
+/* ─── Option grid ───────────────────────────────────── */
+
+.payment-method__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+/* ─── Option button ─────────────────────────────────── */
+
+.payment-method__option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--space-10);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-default) var(--border-style-default)
+    var(--color-border-default);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+              background-color var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.payment-method__option:hover {
+  border-color: var(--color-slate-300);
+  background-color: var(--color-slate-50);
+}
+
+.payment-method__option svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-text-muted);
+}
+
+/* ─── Active option ─────────────────────────────────── */
+
+.payment-method__option--active {
+  border-color: var(--color-slate-800);
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-800);
+  box-shadow: var(--shadow-sm);
+}
+
+.payment-method__option--active svg {
+  color: var(--color-slate-800);
+}

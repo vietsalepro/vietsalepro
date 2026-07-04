@@ -1,0 +1,77 @@
+/* ═══════════════════════════════════════════════════════════════
+   FORM FIELD — Sprint_08 (Refactored)
+   Source: MASTER_FORM_STANDARD_V1.md, MASTER_INPUT_STANDARD_V1.md
+   Design Tokens: design-system-tokens.css
+   ═══════════════════════════════════════════════════════════════
+   All values use CSS custom properties (Design Tokens) only.
+   No hardcoded colors, spacing, typography, or shadows.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── FormField Container ─────────────────────────────── */
+.vs-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+  width: 100%;
+}
+
+/* ── Label Row ────────────────────────────────────────── */
+.vs-form-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1-5);
+}
+
+/* ── Label Text ───────────────────────────────────────── */
+.vs-form-field-label {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
+  user-select: none;
+}
+
+/* ── Required Indicator ───────────────────────────────── */
+.vs-form-field-label--required::after {
+  content: "*";
+  color: var(--color-danger-500);
+  font-weight: var(--font-semibold);
+  margin-left: var(--space-0-5);
+}
+
+/* ── Description ─────────────────────────────────────── */
+.vs-form-field-description {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-2);
+}
+
+/* ── Input Content ───────────────────────────────────── */
+.vs-form-field-content {
+  flex: 1;
+}
+
+/* ── Helper Text ──────────────────────────────────────── */
+.vs-form-field-helper {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  margin-top: var(--space-1-5);
+}
+
+/* ── Error Message ───────────────────────────────────── */
+.vs-form-field-error {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--color-danger-500);
+  line-height: var(--leading-normal);
+  margin-top: var(--space-1-5);
+}

@@ -1,0 +1,85 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  ORDERS PAGE V2 STYLES — Sprint_29
+ *  DataGrid integration for the Orders list.
+ *  All values use design tokens from design-system-tokens.css.
+ *  ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── V2 DataGrid container ─────────────────────────────── */
+.orders-v2-datagrid {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Order ID link column ──────────────────────────────── */
+.orders-v2-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.orders-v2-code:hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+.orders-v2-code-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background-color: var(--color-purple-50);
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+}
+
+/* ── Date column ───────────────────────────────────────── */
+.orders-v2-date {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+}
+
+/* ── Amount columns ────────────────────────────────────── */
+.orders-v2-amount {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.orders-v2-paid {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-emerald-600);
+}
+
+/* ── Row action buttons ────────────────────────────────── */
+.orders-v2-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .orders-v2-datagrid {
+    min-height: 0;
+  }
+}

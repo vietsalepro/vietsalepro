@@ -1,0 +1,39 @@
+.voucher-totals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  padding: var(--space-4, 16px);
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) var(--color-border-default, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-bg-primary, #ffffff);
+}
+
+.voucher-totals__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-2, 8px) 0;
+  border-bottom: 1px solid var(--color-border-light, #f1f5f9);
+}
+
+.voucher-totals__item:last-child {
+  border-bottom: none;
+}
+
+.voucher-totals__label {
+  font-size: var(--text-sm, 13px);
+  color: var(--color-text-secondary, #64748b);
+}
+
+.voucher-totals__value {
+  font-size: var(--text-md, 14px);
+  font-weight: var(--font-semibold, 600);
+  color: var(--color-text-primary, #0f172a);
+  white-space: nowrap;
+}
+
+.voucher-totals__item--highlight .voucher-totals__value {
+  color: var(--color-primary-600, #5b3fe0);
+  font-size: var(--text-lg, 16px);
+}

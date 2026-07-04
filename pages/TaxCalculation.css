@@ -1,0 +1,165 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  VIETSALE PRO — TaxCalculation Page Styles
+ *  Remediation Unit: pages/TaxCalculation.tsx
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens Only:
+ *    - var(--color-*)  → background, border, text
+ *    - var(--space-*)  → padding, gap, margin
+ *    - var(--radius-*) → border-radius
+ *    - var(--shadow-*) → box-shadow
+ *    - var(--text-*)   → font-size
+ *    - var(--font-*)   → font-weight
+ *    - var(--border-*) → border width / style
+ *    - var(--motion-*) → transitions
+ *    - var(--tracking-*)→ letter-spacing
+ */
+
+/* ── Page Layout ─────────────────────────────────── */
+.tax-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 100vh;
+  padding: var(--space-10) var(--space-4);
+  animation: mmFadeIn var(--motion-normal) var(--ease-standard);
+}
+
+@media (min-width: 768px) {
+  .tax-page {
+    padding: var(--space-10) 0;
+  }
+}
+
+/* ── Loading State ───────────────────────────────── */
+.tax-page__loading {
+  min-height: var(--space-96);
+}
+
+/* ── Header Card ─────────────────────────────────── */
+.tax-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--color-bg-primary);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .tax-page__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.tax-page__header-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.tax-page__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-2xl);
+  background: var(--color-primary-500);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-lg);
+}
+
+.tax-page__title {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-compact);
+  letter-spacing: var(--tracking-heading);
+  color: var(--color-text-primary);
+}
+
+.tax-page__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.tax-page__status-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.tax-page__status-dot--taxable {
+  background: var(--color-warning-500);
+  animation: mmFadeIn var(--motion-normal) var(--ease-standard) infinite alternate;
+}
+
+.tax-page__status-dot--exempt {
+  background: var(--color-success-500);
+}
+
+.tax-page__status-label {
+  font-family: var(--font-family-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+/* ── Actions / Year Picker ───────────────────────── */
+.tax-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tax-page__year-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-secondary);
+  border: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  border-radius: var(--radius-2xl);
+  transition: box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.tax-page__year-picker:focus-within {
+  box-shadow: 0 0 0 2px rgba(108, 77, 255, 0.2);
+}
+
+.tax-page__year-picker-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.tax-page__year-select {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: var(--font-family-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  outline: none;
+}
+
+.tax-page__year-select:focus {
+  outline: none;
+}

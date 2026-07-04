@@ -1,0 +1,33 @@
+## Context
+
+This change implements sub-phase 12.3: Fix components + final build from the multi-tenancy migration plan.
+
+## Goals / Non-Goals
+
+**Goals:**
+- Fix lỗi TypeScript trong `components/`.
+
+- Code changes:
+  - Sửa từng component để pass `strict`.
+  - Chạy `npm run build` cuối cùng.
+
+**Non-Goals:**
+- Other sub-phases.
+
+## Decisions
+
+- Follow the exact SQL and code examples from `KE_HOACH_CHI_TIET_MULTI_TENANCY_SUB_PHASE.md`.
+- Run `npm run lint` after code changes.
+
+## Risks / Trade-offs
+
+- [Medium] Mistakes in SQL migrations can block data access. Mitigation: run on staging first and keep backup.
+
+## Migration / Rollback
+
+- Forward: apply the SQL/code changes in tasks.md.
+- Rollback: restore files and revert SQL changes from backup.
+
+## Open Questions
+
+- None specific to this sub-phase.

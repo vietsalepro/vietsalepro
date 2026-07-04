@@ -1,0 +1,417 @@
+/* =========================================================
+   MobilePOS.css — Extracted inline styles for MobilePOS.tsx
+   ========================================================= */
+
+/* ── Local custom properties ───────────────────── */
+:root {
+  --mpos-gradient: linear-gradient(135deg, var(--pos-primary) 0%, #7B61FF 50%, #8E7CFF 100%);
+}
+
+/* ── Shared text color helpers ─────────────────── */
+.mpos-text-primary { color: #1A1F36; }
+.mpos-text-secondary { color: var(--pos-text-secondary); }
+.mpos-text-muted { color: var(--pos-text-muted); }
+.mpos-text-danger { color: var(--pos-danger); }
+.mpos-text-success { color: #16A34A; }
+.mpos-text-warning { color: #F97316; }
+.mpos-text-brand { color: var(--pos-primary); }
+
+/* ── Root container ────────────────────────────── */
+.mpos-root { color: #1A1F36; }
+
+/* ── Header ────────────────────────────────────── */
+.mpos-header {
+  height: calc(70px + env(safe-area-inset-top));
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--pos-border);
+  z-index: 30;
+}
+.mpos-back-btn {
+  background: var(--pos-bg);
+  color: #1A1F36;
+}
+.mpos-title { color: #1A1F36; }
+.mpos-cart-badge {
+  background: var(--mpos-gradient);
+  box-shadow: 0 4px 12px rgba(108, 77, 255, 0.35);
+}
+
+/* ── Scrollable body ───────────────────────────── */
+.mpos-scroll-body { overscroll-behavior-y: contain; }
+.mpos-refresh-icon { color: var(--pos-primary); }
+
+/* ── Search section ────────────────────────────── */
+.mpos-search-card {
+  height: 56px;
+  border-radius: 20px;
+  border: 1px solid var(--pos-border);
+  box-shadow: 0 4px 20px rgba(108, 77, 255, 0.06);
+}
+.mpos-search-icon { color: var(--pos-text-secondary); }
+.mpos-search-input { color: #1A1F36; }
+.mpos-clear-btn { background: var(--pos-bg); }
+
+.mpos-qr-btn {
+  width: 64px;
+  height: 56px;
+  border-radius: 20px;
+  background: white;
+  border: 1px solid var(--pos-border);
+  box-shadow: 0 4px 20px rgba(108, 77, 255, 0.06);
+  color: var(--pos-primary);
+}
+
+/* ── Product results dropdown ──────────────────── */
+.mpos-results-dropdown {
+  border-radius: 20px;
+  border: 1px solid var(--pos-border);
+  box-shadow: 0 12px 40px rgba(108, 77, 255, 0.15);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.mpos-result-item {
+  border-bottom: 1px solid #F4F4F8;
+  opacity: 1;
+  cursor: pointer;
+}
+.mpos-result-item:hover { background: #FAFAFE; }
+.mpos-result-item--out {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mpos-result-item--out:hover { background: white; }
+
+.mpos-thumb { background: var(--pos-bg); }
+.mpos-stock--out { color: var(--pos-danger); }
+.mpos-stock--in { color: var(--pos-success); }
+
+/* ── Customer card ─────────────────────────────── */
+.mpos-customer-card {
+  height: 90px;
+  background: white;
+  border-radius: 24px;
+  border: 1px solid var(--pos-border);
+  box-shadow: 0 4px 20px rgba(108, 77, 255, 0.06);
+  transition: border-color 0.2s ease;
+}
+.mpos-customer-card--active {
+  border: 1.5px solid rgba(108, 77, 255, 0.2);
+}
+.mpos-avatar {
+  background: var(--mpos-gradient);
+  box-shadow: 0 4px 12px rgba(108, 77, 255, 0.25);
+}
+.mpos-customer-name { color: var(--pos-primary); }
+.mpos-loyalty-badge {
+  background: rgba(34, 197, 94, 0.13);
+  color: #16A34A;
+}
+.mpos-icon-btn { background: var(--pos-bg); }
+.mpos-icon-btn-danger { background: var(--pos-danger-bg); }
+
+/* ── Cart list card ────────────────────────────── */
+.mpos-cart-card {
+  background: white;
+  border-radius: 24px;
+  border: 1px solid var(--pos-border);
+  box-shadow: 0 4px 20px rgba(108, 77, 255, 0.06);
+  overflow: hidden;
+}
+.mpos-cart-header { border-bottom: none; }
+.mpos-cart-header--has-items { border-bottom: 1px solid #F4F4F8; }
+.mpos-count-badge {
+  background: rgba(108, 77, 255, 0.08);
+  color: var(--pos-primary);
+}
+.mpos-empty-icon { color: #E5E7EB; }
+
+/* ── Note section ──────────────────────────────── */
+.mpos-note-input {
+  background: var(--pos-bg);
+  border-radius: 16px;
+  border: 1px dashed rgba(108, 77, 255, 0.25);
+  color: #1A1F36;
+}
+.mpos-btn-secondary {
+  background: var(--pos-bg);
+  color: var(--pos-text-secondary);
+}
+.mpos-add-note-btn {
+  border-radius: 16px;
+  border: 1.5px dashed rgba(108, 77, 255, 0.25);
+  background: rgba(108, 77, 255, 0.02);
+  color: var(--pos-primary);
+}
+
+/* ── Summary card ──────────────────────────────── */
+.mpos-summary-card {
+  background: white;
+  border-radius: 24px;
+  border: 1px solid var(--pos-border);
+  box-shadow: 0 4px 20px rgba(108, 77, 255, 0.06);
+}
+.mpos-total-amount {
+  font-size: var(--vsp-font-size-4xl);
+  background-image: var(--mpos-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+.mpos-savings-badge {
+  background: rgba(34, 197, 94, 0.13);
+  color: #16A34A;
+}
+.mpos-rewards-chips { border-top: 1px solid #F4F4F8; }
+.mpos-reward-chip {
+  background: #FCE7F3;
+  color: #BE185D;
+}
+
+/* ── CTA buttons ───────────────────────────────── */
+.mpos-cta-primary {
+  height: 72px;
+  border-radius: 24px;
+  background: var(--mpos-gradient);
+  color: white;
+  box-shadow: 0 8px 24px rgba(108, 77, 255, 0.32);
+}
+.mpos-cta-icon { background: rgba(255, 255, 255, 0.22); }
+.mpos-cta-badge {
+  background: white;
+  color: var(--pos-primary);
+}
+.mpos-cta-payment {
+  height: 72px;
+  border-radius: 24px;
+  background: var(--mpos-gradient);
+  color: white;
+  box-shadow: 0 12px 32px rgba(108, 77, 255, 0.45);
+  opacity: 1;
+  cursor: pointer;
+}
+.mpos-cta-payment--disabled {
+  background: var(--color-slate-300);
+  box-shadow: none;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.mpos-bottom-spacer { height: 80px; }
+
+/* ── Toast ─────────────────────────────────────── */
+.mpos-toast {
+  color: white;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+.mpos-toast--success { background: var(--pos-success); }
+.mpos-toast--error { background: var(--pos-danger); }
+
+/* ── Success overlay ───────────────────────────── */
+.mpos-success-overlay {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.mpos-success-circle {
+  background: var(--mpos-gradient);
+  box-shadow: 0 12px 40px rgba(108, 77, 255, 0.5);
+}
+
+/* ── Payment modal ─────────────────────────────── */
+.mpos-payment-total {
+  font-size: var(--vsp-font-size-5xl);
+  background-image: var(--mpos-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.mpos-pay-method {
+  border-radius: 18px;
+  border: 1.5px solid var(--pos-border);
+  background: white;
+}
+.mpos-pay-method--selected {
+  border: 2px solid var(--pos-primary);
+  background: rgba(108, 77, 255, 0.03);
+}
+.mpos-pay-method-icon { color: var(--pos-text-secondary); }
+.mpos-pay-method-icon--selected { color: var(--pos-primary); }
+.mpos-pay-method-label { color: var(--pos-text-secondary); }
+.mpos-pay-method-label--selected { color: var(--pos-primary); }
+.mpos-amount-input {
+  background: var(--pos-bg);
+  border-radius: 16px;
+  border: 1.5px solid var(--pos-border);
+  color: #1A1F36;
+}
+.mpos-quick-amount {
+  background: rgba(108, 77, 255, 0.06);
+  color: var(--pos-primary);
+}
+.mpos-confirm-btn {
+  border-radius: 20px;
+  background: var(--mpos-gradient);
+  color: white;
+  box-shadow: 0 8px 24px rgba(108, 77, 255, 0.35);
+  opacity: 1;
+}
+.mpos-confirm-btn--processing { opacity: 0.7; }
+
+/* ── Change confirm modal ──────────────────────── */
+.mpos-warning-circle { background: var(--pos-warning-bg); }
+.mpos-btn-debt {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+}
+
+/* ── Reward modal ──────────────────────────────── */
+.mpos-points-box {
+  background: rgba(108, 77, 255, 0.06);
+  border: 1px solid rgba(108, 77, 255, 0.12);
+}
+.mpos-reward-card {
+  border-radius: 18px;
+  border: 1px solid var(--pos-border);
+  background: var(--pos-bg);
+  opacity: 0.6;
+}
+.mpos-reward-card--available {
+  border: 1.5px solid rgba(108, 77, 255, 0.19);
+  background: white;
+  opacity: 1;
+}
+.mpos-redeem-btn {
+  background: #E5E7EB;
+  color: var(--pos-text-muted);
+}
+.mpos-redeem-btn--available {
+  background: var(--mpos-gradient);
+  color: white;
+}
+
+/* ── Promotion modal ───────────────────────────── */
+.mpos-promo-item {
+  border-radius: 18px;
+  border: 1.5px solid var(--pos-border);
+  background: white;
+}
+.mpos-promo-item--selected {
+  border: 2px solid var(--pos-primary);
+  background: rgba(108, 77, 255, 0.03);
+}
+.mpos-checkbox {
+  background: transparent;
+  border: 2px solid var(--color-slate-300);
+}
+.mpos-checkbox--checked {
+  background: var(--pos-primary);
+  border: none;
+}
+.mpos-check-icon { color: white; }
+.mpos-modal-footer { border-top: 1px solid #F4F4F8; }
+.mpos-promo-confirm-btn {
+  background: var(--mpos-gradient);
+  box-shadow: 0 6px 18px rgba(108, 77, 255, 0.3);
+}
+
+/* ── Quick add customer modal ──────────────────── */
+.mpos-modal-input {
+  background: var(--pos-bg);
+  border-radius: 14px;
+  border: 1.5px solid var(--pos-border);
+  color: #1A1F36;
+}
+.mpos-btn-primary {
+  background: var(--mpos-gradient);
+}
+
+/* ── Clear cart confirm modal ──────────────────── */
+.mpos-danger-circle { background: var(--pos-danger-bg); }
+.mpos-btn-danger {
+  background: linear-gradient(135deg, var(--pos-danger), var(--color-danger-600));
+}
+
+/* ── SwipeableCartItem ─────────────────────────── */
+.mpos-swipe-delete-bg {
+  background: linear-gradient(90deg, transparent, var(--pos-danger-bg) 40%);
+}
+.mpos-swipe-content { touch-action: pan-y; }
+.mpos-item-name {
+  color: #1A1F36;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mpos-item-name--invalid { color: var(--pos-danger); }
+.mpos-lot-select {
+  background: rgba(108, 77, 255, 0.06);
+  color: var(--pos-primary);
+  border-radius: 6px;
+  border: none;
+}
+.mpos-unit-select {
+  background: var(--pos-bg);
+  color: var(--pos-text-secondary);
+  border-radius: 6px;
+  border: none;
+}
+.mpos-stepper {
+  background: var(--pos-bg);
+  border-radius: 10px;
+  padding: 2px;
+  border: 1px solid var(--pos-border);
+}
+
+/* ── BottomSheet ───────────────────────────────── */
+.mpos-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.mpos-sheet {
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+.mpos-handle { background: #E5E7EB; }
+
+/* ── CenterModal ───────────────────────────────── */
+.mpos-center-modal {
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* ── CustomerSearchModal ───────────────────────── */
+.mpos-customer-search-box {
+  background: var(--pos-bg);
+  border-radius: 14px;
+}
+.mpos-add-customer-btn {
+  background: rgba(108, 77, 255, 0.06);
+  color: var(--pos-primary);
+}
+.mpos-customer-item {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--pos-border);
+}
+.mpos-debt-badge {
+  background: var(--pos-danger-bg);
+  color: var(--color-danger-600);
+}
+
+/* ── CustomerOrdersModal ───────────────────────── */
+.mpos-customer-info-box {
+  background: rgba(108, 77, 255, 0.03);
+  border: 1px solid rgba(108, 77, 255, 0.12);
+}
+.mpos-order-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--pos-border);
+}

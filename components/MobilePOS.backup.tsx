@@ -1,0 +1,1307 @@
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import {
+  Search, Plus, X, User, ScanBarcode, ShoppingCart, Gift, Trash2, Check,
+  ChevronDown, Minus, AlertTriangle, Loader2, Percent, Tag, Star, Award, Package,
+  DollarSign, BadgePercent, ShoppingBag, BookOpen, Sparkles, Heart, CreditCard,
+  Banknote, Wallet, FileText, Printer, Receipt, History, RefreshCw, ChevronRight,
+  ChevronLeft
+} from 'lucide-react';
+import { Product, Customer, Invoice, CartItem, AppSettings, Reward, Promotion } from '../types';
+import BarcodeScannerFix from './BarcodeScannerFix';
+import { applyPromotions } from '../utils/promotionUtils';
+
+interface MobilePOSProps {
+  products: Product[];
+  customers: Customer[];
+  invoices: Invoice[];
+  activeTabId: number;
+  onUpdateInvoices: (invoices: Invoice[]) => void;
+  onSetActiveTabId: (id: number) => void;
+  onCheckout: (invoiceId: number, paymentMethod: string, amountPaid: number, customerId?: string, appliedPromotions?: Promotion[]) => void;
+  onAddCustomer: (customer: Customer) => Promise<void>;
+  appSettings: AppSettings;
+  rewards: Reward[];
+  promotions: Promotion[];
+}
+
+interface PromotionSuggestion {
+  promotion: Promotion;
+  result: {
+    appliedPromotions: Array<{ promotionId: string; promotionName: string; discountAmount: number; description?: string }>;
+    totalDiscount: number;
+  };
+}
+
+interface ToastState {
+  message: string;
+  type: 'success' | 'error';
+}
+
+export function MobilePOS(props: MobilePOSProps) {
+  const {
+    products, customers, invoices, activeTabId,
+    onUpdateInvoices, onSetActiveTabId, onCheckout, onAddCustomer,
+    appSettings, rewards, promotions
+  } = props;
+
+  const activeInvoice = invoices.find(i => i.id === activeTabId) || invoices[0];
+  const activeCart = activeInvoice?.cart || [];
+  const activeCustomerId = activeInvoice?.customerId || '';
+  const activeRedeemedRewards = activeInvoice?.redeemedRewards || [];
+  const activeCustomer = customers.find(c => c.id === activeCustomerId);
+
+  // Search states
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showProductResults, setShowProductResults] = useState(false);
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Payment Modal
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [amountPaid, setAmountPaid] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showChangeConfirm, setShowChangeConfirm] = useState(false);
+
+  // Reward Modal
+  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
+
+  // Promotion Modal
+  const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
+  const [selectedPromotions, setSelectedPromotions] = useState<Promotion[]>([]);
+  const [promotionSuggestions, setPromotionSuggestions] = useState<PromotionSuggestion[]>([]);
+
+  // Quick add customer
+  const [isQuickAddCustomerOpen, setIsQuickAddCustomerOpen] = useState(false);
+  const [quickAddForm, setQuickAddForm] = useState({ name: '', phone: '' });
+
+  // Customer orders modal
+  const [isCustomerOrdersOpen, setIsCustomerOrdersOpen] = useState(false);
+
+  // Advanced customer search
+  const [isAdvancedCustomerSearchOpen, setIsAdvancedCustomerSearchOpen] = useState(false);
+
+  // Categories from products
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category).filter(Boolean));
+    return ['all', ...Array.from(cats)] as string[];
+  }, [products]);
+
+  // Compute promotion suggestions
+  useEffect(() => {
+    if (activeCart.length > 0 && promotions.length > 0) {
+      const suggestions: PromotionSuggestion[] = [];
+      for (const promo of promotions.filter(p => p.isActive)) {
+        const result = applyPromotions(activeCart, promo, activeCustomer || undefined);
+        if (result.totalDiscount > 0) {
+          suggestions.push({ promotion: promo, result });
+        }
+      }
+      suggestions.sort((a, b) => b.result.totalDiscount - a.result.totalDiscount);
+      setPromotionSuggestions(suggestions);
+    } else {
+      setPromotionSuggestions([]);
+    }
+  }, [activeCart, activeCustomer, promotions]);
+
+  // Filter products by search
+  const filteredProducts = useMemo(() => {
+    const term = productSearchTerm.toLowerCase();
+    return products.filter(p => {
+      const matchSearch = !term || 
+        p.name.toLowerCase().includes(term) ||
+        p.code.toLowerCase().includes(term) ||
+        (p.barcode && p.barcode.toLowerCase().includes(term));
+      const matchCategory = selectedCategory === 'all' || p.category === selectedCategory;
+      return matchSearch && matchCategory;
+    });
+  }, [products, productSearchTerm, selectedCategory]);
+
+  // Filter customers by search
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchTerm) return [];
+    const term = customerSearchTerm.toLowerCase();
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(term) ||
+      (c.phone && c.phone.toLowerCase().includes(term)) ||
+      (c.code && c.code.toLowerCase().includes(term))
+    );
+  }, [customers, customerSearchTerm]);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+
+  // Invoice helpers
+  const updateInvoice = (updatedInvoice: Invoice) => {
+    onUpdateInvoices(invoices.map(inv => inv.id === updatedInvoice.id ? updatedInvoice : inv));
+  };
+
+  // Cart ops
+  const addToCart = (product: Product) => {
+    const inv = activeInvoice;
+    if (!inv) return;
+    const existing = inv.cart.find(item => item.id === product.id);
+    if (existing) {
+      updateInvoice({ ...inv, cart: inv.cart.map(item =>
+        item.id === product.id ? { ...item, cartQuantity: item.cartQuantity + 1 } : item
+      )});
+    } else {
+      const newItem: CartItem = {
+        ...product,
+        cartQuantity: 1,
+        selectedUnit: undefined,
+        selectedLot: product.lots && product.lots.length > 0 ? product.lots[0] : undefined,
+      };
+      updateInvoice({ ...inv, cart: [...inv.cart, newItem] });
+    }
+    setShowProductResults(false);
+    setProductSearchTerm('');
+    showToast(`Đã thêm: ${product.name}`);
+  };
+
+  const updateCartItem = (itemId: string, updates: Record<string, any>) => {
+    const inv = activeInvoice;
+    if (!inv) return;
+    updateInvoice({ ...inv, cart: inv.cart.map(item =>
+      item.id === itemId ? { ...item, ...updates } : item
+    )});
+  };
+
+  const removeCartItem = (itemId: string) => {
+    const inv = activeInvoice;
+    if (!inv) return;
+    updateInvoice({ ...inv, cart: inv.cart.filter(item => item.id !== itemId) });
+  };
+
+  const checkStockAvailability = (product: Product, quantity: number): boolean => {
+    if (!product) return false;
+    if (quantity <= 0) return false;
+    return quantity <= product.quantity + 5;
+  };
+
+  const handleSelectCustomer = (customer: Customer) => {
+    const inv = activeInvoice;
+    if (!inv) return;
+    updateInvoice({ ...inv, customerId: customer.id });
+    setIsCustomerDropdownOpen(false);
+    setCustomerSearchTerm('');
+  };
+
+  // Tab ops
+  const handleAddTab = () => {
+    const maxId = invoices.length > 0 ? Math.max(...invoices.map(i => i.id)) : 0;
+    const newId = maxId + 1;
+    const newInvoice: Invoice = {
+      id: newId,
+      name: `Hóa đơn ${newId}`,
+      cart: [],
+      customerId: '',
+      redeemedRewards: [],
+    };
+    onUpdateInvoices([...invoices, newInvoice]);
+    onSetActiveTabId(newId);
+  };
+
+  const handleCloseTab = (e: React.MouseEvent, tabId: number) => {
+    e.stopPropagation();
+    if (invoices.length <= 1) return;
+    const remaining = invoices.filter(i => i.id !== tabId);
+    onUpdateInvoices(remaining);
+    if (activeTabId === tabId) {
+      onSetActiveTabId(remaining[0].id);
+    }
+  };
+
+  // Cart total
+  const cartTotal = useMemo(() => {
+    return activeCart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
+  }, [activeCart]);
+
+  const totalPromotionDiscount = useMemo(() => {
+    let total = 0;
+    for (const promo of selectedPromotions) {
+      const result = applyPromotions(activeCart, promo, activeCustomer || undefined);
+      total += result.totalDiscount;
+    }
+    return total;
+  }, [selectedPromotions, activeCart, activeCustomer]);
+
+  const finalTotal = Math.max(0, cartTotal - totalPromotionDiscount);
+
+  // Payment
+  const handleOpenPayment = () => {
+    if (activeCart.length === 0) {
+      showToast('Giỏ hàng trống!', 'error');
+      return;
+    }
+    setIsPaymentOpen(true);
+    setPaymentMethod('cash');
+    setAmountPaid('');
+    setIsProcessing(false);
+    setShowChangeConfirm(false);
+  };
+
+  const handlePaymentConfirm = async () => {
+    setIsProcessing(true);
+    try {
+      const paid = parseFloat(amountPaid) || 0;
+      if (paymentMethod === 'cash') {
+        const change = paid - finalTotal;
+        if (change >= 0) {
+          await onCheckout(activeInvoice!.id, paymentMethod, paid, activeInvoice?.customerId || undefined, selectedPromotions.length > 0 ? selectedPromotions : undefined);
+          const inv = activeInvoice;
+          if (inv) {
+            updateInvoice({ ...inv, cart: [], customerId: '', redeemedRewards: [] });
+            setSelectedPromotions([]);
+          }
+          setIsPaymentOpen(false);
+          showToast('Thanh toán thành công!');
+        } else {
+          setShowChangeConfirm(true);
+        }
+      } else {
+        await onCheckout(activeInvoice!.id, paymentMethod, paid, activeInvoice?.customerId || undefined, selectedPromotions.length > 0 ? selectedPromotions : undefined);
+        const inv = activeInvoice;
+        if (inv) {
+          updateInvoice({ ...inv, cart: [], customerId: '', redeemedRewards: [] });
+          setSelectedPromotions([]);
+        }
+        setIsPaymentOpen(false);
+        showToast('Thanh toán thành công!');
+      }
+    } catch (err) {
+      showToast('Lỗi thanh toán: ' + String(err), 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Rewards
+  const handleRedeemReward = (reward: Reward) => {
+    if (!activeCustomer) { showToast('Chọn khách hàng trước!', 'error'); return; }
+    const inv = activeInvoice;
+    if (!inv) return;
+    const existing = inv.redeemedRewards.find(r => r.rewardId === reward.id);
+    if (existing) {
+      updateInvoice({ ...inv, redeemedRewards: inv.redeemedRewards.map(r =>
+        r.rewardId === reward.id ? { ...r, quantity: r.quantity + 1 } : r
+      )});
+    } else {
+      updateInvoice({ ...inv, redeemedRewards: [...inv.redeemedRewards, { rewardId: reward.id, rewardName: reward.name, pointCost: reward.pointCost, quantity: 1 }] });
+    }
+  };
+
+  const handleRemoveRedeemedReward = (rewardId: string) => {
+    const inv = activeInvoice;
+    if (!inv) return;
+    updateInvoice({ ...inv, redeemedRewards: inv.redeemedRewards.filter(r => r.rewardId !== rewardId) });
+  };
+
+  // Promotions
+  const handleTogglePromotion = (promo: Promotion) => {
+    setSelectedPromotions(prev => {
+      const exists = prev.find(p => p.id === promo.id);
+      if (exists) return prev.filter(p => p.id !== promo.id);
+      return [...prev, promo];
+    });
+  };
+
+  // Quick add customer
+  const handleQuickAddCustomer = async () => {
+    if (!quickAddForm.name.trim()) { showToast('Nhập tên khách hàng', 'error'); return; }
+    try {
+      const newCustomer: Customer = {
+        id: `KH${Date.now()}`,
+        code: `KH${Date.now()}`.slice(-8),
+        name: quickAddForm.name.trim(),
+        phone: quickAddForm.phone.trim(),
+        address: '',
+        debt: 0,
+        totalSpent: 0,
+        loyaltyPoints: 0,
+        createdAt: new Date().toISOString(),
+      };
+      await onAddCustomer(newCustomer);
+      handleSelectCustomer(newCustomer);
+      setQuickAddForm({ name: '', phone: '' });
+      setIsQuickAddCustomerOpen(false);
+      showToast('Thêm khách hàng thành công!');
+    } catch (err) {
+      showToast('Lỗi khi thêm khách hàng', 'error');
+    }
+  };
+
+  // Click outside
+  const productSearchRef = useRef<HTMLDivElement>(null);
+  const customerSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
+        setShowProductResults(false);
+      }
+      if (customerSearchRef.current && !customerSearchRef.current.contains(e.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Mobile bottom padding
+  const hasCartItems = activeCart.length > 0;
+  const cartItemCount = activeCart.reduce((sum, item) => sum + item.cartQuantity, 0);
+
+  return (
+    <div className="flex flex-col h-full m-bg overflow-hidden">
+      {/* Fixed Top Search Area */}
+      <div className="m-glass shrink-0 z-20">
+        {/* Customer Selector */}
+        <div className="px-3 pt-2 pb-1" ref={customerSearchRef}>
+          {activeCustomer ? (
+            <div className="flex items-center justify-between bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                  {activeCustomer.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-indigo-700 truncate">{activeCustomer.name}</p>
+                  <p className="text-[10px] text-indigo-500">
+                    {activeCustomer.loyaltyPoints?.toLocaleString('vi-VN') || 0} điểm
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsCustomerOrdersOpen(true)}
+                  className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg"
+                >
+                  <History className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    const inv = activeInvoice;
+                    if (inv) updateInvoice({ ...inv, customerId: '' });
+                  }}
+                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm khách hàng..."
+                  value={customerSearchTerm}
+                  onChange={(e) => { setCustomerSearchTerm(e.target.value); setIsCustomerDropdownOpen(true); }}
+                  onFocus={() => setIsCustomerDropdownOpen(true)}
+                  className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition-all"
+                />
+              </div>
+              <button
+                onClick={() => setIsQuickAddCustomerOpen(true)}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setIsAdvancedCustomerSearchOpen(true)}
+                className="p-2 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors"
+                title="Tìm nâng cao"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+          
+          {/* Customer Dropdown */}
+          {isCustomerDropdownOpen && customerSearchTerm && (
+            <div className="absolute left-3 right-3 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 animate-fade-in">
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => handleSelectCustomer(c)}
+                    className="px-3 py-2.5 hover:bg-indigo-50 cursor-pointer border-b border-gray-50 flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{c.name}</p>
+                      <p className="text-xs text-gray-400">{c.phone}</p>
+                    </div>
+                    {c.debt > 0 && (
+                      <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Nợ</span>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-center text-sm text-gray-400">Không tìm thấy</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Product Search + Scanner Row */}
+        <div className="px-3 pb-2 pt-1" ref={productSearchRef}>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 m-search flex items-center px-3 py-2">
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Tìm sản phẩm..."
+                value={productSearchTerm}
+                onChange={(e) => { setProductSearchTerm(e.target.value); setShowProductResults(true); }}
+                onFocus={() => setShowProductResults(true)}
+                className="flex-1 ml-2 bg-transparent text-sm outline-none placeholder:text-slate-400 text-slate-700"
+              />
+            </div>
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="p-2.5 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-md shadow-purple-200/50 active:scale-90 transition-transform"
+              aria-label="Quét mã vạch"
+            >
+              <ScanBarcode className="w-5 h-5" strokeWidth={2.2} />
+            </button>
+          </div>
+
+          {/* Category Filter Chips */}
+          {categories.length > 1 && (
+            <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar pb-0.5">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat === selectedCategory ? 'all' : cat)}
+                  className={
+                    'shrink-0 px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all active:scale-95 ' +
+                    (selectedCategory === cat
+                      ? 'bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-md shadow-purple-200/50'
+                      : 'bg-white text-slate-600 border border-slate-200')
+                  }
+                >
+                  {cat === 'all' ? 'Tất cả' : cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Product Results Dropdown */}
+          {showProductResults && productSearchTerm && (
+            <div className="absolute left-3 right-3 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-[50vh] overflow-y-auto z-50 animate-fade-in">
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map(product => {
+                  const isOutOfStock = product.quantity <= 0;
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => !isOutOfStock && addToCart(product)}
+                      className={`flex items-center gap-3 p-3 border-b last:border-0 border-gray-50 ${
+                        isOutOfStock ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'hover:bg-indigo-50 cursor-pointer'
+                      }`}
+                    >
+                      <div className="relative w-10 h-10 shrink-0">
+                        <img
+                          src={product.image || 'https://via.placeholder.com/40'}
+                          className="w-full h-full rounded-lg object-cover bg-gray-100 border border-gray-200"
+                          alt=""
+                        />
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 bg-black/10 flex items-center justify-center rounded-lg">
+                            <span className="bg-red-600 text-white text-[8px] px-1 rounded font-bold">HẾT</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{product.name}</p>
+                        <p className="text-xs text-gray-400">{product.code}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-indigo-600">{product.price.toLocaleString('vi-VN')}</p>
+                        <p className={`text-[10px] font-medium ${isOutOfStock ? 'text-red-500' : 'text-green-600'}`}>
+                          {isOutOfStock ? 'Hết hàng' : `${product.quantity} ${product.unit}`}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-8 text-center text-gray-400 text-sm">Không tìm thấy sản phẩm</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Invoice Tabs (horizontal scroll) */}
+      <div className="bg-white border-b border-gray-100 shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex items-center px-2 py-1 gap-1 min-w-max">
+          {invoices.map(inv => (
+            <div
+              key={inv.id}
+              onClick={() => onSetActiveTabId(inv.id)}
+              className={`group relative flex items-center gap-2 px-3 py-1.5 text-xs font-medium cursor-pointer rounded-lg transition-all ${
+                activeTabId === inv.id
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <span>{inv.name}</span>
+              {invoices.length > 1 && (
+                <button
+                  onClick={(e) => handleCloseTab(e, inv.id)}
+                  className="p-0.5 rounded-full hover:bg-black/20 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={handleAddTab}
+            className="p-1.5 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 hover:text-gray-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Cart Items (scrollable) */}
+      <div className="flex-1 overflow-y-auto pb-4">
+        {/* Rewards/promos quick bar */}
+        {activeCustomer && (
+          <div className="px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setIsRewardModalOpen(true)}
+              className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-lg text-xs font-medium text-purple-700"
+            >
+              <Gift className="w-3.5 h-3.5" />
+              Quà tặng
+              {activeRedeemedRewards.length > 0 && (
+                <span className="bg-purple-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px]">
+                  {activeRedeemedRewards.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setIsPromotionModalOpen(true)}
+              className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-medium text-indigo-700"
+            >
+              <BadgePercent className="w-3.5 h-3.5" />
+              Khuyến mãi
+              {selectedPromotions.length > 0 && (
+                <span className="bg-indigo-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px]">
+                  {selectedPromotions.length}
+                </span>
+              )}
+            </button>
+            {totalPromotionDiscount > 0 && (
+              <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-100 rounded-lg text-xs font-bold text-green-700">
+                -{totalPromotionDiscount.toLocaleString('vi-VN')}₫
+              </div>
+            )}
+            {activeRedeemedRewards.map(rr => (
+              <div key={rr.rewardId} className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-pink-50 border border-pink-100 rounded-lg text-xs font-bold text-pink-700">
+                🎁 {rr.rewardName}
+                <button onClick={() => handleRemoveRedeemedReward(rr.rewardId)} className="ml-1 hover:text-pink-500">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Redeemed rewards display (non-customer) */}
+        {!activeCustomer && activeRedeemedRewards.length > 0 && (
+          <div className="px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar">
+            {activeRedeemedRewards.map(rr => (
+              <div key={rr.rewardId} className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-pink-50 border border-pink-100 rounded-lg text-xs font-bold text-pink-700">
+                🎁 {rr.rewardName}
+                <button onClick={() => handleRemoveRedeemedReward(rr.rewardId)} className="ml-1 hover:text-pink-500">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Cart Items */}
+        {hasCartItems ? (
+          <div className="px-3 space-y-2">
+            {activeCart.map((item) => {
+              const product = products.find(p => p.id === item.id);
+              const isInvalid = product ? !checkStockAvailability(product, item.cartQuantity) : true;
+              return (
+                <div
+                  key={`${item.id}-${item.selectedLot?.id || 'nolot'}`}
+                  className={`bg-white rounded-xl border p-3 transition-all ${
+                    isInvalid ? 'border-red-200 bg-red-50' : 'border-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h4 className={`font-medium text-sm truncate ${isInvalid ? 'text-red-700' : 'text-gray-800'}`}>
+                        {item.name}
+                      </h4>
+                      {item.selectedLot && (
+                        <p className="text-[10px] text-indigo-600 font-medium">
+                          Lô: {item.selectedLot.code}
+                        </p>
+                      )}
+                      {isInvalid && (
+                        <p className="text-[10px] text-red-600 font-medium flex items-center gap-1 mt-0.5">
+                          <AlertTriangle className="w-3 h-3" /> Vượt tồn kho
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeCartItem(item.id)}
+                      className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="text-sm font-bold text-indigo-600">
+                      {(item.price * item.cartQuantity).toLocaleString('vi-VN')}₫
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Unit selector */}
+                      {item.conversionUnits && item.conversionUnits.length > 0 && (
+                        <select
+                          value={item.selectedUnit?.name || item.unit}
+                          onChange={(e) => {
+                            const unitName = e.target.value;
+                            const conv = (item.conversionUnits || []).find(u => u.name === unitName);
+                            updateCartItem(item.id, { selectedUnit: conv, price: conv ? conv.price : item.price });
+                          }}
+                          className="text-[10px] bg-gray-50 border border-gray-200 rounded px-1 py-0.5 outline-none"
+                        >
+                          <option value={item.unit}>{item.unit}</option>
+                          {item.conversionUnits.map(u => (
+                            <option key={u.id} value={u.name}>{u.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      {/* Lot selector */}
+                      {item.lots && item.lots.length > 0 && (
+                        <select
+                          value={item.selectedLot?.id || ''}
+                          onChange={(e) => {
+                            const lot = item.lots?.find(l => l.id === e.target.value);
+                            updateCartItem(item.id, { selectedLot: lot });
+                          }}
+                          className="text-[10px] bg-indigo-50 border border-indigo-100 rounded px-1 py-0.5 outline-none"
+                        >
+                          <option value="">Lô</option>
+                          {item.lots.map(lot => (
+                            <option key={lot.id} value={lot.id}>{lot.code}</option>
+                          ))}
+                        </select>
+                      )}
+                      {/* Quantity controls */}
+                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => updateCartItem(item.id, { cartQuantity: Math.max(1, item.cartQuantity - 1) })}
+                          className="px-2 py-1 hover:bg-gray-100 transition-colors"
+                        >
+                          <Minus className="w-3.5 h-3.5 text-gray-500" />
+                        </button>
+                        <span className="px-3 py-1 text-sm font-bold text-gray-800 min-w-[32px] text-center select-none">
+                          {item.cartQuantity}
+                        </span>
+                        <button
+                          onClick={() => updateCartItem(item.id, { cartQuantity: item.cartQuantity + 1 })}
+                          className="px-2 py-1 hover:bg-gray-100 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-gray-500" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-gray-300 py-20">
+            <div className="relative">
+              <ShoppingCart className="w-20 h-20 mb-4 opacity-20" />
+              <Plus className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-300 opacity-30" />
+            </div>
+            <p className="text-sm text-gray-400">Giỏ hàng trống</p>
+            <p className="text-xs text-gray-300 mt-1">Tìm kiếm sản phẩm bên trên</p>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed Bottom Action Bar */}
+      {hasCartItems && (
+        <div className="bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-4 py-3 shrink-0 z-20">
+          {/* Cart Summary Row */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">{cartItemCount} sản phẩm</span>
+              {totalPromotionDiscount > 0 && (
+                <span className="text-xs text-green-600 font-medium">Giảm: -{totalPromotionDiscount.toLocaleString('vi-VN')}₫</span>
+              )}
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-gray-400">Tổng cộng</span>
+              <div className="text-lg font-bold text-gray-800">{finalTotal.toLocaleString('vi-VN')}₫</div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsPromotionModalOpen(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <BadgePercent className="w-4 h-4" />
+              KM
+            </button>
+            <button
+              onClick={() => activeCustomer && setIsRewardModalOpen(true)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 rounded-lg text-sm font-medium transition-colors ${
+                activeCustomer ? 'text-gray-600 hover:bg-gray-50' : 'text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              <Gift className="w-4 h-4" />
+              Quà
+            </button>
+            <button
+              onClick={handleOpenPayment}
+              className="flex-[3] flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg text-sm font-bold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-md shadow-indigo-200 active:scale-[0.98]"
+            >
+              <DollarSign className="w-5 h-5" />
+              Thanh toán
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {isPaymentOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[200] animate-fade-in" onClick={() => !isProcessing && setIsPaymentOpen(false)} />
+          <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center animate-slide-up">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">Thanh toán</h3>
+                  <p className="text-indigo-200 text-xs mt-0.5">Chọn phương thức thanh toán</p>
+                </div>
+                <button
+                  onClick={() => !isProcessing && setIsPaymentOpen(false)}
+                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Total */}
+                <div className="text-center py-3">
+                  <p className="text-xs text-gray-400">Số tiền cần thanh toán</p>
+                  <p className="text-3xl font-bold text-gray-800 mt-1">{finalTotal.toLocaleString('vi-VN')}₫</p>
+                  {totalPromotionDiscount > 0 && (
+                    <p className="text-xs text-green-600 mt-1">Đã giảm {totalPromotionDiscount.toLocaleString('vi-VN')}₫</p>
+                  )}
+                </div>
+
+                {/* Payment Methods */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'cash', label: 'Tiền mặt', icon: Wallet },
+                    { id: 'transfer', label: 'Chuyển khoản', icon: CreditCard },
+                    { id: 'card', label: 'Thẻ', icon: Banknote },
+                  ].map(method => {
+                    const Icon = method.icon;
+                    const isSelected = paymentMethod === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        onClick={() => setPaymentMethod(method.id)}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-50 shadow-sm'
+                            : 'border-gray-100 bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon className={`w-6 h-6 ${isSelected ? 'text-indigo-600' : 'text-gray-400'}`} />
+                        <span className={`text-xs font-medium ${isSelected ? 'text-indigo-700' : 'text-gray-500'}`}>
+                          {method.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Amount Input (for cash) */}
+                {paymentMethod === 'cash' && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 mb-1 block">Khách đưa</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(e.target.value)}
+                        placeholder="Nhập số tiền..."
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-lg font-bold text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                        autoFocus
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">₫</span>
+                    </div>
+                    {amountPaid && parseFloat(amountPaid) >= finalTotal && (
+                      <p className="text-xs text-green-600 mt-1 text-right font-medium">
+                        Tiền thừa: {(parseFloat(amountPaid) - finalTotal).toLocaleString('vi-VN')}₫
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Confirm Button */}
+                <button
+                  onClick={handlePaymentConfirm}
+                  disabled={isProcessing}
+                  className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-bold text-base hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Xác nhận thanh toán
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Change Confirm Modal */}
+      {showChangeConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[250]" onClick={() => setShowChangeConfirm(false)} />
+          <div className="fixed inset-0 z-[260] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-scale-in">
+              <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-center text-gray-800 mb-1">Số tiền không đủ</h3>
+              <p className="text-sm text-gray-500 text-center mb-4">
+                Khách đưa {(parseFloat(amountPaid) || 0).toLocaleString('vi-VN')}₫, cần {finalTotal.toLocaleString('vi-VN')}₫
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowChangeConfirm(false)}
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-50"
+                >
+                  Nhập lại
+                </button>
+                <button
+                  onClick={async () => {
+                    const paid = parseFloat(amountPaid) || 0;
+                    if (paid < finalTotal) {
+                      onCheckout(activeInvoice!.id, 'debt', paid, activeInvoice?.customerId || undefined, selectedPromotions.length > 0 ? selectedPromotions : undefined);
+                      const inv = activeInvoice;
+                      if (inv) {
+                        updateInvoice({ ...inv, cart: [], customerId: '', redeemedRewards: [] });
+                        setSelectedPromotions([]);
+                      }
+                      setIsPaymentOpen(false);
+                      setShowChangeConfirm(false);
+                      showToast('Đã tạo đơn nợ!');
+                    }
+                  }}
+                  className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600"
+                >
+                  Ghi nợ
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Reward Modal */}
+      {isRewardModalOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[200]" onClick={() => setIsRewardModalOpen(false)} />
+          <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center animate-slide-up">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-purple-600 to-pink-500 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  <h3 className="font-bold">Đổi quà tặng</h3>
+                </div>
+                <button onClick={() => setIsRewardModalOpen(false)} className="p-1.5 hover:bg-white/20 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {activeCustomer && (
+                  <div className="bg-purple-50 p-3 rounded-xl mb-3 border border-purple-100">
+                    <p className="text-xs text-purple-600 font-medium">
+                      Điểm của {activeCustomer.name}: <span className="font-bold text-lg">{activeCustomer.loyaltyPoints?.toLocaleString('vi-VN') || 0}</span>
+                    </p>
+                  </div>
+                )}
+                {rewards.filter(r => r.isActive).length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Gift className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Chưa có quà tặng</p>
+                  </div>
+                ) : (
+                  rewards.filter(r => r.isActive).map(reward => {
+                    const canRedeem = activeCustomer && (activeCustomer.loyaltyPoints || 0) >= reward.pointCost;
+                    return (
+                      <div key={reward.id} className={`p-3 rounded-xl border-2 transition-all ${
+                        canRedeem ? 'border-purple-100 bg-white' : 'border-gray-100 opacity-60 bg-gray-50'
+                      }`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-sm text-gray-800">{reward.name}</h4>
+                            <p className="text-xs text-gray-500">{reward.description || ''}</p>
+                          </div>
+                          <div className="text-right shrink-0 ml-2">
+                            <p className="text-xs font-bold text-purple-700">{reward.pointCost.toLocaleString('vi-VN')} điểm</p>
+                            {reward.quantity && <p className="text-[10px] text-gray-400">Còn: {reward.quantity}</p>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => canRedeem && handleRedeemReward(reward)}
+                          disabled={!canRedeem}
+                          className="mt-2 w-full py-2 rounded-lg text-xs font-bold transition-all bg-gradient-to-r from-purple-600 to-pink-500 text-white disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        >
+                          {canRedeem ? 'Đổi ngay' : 'Không đủ điểm'}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Promotion Modal */}
+      {isPromotionModalOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[200]" onClick={() => setIsPromotionModalOpen(false)} />
+          <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center animate-slide-up">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-5 h-5" />
+                  <h3 className="font-bold">Chọn khuyến mãi</h3>
+                </div>
+                <button onClick={() => setIsPromotionModalOpen(false)} className="p-1.5 hover:bg-white/20 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {promotionSuggestions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Percent className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Không có khuyến mãi phù hợp</p>
+                  </div>
+                ) : (
+                  promotionSuggestions.map(({ promotion: promo, result }) => {
+                    const isSelected = selectedPromotions.some(p => p.id === promo.id);
+                    return (
+                      <div
+                        key={promo.id}
+                        onClick={() => handleTogglePromotion(promo)}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                          isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-sm text-gray-800">{promo.name}</h4>
+                              <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                -{result.totalDiscount.toLocaleString('vi-VN')}₫
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">{promo.description || ''}</p>
+                          </div>
+                          <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ml-2 ${
+                            isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-gray-300'
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="p-4 border-t border-gray-100 bg-gray-50 shrink-0">
+                <button
+                  onClick={() => setIsPromotionModalOpen(false)}
+                  className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 transition-colors"
+                >
+                  Xác nhận ({selectedPromotions.length} KM)
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Quick Add Customer Modal */}
+      {isQuickAddCustomerOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[200]" onClick={() => setIsQuickAddCustomerOpen(false)} />
+          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
+              <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                <h3 className="font-bold">Thêm khách hàng nhanh</h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Tên khách hàng *"
+                  value={quickAddForm.name}
+                  onChange={(e) => setQuickAddForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-indigo-500"
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  placeholder="Số điện thoại"
+                  value={quickAddForm.phone}
+                  onChange={(e) => setQuickAddForm(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-indigo-500"
+                />
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => setIsQuickAddCustomerOpen(false)}
+                    className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-50"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleQuickAddCustomer}
+                    className="flex-1 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700"
+                  >
+                    Thêm
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Advanced Customer Search Modal */}
+      {isAdvancedCustomerSearchOpen && (
+        <AdvancedCustomerSearchModal
+          customers={customers}
+          onSelectCustomer={(c: Customer) => {
+            handleSelectCustomer(c);
+            setIsAdvancedCustomerSearchOpen(false);
+          }}
+          onClose={() => setIsAdvancedCustomerSearchOpen(false)}
+          onAddCustomer={onAddCustomer}
+        />
+      )}
+
+      {/* Customer Orders Modal */}
+      {isCustomerOrdersOpen && activeCustomer && (
+        <CustomerOrdersModal
+          customer={activeCustomer}
+          onClose={() => setIsCustomerOrdersOpen(false)}
+        />
+      )}
+
+      {/* Barcode Scanner */}
+      <BarcodeScannerFix
+        isOpen={isScannerOpen}
+        onScanSuccess={(code) => {
+          const product = products.find(p => p.barcode === code || p.code === code);
+          if (product) {
+            addToCart(product);
+          } else {
+            showToast('Không tìm thấy sản phẩm', 'error');
+          }
+        }}
+        onClose={() => setIsScannerOpen(false)}
+      />
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[300] animate-slide-up ${
+          toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+        } text-white px-6 py-3 rounded-full shadow-2xl text-sm font-bold flex items-center gap-2`}>
+          {toast.type === 'success' ? <Check className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+          {toast.message}
+        </div>
+      )}
+
+      {/* Bottom safe area padding for nav */}
+      <div className="h-16 shrink-0" />
+    </div>
+  );
+}
+
+// --- Reusable Modal Components ---
+// Note: Use these as standalone modal components rendered conditionally.
+
+interface AdvancedCustomerSearchModalProps {
+  customers: Customer[];
+  onSelectCustomer: (c: Customer) => void;
+  onClose: () => void;
+  onAddCustomer: (customer: Customer) => Promise<void>;
+}
+
+const AdvancedCustomerSearchModal: React.FC<AdvancedCustomerSearchModalProps> = ({
+  customers, onSelectCustomer, onClose, onAddCustomer
+}) => {
+  const [search, setSearch] = useState('');
+  const filtered = customers.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    (c.phone && c.phone.includes(search)) ||
+    (c.code && c.code.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 z-[200]" onClick={onClose} />
+      <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center animate-slide-up">
+        <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 text-white shrink-0">
+            <h3 className="font-bold">Tìm kiếm khách hàng</h3>
+            <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-lg">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4">
+            <input
+              type="text"
+              placeholder="Tìm theo tên, SĐT, mã..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-indigo-500"
+              autoFocus
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+            {filtered.map(c => (
+              <div
+                key={c.id}
+                onClick={() => onSelectCustomer(c)}
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 cursor-pointer border border-gray-100"
+              >
+                <div>
+                  <p className="font-bold text-sm text-gray-800">{c.name}</p>
+                  <p className="text-xs text-gray-500">{c.phone} {c.code ? `| ${c.code}` : ''}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-300" />
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-center py-8 text-gray-400 text-sm">Không tìm thấy khách hàng</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+interface CustomerOrdersModalProps {
+  customer: Customer;
+  onClose: () => void;
+}
+
+const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({ customer, onClose }) => {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { supabaseService } = await import('../services/supabaseService');
+        const data = await supabaseService.getOrders();
+        const customerOrders = data.filter((o: any) => o.customerId === customer.id || o.customer_id === customer.id);
+        setOrders(customerOrders);
+      } catch (err) {
+        console.error('Failed to load orders', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [customer.id]);
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 z-[200]" onClick={onClose} />
+      <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center animate-slide-up">
+        <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 text-white shrink-0">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              <h3 className="font-bold">Lịch sử mua hàng</h3>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-lg">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4 border-b border-gray-100 bg-gray-50">
+            <p className="font-bold text-gray-800">{customer.name}</p>
+            <p className="text-xs text-gray-500">{customer.phone}</p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {loading ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-600 mx-auto" />
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 text-sm">Chưa có đơn hàng nào</div>
+            ) : (
+              orders.map(order => (
+                <div key={order.id} className="p-3 border border-gray-100 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">{new Date(order.date).toLocaleDateString('vi-VN')}</span>
+                    <span className="text-xs font-bold text-indigo-600">{order.totalAmount.toLocaleString('vi-VN')}₫</span>
+                  </div>
+                  <div className="mt-1 text-xs text-gray-600">
+                    {order.items?.map((item: any, i: number) => (
+                      <span key={i}>{item.productName} x{item.quantity}{i < order.items.length - 1 ? ', ' : ''}</span>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default MobilePOS;

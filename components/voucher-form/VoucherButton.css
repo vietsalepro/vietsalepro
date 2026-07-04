@@ -1,0 +1,170 @@
+.voucher-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5, 6px);
+  border: var(--border-width-default, 1px) var(--border-style-default, solid) transparent;
+  border-radius: var(--radius-lg, 12px);
+  font-family: var(--font-family-primary, inherit);
+  font-weight: var(--font-semibold, 600);
+  line-height: var(--leading-compact, 1.2);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              border-color var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              color var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              box-shadow var(--motion-fast, 150ms) var(--ease-standard, ease-out),
+              opacity var(--motion-fast, 150ms) var(--ease-standard, ease-out);
+}
+
+.voucher-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Sizes */
+.voucher-button--sm {
+  height: 28px;
+  padding: 0 var(--space-2-5, 10px);
+  font-size: var(--text-xs, 12px);
+}
+
+.voucher-button--md {
+  height: 36px;
+  padding: 0 var(--space-3, 12px);
+  font-size: var(--text-sm, 13px);
+}
+
+.voucher-button--lg {
+  height: 44px;
+  padding: 0 var(--space-4, 16px);
+  font-size: var(--text-md, 14px);
+}
+
+/* Full width */
+.voucher-button--full-width {
+  width: 100%;
+}
+
+/* Variants */
+.voucher-button--primary {
+  background: var(--color-primary-500, #6c4dff);
+  color: var(--color-text-on-primary, #ffffff);
+  border-color: var(--color-primary-500, #6c4dff);
+}
+
+.voucher-button--primary:hover:not(:disabled) {
+  background: var(--color-primary-600, #5b3fe0);
+  border-color: var(--color-primary-600, #5b3fe0);
+}
+
+.voucher-button--primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-200, #c4b5ff);
+}
+
+.voucher-button--secondary {
+  background: var(--color-bg-primary, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  border-color: var(--color-border-default, #e2e8f0);
+}
+
+.voucher-button--secondary:hover:not(:disabled) {
+  background: var(--color-bg-secondary, #f8fafc);
+  border-color: var(--color-border-default, #e2e8f0);
+}
+
+.voucher-button--secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-100, #e0e0ff);
+}
+
+.voucher-button--danger {
+  background: var(--color-danger-500, #ef4444);
+  color: var(--color-text-inverse, #ffffff);
+  border-color: var(--color-danger-500, #ef4444);
+}
+
+.voucher-button--danger:hover:not(:disabled) {
+  background: var(--color-danger-600, #dc2626);
+  border-color: var(--color-danger-600, #dc2626);
+}
+
+.voucher-button--danger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-danger-200, #fecaca);
+}
+
+.voucher-button--ghost {
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  border-color: transparent;
+}
+
+.voucher-button--ghost:hover:not(:disabled) {
+  background: var(--color-bg-secondary, #f8fafc);
+  color: var(--color-text-primary, #0f172a);
+}
+
+.voucher-button--ghost:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-100, #e0e0ff);
+}
+
+.voucher-button--link {
+  background: transparent;
+  color: var(--color-primary-500, #6c4dff);
+  border-color: transparent;
+  text-decoration: none;
+  padding-left: var(--space-1, 4px);
+  padding-right: var(--space-1, 4px);
+}
+
+.voucher-button--link:hover:not(:disabled) {
+  color: var(--color-primary-600, #5b3fe0);
+  text-decoration: underline;
+}
+
+.voucher-button--link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-100, #e0e0ff);
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Icon + text */
+.voucher-button__icon,
+.voucher-button__spinner {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.voucher-button--sm .voucher-button__icon,
+.voucher-button--sm .voucher-button__spinner {
+  width: 14px;
+  height: 14px;
+}
+
+.voucher-button--lg .voucher-button__icon,
+.voucher-button--lg .voucher-button__spinner {
+  width: 18px;
+  height: 18px;
+}
+
+.voucher-button__text {
+  display: inline-flex;
+}
+
+/* Loading spinner */
+.voucher-button__spinner {
+  border: 2px solid currentColor;
+  border-bottom-color: transparent;
+  border-radius: var(--radius-full, 9999px);
+  animation: mmSpin 0.8s linear infinite;
+  opacity: 0.7;
+}
+
+.voucher-button--loading .voucher-button__text {
+  opacity: 0.7;
+}

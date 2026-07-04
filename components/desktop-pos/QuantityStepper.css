@@ -1,0 +1,47 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  QUANTITY STEPPER COMPONENT — Desktop POS
+ *  [-] [N] [+] stepper with bounce animation + hold-to-increase.
+ *  ═══════════════════════════════════════════════════════════════
+ *
+ *  Design Tokens:
+ *    All visual values use var(--pos-*) / var(--color-*) — no
+ *    hardcoded values.
+ *
+ *  Note: Interactive behavior (bounce animation, disabled states)
+ *  reuses the global .pos-stepper-btn / .pos-stepper-value /
+ *  .pos-anim-bounce-stepper classes defined in index.css.
+ */
+
+/* ─── Stepper shell ─────────────────────────────── */
+.quantity-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: var(--border-width-medium) var(--border-style-default)
+    var(--pos-border);
+  border-radius: var(--pos-radius-sm);
+  overflow: hidden;
+  background-color: var(--color-bg-primary);
+  height: 38px;
+}
+
+/* ─── Buttons ───────────────────────────────────── */
+.quantity-stepper__btn {
+  height: 100%;
+  padding-left: var(--space-2-5);
+  padding-right: var(--space-2-5);
+}
+
+.quantity-stepper__btn:disabled {
+  opacity: var(--opacity-30);
+  cursor: not-allowed;
+}
+
+/* ─── Value cell ────────────────────────────────── */
+.quantity-stepper__value {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}

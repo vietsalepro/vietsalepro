@@ -1,0 +1,192 @@
+/* ═══════════════════════════════════════════════════════════
+   PROMOTION MODAL — Styles for PromotionModal container
+   Used with useRefactoredPromotionModal feature flag only
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Promotion list container ──────────────────────────── */
+.promotion-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+  max-height: 400px;
+  overflow-y: auto;
+  padding: var(--space-0-5) var(--space-0);
+}
+
+/* ─── Individual promotion card ─────────────────────────── */
+.promotion-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3-5) var(--space-4);
+  border: var(--border-width-medium) var(--border-style-default) #ecf0f5;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  cursor: pointer;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), box-shadow var(--motion-fast);
+  user-select: none;
+}
+
+.promotion-card:hover {
+  border-color: var(--color-primary-500);
+  background: #f8f6ff;
+}
+
+.promotion-card--selected {
+  border-color: var(--color-primary-500);
+  background: #f0ebff;
+  box-shadow: 0 0 0 2px rgba(108, 77, 255, 0.08);
+}
+
+/* ─── Radio circle ─────────────────────────────────────── */
+.promotion-card-radio {
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: 50%;
+  border: var(--border-width-medium) var(--border-style-default) #d0d5e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: var(--space-0-5);
+  transition: border-color var(--motion-fast);
+}
+
+.promotion-card--selected .promotion-card-radio {
+  border-color: var(--color-primary-500);
+}
+
+.promotion-card-radio-dot {
+  width: var(--space-2-5);
+  height: var(--space-2-5);
+  border-radius: 50%;
+  background: var(--color-primary-500);
+  transform: scale(0);
+  transition: transform var(--motion-fast);
+}
+
+.promotion-card--selected .promotion-card-radio-dot {
+  transform: scale(1);
+}
+
+/* ─── Card content ─────────────────────────────────────── */
+.promotion-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.promotion-card-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--pos-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.promotion-card-desc {
+  font-size: var(--text-xs);
+  color: var(--pos-text-secondary);
+  line-height: 1.45;
+  margin-bottom: var(--space-1-5);
+}
+
+.promotion-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.promotion-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--vsp-font-size-xxs);
+  font-weight: var(--font-semibold);
+  background: #f0ebff;
+  color: var(--color-primary-500);
+}
+
+.promotion-card-tag--discount {
+  background: var(--color-warning-100);
+  color: var(--color-warning-600);
+}
+
+.promotion-card-tag--limit {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.promotion-card-tag--expired {
+  background: var(--color-danger-50);
+  color: var(--color-danger-600);
+}
+
+/* ─── Footer container ─────────────────────────────────── */
+.promotion-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+  width: 100%;
+}
+
+.promotion-footer-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* ─── Summary row ──────────────────────────────────────── */
+.promotion-summary {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--pos-radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.promotion-summary-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--pos-text-secondary);
+}
+
+.promotion-summary-value {
+  font-size: 15px;
+  font-weight: var(--font-bold);
+  color: var(--pos-text-primary);
+}
+
+.promotion-summary-value--discount {
+  color: var(--color-danger-600);
+}
+
+/* ─── Selected promotion display (non-editable) ────────── */
+.promotion-selected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2-5) var(--space-3-5);
+  background: #f0ebff;
+  border: var(--border-width-default) var(--border-style-default) #d4c8ff;
+  border-radius: var(--pos-radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-500);
+}
+
+.promotion-selected-badge-name {
+  flex: 1;
+}
+
+.promotion-selected-badge-remove {
+  cursor: pointer;
+  color: var(--color-primary-500);
+  opacity: var(--opacity-60);
+  transition: opacity var(--motion-fast);
+}
+
+.promotion-selected-badge-remove:hover {
+  opacity: var(--opacity-100);
+}

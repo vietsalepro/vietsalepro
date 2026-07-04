@@ -851,6 +851,7 @@ export interface SupplierExchangeReturnItem {
 
 export interface SupplierExchangeReceivedItem {
   id?: string;
+  tenantId?: string;
   exchangeId?: string;
   productId: string;
   productName: string;

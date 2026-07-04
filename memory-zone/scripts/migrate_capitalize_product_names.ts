@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { capitalizeProductName } from '../utils/stringHelper';
+import { capitalizeProductName } from '../../utils/stringHelper';
 
 type ProductRow = {
   id: string;

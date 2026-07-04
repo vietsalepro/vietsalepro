@@ -22,6 +22,14 @@
 - [x] User chưa đăng nhập bị chặn
 - [x] `supabase.auth.signUp` bị từ chối
 
+## 3. Staging Deployment
+
+- [x] Mirror production → staging (`public.products` = 197, `public.orders` = 46)
+- [x] Run `migration_phase1_security_cleanup.sql` trên staging
+- [x] Push auth config Phase 1 (site_url, redirect URLs, disable signup) lên staging
+- [x] Kiểm thử staging: anon bị chặn, signup disabled, authenticated role đọc được data
+- [x] Dọn dẹp file dump mirror và user test tạm
+
 ## Rollback Plan
 
 - Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_multi_tenancy_phase_1_<YYYYMMDD_HHMMSS>`

@@ -6,19 +6,19 @@
 
 ## 1. Sub-phase 9.3: `check-subdomain`
 
-- [ ] 1.1 Create `supabase/functions/check-subdomain/index.ts`
-- [ ] 1.2 Create Rate limiting 10 request/phút/IP.
+- [x] 1.1 Create `supabase/functions/check-subdomain/index.ts`
+- [x] 1.2 Create Rate limiting 10 request/phút/IP.
 
 ## 2. Verification
 
-- [ ] 2.1 Run `npm run lint`
-- [ ] 2.2 Run `npm run build` if this sub-phase touches code
-- [ ] 2.3 Manual test the acceptance criteria
+- [ ] 2.1 Run `npm run lint` (no frontend code changed)
+- [ ] 2.2 Run `npm run build` if this sub-phase touches code (n/a)
+- [x] 2.3 Manual test the acceptance criteria
 
 ## Acceptance Criteria
 
-- [ ] Subdomain tồn tại → trả về `false`
-- [ ] Subdomain trống → trả về `true`
+- [x] Subdomain tồn tại → trả về `false`
+- [x] Subdomain trống → trả về `true`
 
 ## Rollback Plan
 

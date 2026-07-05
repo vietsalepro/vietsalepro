@@ -32,6 +32,7 @@ import { useNewDataGridOrders } from '../features';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { useTenant } from '../hooks/useTenant';
 import '../components/shared/FilterBar.css';
 import './Orders.css';
 
@@ -55,7 +56,9 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
   const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
+
   // Filter States
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -130,12 +133,14 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
   };
 
   useEffect(() => {
+    if (!tenantId) return;
     fetchOrders(currentPage);
     setSelectedIds([]);
-  }, [currentPage, pageSize, startDate, endDate, debouncedCustomerSearch, debouncedOrderIdSearch]);
+  }, [currentPage, pageSize, startDate, endDate, debouncedCustomerSearch, debouncedOrderIdSearch, tenantId]);
 
   // Phase 6: prefetch customers cho trang hiện tại
   useEffect(() => {
+    if (!tenantId) return;
     const ids = [...new Set(orders.map(o => o.customerId).filter(Boolean))];
     if (ids.length === 0) return;
     ids.forEach(async (id) => {
@@ -145,7 +150,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
         if (c) setCustomerCache(prev => new Map(prev).set(id, c));
       } catch { /* ignore */ }
     });
-  }, [orders]);
+  }, [orders, tenantId]);
 
   // Helper tra cứu customer từ cache
   const getCustomer = (customerId?: string): Customer | undefined => {

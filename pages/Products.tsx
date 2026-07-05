@@ -14,6 +14,7 @@ import { useNewDataGridInventory } from '../features';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { useTenant } from '../hooks/useTenant';
 import '../components/shared/FilterBar.css';
 import './Inventory.css';
 
@@ -62,12 +63,15 @@ export const Products: React.FC<InventoryProps> = ({
   // cần toàn bộ danh sách (không phải render list chính, list chính đã server-side paginate).
   const [productsFallback, setProductsFallback] = useState<Product[]>([]);
   const products = productsProp || productsFallback;
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
 
   useEffect(() => {
+    if (!tenantId) return;
     if (!productsProp) {
       supabaseService.getProducts().then(setProductsFallback).catch(console.error);
     }
-  }, [productsProp]);
+  }, [productsProp, tenantId]);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -111,6 +115,7 @@ export const Products: React.FC<InventoryProps> = ({
 
   // Phase 1: fetch product stats from server
   useEffect(() => {
+    if (!tenantId) return;
     let cancelled = false;
     setIsLoadingStats(true);
     supabaseService.getProductStats()
@@ -122,7 +127,7 @@ export const Products: React.FC<InventoryProps> = ({
         if (!cancelled) setIsLoadingStats(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [tenantId]);
   const [activeTab, setActiveTab] = useState<TabType>('general');
 
   // Layout refs
@@ -199,11 +204,12 @@ export const Products: React.FC<InventoryProps> = ({
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [pageSize, debouncedSearchTerm, selectedCategoryIds, selectedBrandIds, sortConfig]);
+  }, [pageSize, debouncedSearchTerm, selectedCategoryIds, selectedBrandIds, sortConfig, tenantId]);
 
   useEffect(() => {
+    if (!tenantId) return;
     fetchProducts(currentPage);
-  }, [currentPage, pageSize, debouncedSearchTerm, selectedCategoryIds, selectedBrandIds, sortConfig, fetchProducts]);
+  }, [currentPage, pageSize, debouncedSearchTerm, selectedCategoryIds, selectedBrandIds, sortConfig, fetchProducts, tenantId]);
 
   const handleSort = (key: keyof Product) => {
     let direction: 'asc' | 'desc' = 'asc';

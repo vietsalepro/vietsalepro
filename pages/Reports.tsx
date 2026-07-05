@@ -15,6 +15,7 @@ import * as XLSX from 'xlsx';
 import { Pagination } from './ReportPagination';
 import { PageLayout } from '../components/shared/PageLayout';
 import { supabaseService } from '../services/supabaseService';
+import { useTenant } from '../hooks/useTenant';
 
 // ---------- Shared filter dropdown (matches /inventory-count style) ----------
 const FilterSelect: React.FC<{
@@ -224,6 +225,8 @@ interface ReportsProps {}
 // ======================= MAIN COMPONENT =============================
 // ====================================================================
 export const Reports: React.FC<ReportsProps> = () => {
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
   const [activeTab, setActiveTab] = useState<'sales' | 'profit' | 'inventory' | 'customer' | 'supplier'>('sales');
   const [preset, setPreset] = useState<Preset>('30d');
   const [customFrom, setCustomFrom] = useState('');
@@ -282,6 +285,7 @@ export const Reports: React.FC<ReportsProps> = () => {
 
   // ---------- Fetch sales report ----------
   useEffect(() => {
+    if (!tenantId) return;
     let cancelled = false;
     const fetchSales = async () => {
       setIsFetchingSales(true);
@@ -301,10 +305,11 @@ export const Reports: React.FC<ReportsProps> = () => {
     };
     fetchSales();
     return () => { cancelled = true; };
-  }, [startDateStr, endDateStr, filterStatus, filterPayment, filterProduct, filterCustomer]);
+  }, [startDateStr, endDateStr, filterStatus, filterPayment, filterProduct, filterCustomer, tenantId]);
 
   // ---------- Fetch profit report ----------
   useEffect(() => {
+    if (!tenantId) return;
     let cancelled = false;
     const fetchProfit = async () => {
       setIsFetchingProfit(true);
@@ -325,10 +330,11 @@ export const Reports: React.FC<ReportsProps> = () => {
     };
     fetchProfit();
     return () => { cancelled = true; };
-  }, [startDateStr, endDateStr, filterStatus, filterPayment, filterProduct, filterCustomer, compareMode]);
+  }, [startDateStr, endDateStr, filterStatus, filterPayment, filterProduct, filterCustomer, compareMode, tenantId]);
 
   // ---------- Fetch customer report ----------
   useEffect(() => {
+    if (!tenantId) return;
     let cancelled = false;
     const fetchCustomer = async () => {
       setIsFetchingCustomer(true);
@@ -343,11 +349,11 @@ export const Reports: React.FC<ReportsProps> = () => {
     };
     fetchCustomer();
     return () => { cancelled = true; };
-  }, [startDateStr, endDateStr]);
+  }, [startDateStr, endDateStr, tenantId]);
 
   // ---------- Fetch supplier report (only when supplier tab is active) ----------
   useEffect(() => {
-    if (activeTab !== 'supplier') return;
+    if (!tenantId || activeTab !== 'supplier') return;
     let cancelled = false;
     const fetchSupplier = async () => {
       setIsFetchingSupplier(true);
@@ -362,11 +368,11 @@ export const Reports: React.FC<ReportsProps> = () => {
     };
     fetchSupplier();
     return () => { cancelled = true; };
-  }, [activeTab, startDateStr, endDateStr]);
+  }, [activeTab, startDateStr, endDateStr, tenantId]);
 
   // ---------- Fetch inventory report (only when inventory tab is active) ----------
   useEffect(() => {
-    if (activeTab !== 'inventory') return;
+    if (!tenantId || activeTab !== 'inventory') return;
     let cancelled = false;
     const fetchInventory = async () => {
       setIsFetchingInventory(true);
@@ -384,7 +390,7 @@ export const Reports: React.FC<ReportsProps> = () => {
     };
     fetchInventory();
     return () => { cancelled = true; };
-  }, [activeTab, startDateStr, endDateStr, filterCategory, filterStockStatus]);
+  }, [activeTab, startDateStr, endDateStr, filterCategory, filterStockStatus, tenantId]);
 
   // ---------- Initial loading ----------
   useEffect(() => {

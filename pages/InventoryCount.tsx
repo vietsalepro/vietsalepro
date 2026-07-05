@@ -9,6 +9,7 @@ import { DataGridBox } from '../components/shared/DataGridBox';
 import { supabaseService } from '../services/supabaseService';
 import { PageLayout } from '../components/shared/PageLayout';
 import { CountFormLayout } from '../components/inventory-count/CountFormLayout';
+import { useTenant } from '../hooks/useTenant';
 import {
   VoucherButton,
   VoucherEmpty,
@@ -64,15 +65,18 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
 }) => {
   const [productsFallback, setProductsFallback] = useState<Product[]>([]);
   const products = productsProp || productsFallback;
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
   const location = useLocation();
   const navigate = useNavigate();
   const isCreateRoute = useMemo(() => location.pathname === '/inventory-count/create', [location.pathname]);
 
   useEffect(() => {
+    if (!tenantId) return;
     if (!productsProp) {
       supabaseService.getProducts().then(setProductsFallback).catch(console.error);
     }
-  }, [productsProp]);
+  }, [productsProp, tenantId]);
 
   // --- Inventory Count Filter/Search/Pagination State ---
   const [countSearchTerm2, setCountSearchTerm2] = useState('');

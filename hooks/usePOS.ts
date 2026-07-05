@@ -3,6 +3,7 @@ import { Product, Customer, Invoice, CartItem, Promotion, Reward, AppSettings, A
 import { applyPromotions, applyBestPromotions, suggestPromotions } from '../utils/promotionUtils';
 import { supabaseService } from '../services/supabaseService';
 import { useDebounce } from './useDebounce';
+import { useTenant } from './useTenant';
 import { getAvailableLots, sortLotsByFifoExpiry, validateLotQuantity } from '../utils/lotUtils';
 
 interface UsePOSProps {
@@ -32,6 +33,8 @@ export function usePOS({
   const activeInvoice = useMemo(() => invoices.find(i => i.id === activeTabId) || invoices[0], [invoices, activeTabId]);
   const activeCart = useMemo(() => activeInvoice?.cart || [], [activeInvoice]);
   const activeCustomerId = activeInvoice?.customerId || '';
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
 
   // Phase 1 — single-record cache (thay thế .find trên prop rỗng)
   const [customerCache, setCustomerCache] = useState<Map<string, Customer>>(new Map());
@@ -39,7 +42,7 @@ export function usePOS({
   const activeCustomer = useMemo(() => activeCustomerId ? customerCache.get(activeCustomerId) : undefined, [customerCache, activeCustomerId]);
 
   useEffect(() => {
-    if (!activeCustomerId || customerCache.has(activeCustomerId)) return;
+    if (!tenantId || !activeCustomerId || customerCache.has(activeCustomerId)) return;
     supabaseService.getCustomerById(activeCustomerId)
       .then(customer => {
         if (customer) {
@@ -47,10 +50,11 @@ export function usePOS({
         }
       })
       .catch(err => console.error('Error fetching active customer:', err));
-  }, [activeCustomerId, customerCache]);
+  }, [activeCustomerId, customerCache, tenantId]);
 
   // Prefetch products in cart so lot picker works without global products[]
   useEffect(() => {
+    if (!tenantId) return;
     const productIds = Array.from(new Set(activeCart.map((item: any) => item.id).filter((id: string) => !!id)));
     const missingIds = productIds.filter(id => !productCache.has(id));
     if (missingIds.length === 0) return;
@@ -63,7 +67,7 @@ export function usePOS({
         });
       })
       .catch(err => console.error('Error prefetching cart products:', err));
-  }, [activeCart, productCache]);
+  }, [activeCart, productCache, tenantId]);
 
   // Search States
   const [productSearchTerm, setProductSearchTerm] = useState('');
@@ -79,6 +83,7 @@ export function usePOS({
 
   // Goi searchProducts len server moi khi debouncedProductSearch thay doi
   useEffect(() => {
+    if (!tenantId) return;
     const term = debouncedProductSearch.trim();
     if (!term) {
       setProductSearchResults([]);
@@ -103,7 +108,7 @@ export function usePOS({
           setIsSearchingProduct(false);
         }
       });
-  }, [debouncedProductSearch]);
+  }, [debouncedProductSearch, tenantId]);
 
   // Server-side Customer Search
   const debouncedCustomerSearch = useDebounce(customerSearchTerm, 400);
@@ -113,6 +118,7 @@ export function usePOS({
 
   // Goi searchCustomers len server moi khi debouncedCustomerSearch thay doi
   useEffect(() => {
+    if (!tenantId) return;
     const term = debouncedCustomerSearch.trim();
     if (!term) {
       setFilteredCustomers([]);
@@ -137,7 +143,7 @@ export function usePOS({
           setIsSearchingCustomer(false);
         }
       });
-  }, [debouncedCustomerSearch]);
+  }, [debouncedCustomerSearch, tenantId]);
 
   // UI Modals
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);

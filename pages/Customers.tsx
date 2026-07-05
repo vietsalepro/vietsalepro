@@ -21,6 +21,7 @@ import StatsRow from '../components/shared/StatsRow';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { useTenant } from '../hooks/useTenant';
 import '../components/shared/FilterBar.css';
 import './Customers.css';
 
@@ -75,6 +76,8 @@ export const Customers: React.FC<CustomersProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [pageSize] = useState(7);
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
 
   // Sort State
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -130,10 +133,12 @@ export const Customers: React.FC<CustomersProps> = ({
   };
 
   useEffect(() => {
+    if (!tenantId) return;
     fetchCustomers(currentPage, debouncedSearchTerm, filterByDebt);
-  }, [currentPage, pageSize, debouncedSearchTerm, filterByDebt]);
+  }, [currentPage, pageSize, debouncedSearchTerm, filterByDebt, tenantId]);
 
   useEffect(() => {
+    if (!tenantId) return;
     if (activeTab === 'history' && editingCustomer) {
       const fetchOrders = async () => {
         setIsOrdersLoading(true);
@@ -162,7 +167,7 @@ export const Customers: React.FC<CustomersProps> = ({
       };
       fetchHistory();
     }
-  }, [activeTab, editingCustomer]);
+  }, [activeTab, editingCustomer, tenantId]);
 
   // Server-side sort is used via handleSort - localCustomers is the single source of truth
   const sortedCustomers = localCustomers;
@@ -327,6 +332,7 @@ export const Customers: React.FC<CustomersProps> = ({
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   useEffect(() => {
+    if (!tenantId) return;
     let cancelled = false;
     setIsLoadingStats(true);
     supabaseService.getCustomerStats()
@@ -338,7 +344,7 @@ export const Customers: React.FC<CustomersProps> = ({
         if (!cancelled) setIsLoadingStats(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [tenantId]);
 
   const totalCustomers = customerStats.total;
   const vipCustomers = customerStats.vip;

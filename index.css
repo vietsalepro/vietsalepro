@@ -2,6 +2,15 @@
 @import './design-system-tokens.css';
 @import './styles/typography-utilities.css';
 
+/* Hide scrollbar cross-browser utility (moved from inline index.html to avoid Vite Windows build bug) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 /* ============================================
 VIETSALE PRO - DESIGN SYSTEM v5.0
 Phong cách: Shoply-inspired (Purple Theme)

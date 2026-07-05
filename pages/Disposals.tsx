@@ -13,6 +13,7 @@ import StatsRow from '../components/shared/StatsRow';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { usePermissions } from '../hooks/usePermissions';
 import '../components/shared/FilterBar.css';
 import './Disposals.css';
 
@@ -20,6 +21,7 @@ const DEFAULT_DISPOSALS_PAGE_SIZE = 20;
 
 export const Disposals: React.FC = () => {
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const [disposals, setDisposals] = useState<Disposal[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -269,7 +271,7 @@ export const Disposals: React.FC = () => {
       align: 'center',
       render: (disposal) => (
         <div className="disposals-v2-actions">
-          {canEdit(disposal) && (
+          {permissions.canDeleteRecord && canEdit(disposal) && (
             <ActionButton
               variant="ghost"
               size="sm"
@@ -281,7 +283,7 @@ export const Disposals: React.FC = () => {
               aria-label="Sửa"
             />
           )}
-          {canDelete(disposal) && (
+          {permissions.canDeleteRecord && canDelete(disposal) && (
             <ActionButton
               variant="ghost"
               size="sm"
@@ -404,6 +406,7 @@ export const Disposals: React.FC = () => {
               </div>
             </div>
 
+            {permissions.canManageInventory && (
             <button
               onClick={() => navigate('/inventory/disposals/create')}
               className="btn-primary flex items-center gap-2 px-4 py-2.5 self-start flex-shrink-0"
@@ -411,6 +414,7 @@ export const Disposals: React.FC = () => {
               <Plus className="w-4 h-4" />
               Xuất hủy
             </button>
+            )}
           </div>
 
           {/* KPI Stat Cards */}
@@ -449,6 +453,7 @@ export const Disposals: React.FC = () => {
                 emptyTitle="Không tìm thấy phiếu xuất hủy"
                 emptyDescription="Thử tìm kiếm với từ khóa khác hoặc tạo phiếu mới."
                 emptyAction={
+                  permissions.canManageInventory ? (
                   <ActionButton
                     variant="primary"
                     size="md"
@@ -457,6 +462,7 @@ export const Disposals: React.FC = () => {
                   >
                     Tạo phiếu xuất hủy
                   </ActionButton>
+                  ) : undefined
                 }
               />
             </DataGridBox>
@@ -540,7 +546,7 @@ export const Disposals: React.FC = () => {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right">
                               <div className="inline-flex items-center gap-1">
-                                {canEdit(disposal) && (
+                                {permissions.canDeleteRecord && canEdit(disposal) && (
                                   <button
                                     onClick={() => navigate(`/inventory/disposals/${disposal.id}/edit`)}
                                     className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
@@ -549,7 +555,7 @@ export const Disposals: React.FC = () => {
                                     <Edit size={14} />
                                   </button>
                                 )}
-                                {canDelete(disposal) && (
+                                {permissions.canDeleteRecord && canDelete(disposal) && (
                                   <button
                                     onClick={() => handleDelete(disposal.id, disposal.status)}
                                     className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"

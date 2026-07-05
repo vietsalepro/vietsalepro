@@ -22,6 +22,7 @@ import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
 import { useTenant } from '../hooks/useTenant';
+import { usePermissions } from '../hooks/usePermissions';
 import '../components/shared/FilterBar.css';
 import './Customers.css';
 
@@ -78,6 +79,7 @@ export const Customers: React.FC<CustomersProps> = ({
   const [pageSize] = useState(7);
   const { tenant } = useTenant();
   const tenantId = tenant?.id;
+  const permissions = usePermissions();
 
   // Sort State
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -558,6 +560,7 @@ export const Customers: React.FC<CustomersProps> = ({
       align: 'right',
       render: (customer) => (
         <div className="customers-v2-actions">
+          {permissions.canUpdateOrder && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -568,6 +571,8 @@ export const Customers: React.FC<CustomersProps> = ({
             }}
             aria-label="Sửa"
           />
+          )}
+          {permissions.canDeleteOrder && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -578,6 +583,7 @@ export const Customers: React.FC<CustomersProps> = ({
             }}
             aria-label="Xóa"
           />
+          )}
         </div>
       ),
     },
@@ -860,6 +866,7 @@ export const Customers: React.FC<CustomersProps> = ({
                 <Download className="w-4 h-4" /> <span>Xuất</span>
               </button>
             </div>
+            {permissions.canCreateOrder && (
             <button
               onClick={() => openModal()}
               className="btn-primary flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
@@ -868,6 +875,7 @@ export const Customers: React.FC<CustomersProps> = ({
               <span className="hidden sm:inline">Thêm khách hàng</span>
               <span className="sm:hidden">Thêm</span>
             </button>
+            )}
           </div>
         </div>
       </div>
@@ -908,9 +916,11 @@ export const Customers: React.FC<CustomersProps> = ({
             </div>
             <h3 className="text-lg font-semibold text-slate-700 mb-1">Chưa có khách hàng</h3>
             <p className="text-sm text-slate-500 mb-4">Thêm khách hàng đầu tiên để bắt đầu</p>
+            {permissions.canCreateOrder && (
             <button onClick={() => openModal()} className="btn-primary">
               <Plus className="w-4 h-4" /> Thêm khách hàng
             </button>
+            )}
           </div>
         </div>
       )}
@@ -1038,6 +1048,7 @@ export const Customers: React.FC<CustomersProps> = ({
                         </td>
                         <td className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {permissions.canUpdateOrder && (
                             <button
                               onClick={() => openModal(customer)}
                               className="crm-action-btn edit"
@@ -1045,6 +1056,8 @@ export const Customers: React.FC<CustomersProps> = ({
                             >
                               <Edit className="w-4 h-4" />
                             </button>
+                            )}
+                            {permissions.canDeleteOrder && (
                             <button
                               onClick={() => onDeleteCustomer(customer.id)}
                               className="crm-action-btn delete"
@@ -1052,6 +1065,7 @@ export const Customers: React.FC<CustomersProps> = ({
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1200,12 +1214,14 @@ export const Customers: React.FC<CustomersProps> = ({
             >
               Bỏ chọn
             </button>
+            {permissions.canDeleteOrder && (
             <button
               onClick={handleBulkDeleteLocal}
               className="btn btn-danger btn-sm"
             >
               <Trash2 className="w-4 h-4" /> Xoá
             </button>
+            )}
           </div>
         </div>
       )}
@@ -1442,7 +1458,11 @@ export const Customers: React.FC<CustomersProps> = ({
                     <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-ghost">
                       Huỷ
                     </button>
-                    <button type="submit" className="btn-primary">
+                    <button
+                      type="submit"
+                      disabled={editingCustomer ? !permissions.canUpdateOrder : !permissions.canCreateOrder}
+                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       {editingCustomer ? 'Cập nhật' : 'Thêm mới'}
                     </button>
                   </div>

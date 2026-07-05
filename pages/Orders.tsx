@@ -33,6 +33,7 @@ import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
 import { useTenant } from '../hooks/useTenant';
+import { usePermissions } from '../hooks/usePermissions';
 import '../components/shared/FilterBar.css';
 import './Orders.css';
 
@@ -58,6 +59,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
   const [isLoading, setIsLoading] = useState(false);
   const { tenant } = useTenant();
   const tenantId = tenant?.id;
+  const permissions = usePermissions();
 
   // Filter States
   const [startDate, setStartDate] = useState('');
@@ -515,7 +517,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
           </div>
 
           {/* Thanh tác vụ tự động kích hoạt */}
-          {selectedIds.length > 0 && (
+          {permissions.canDeleteOrder && selectedIds.length > 0 && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 animate-fade-in flex-shrink-0">
               <span className="text-sm font-semibold text-red-700">Đã chọn {selectedIds.length}</span>
               <button
@@ -528,9 +530,11 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
             </div>
           )}
 
+          {permissions.canCreateOrder && (
           <button onClick={() => navigate('/pos')} className="btn-primary flex items-center gap-2 px-4 py-2.5 self-start flex-shrink-0">
             <Plus className="w-4 h-4" /> Tạo đơn hàng
           </button>
+          )}
         </div>
       </div>
 
@@ -571,6 +575,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
               emptyTitle="Không tìm thấy hóa đơn nào"
               emptyDescription="Thử tìm kiếm với từ khóa khác hoặc tạo đơn hàng mới."
               emptyAction={
+                permissions.canCreateOrder ? (
                 <ActionButton
                   variant="primary"
                   size="md"
@@ -579,6 +584,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
                 >
                   Tạo đơn hàng
                 </ActionButton>
+                ) : undefined
               }
             />
           </div>
@@ -812,7 +818,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
                   <Ban className="w-4 h-4" />
                   Đơn đã huỷ — chỉ xem & in
                 </span>
-              ) : (
+              ) : permissions.canDeleteOrder ? (
                 <button
                   onClick={handleDelete}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
@@ -821,6 +827,8 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
                   <Ban className="w-4 h-4" />
                   {selectedOrder.hasReturn ? 'Huỷ hoá đơn (Giữ tồn kho)' : 'Huỷ hoá đơn (Hoàn kho)'}
                 </button>
+              ) : (
+                <span />
               )}
               <div className="flex gap-3 ml-auto">
                 {onPayDebt && getOrderStatusKind(selectedOrder) === 'debt' && (

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import './Sidebar.css';
 
 export interface SidebarProps {
@@ -34,26 +35,29 @@ interface SidebarItem {
   path: string;
   label: string;
   icon: React.ElementType;
+  requires?: keyof ReturnType<typeof usePermissions>;
 }
 
 const mainMenuItems: SidebarItem[] = [
   { path: '/tong-quan', label: 'Tổng quan', icon: LayoutDashboard },
   { path: '/products', label: 'Sản phẩm', icon: Package },
-  { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine },
-  { path: '/inventory-count', label: 'Kiểm kê', icon: ClipboardList },
-  { path: '/inventory/disposals', label: 'Xuất hủy', icon: Trash2 },
+  { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine, requires: 'canManageInventory' },
+  { path: '/inventory-count', label: 'Kiểm kê', icon: ClipboardList, requires: 'canManageInventory' },
+  { path: '/inventory/disposals', label: 'Xuất hủy', icon: Trash2, requires: 'canManageInventory' },
   { path: '/orders', label: 'Đơn hàng', icon: FileText },
   { path: '/return-orders', label: 'Trả hàng', icon: RotateCcw },
   { path: '/customers', label: 'Khách hàng', icon: Users },
-  { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck },
-  { path: '/reports', label: 'Báo cáo', icon: TrendingUp },
-  { path: '/tax', label: 'Tính thuế', icon: Receipt },
-  { path: '/pos', label: 'Bán hàng', icon: ShoppingCart },
+  { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, requires: 'canManageInventory' },
+  { path: '/reports', label: 'Báo cáo', icon: TrendingUp, requires: 'canViewReports' },
+  { path: '/tax', label: 'Tính thuế', icon: Receipt, requires: 'canViewReports' },
+  { path: '/pos', label: 'Bán hàng', icon: ShoppingCart, requires: 'canCreateOrder' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isLocked }) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const permissions = usePermissions();
+  const visibleMenuItems = mainMenuItems.filter(item => !item.requires || permissions[item.requires]);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isLocked })
         {/* Navigation */}
         <nav className="app-sidebar__nav">
           <ul className="app-sidebar__list">
-            {mainMenuItems.map(item => {
+            {visibleMenuItems.map(item => {
               const Icon = item.icon;
               const isActive = isActiveLink(item.path);
               return (
@@ -179,6 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isLocked })
                 </div>
                 Hồ sơ cá nhân
               </Link>
+              {permissions.canManageUsers && (
               <Link
                 to="/settings"
                 onClick={() => {
@@ -192,6 +197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isLocked })
                 </div>
                 Cài đặt hệ thống
               </Link>
+              )}
               <Link
                 to="/gioi-thieu"
                 onClick={() => {

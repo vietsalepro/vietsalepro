@@ -10,6 +10,7 @@ import { supabaseService } from '../services/supabaseService';
 import { PageLayout } from '../components/shared/PageLayout';
 import { CountFormLayout } from '../components/inventory-count/CountFormLayout';
 import { useTenant } from '../hooks/useTenant';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   VoucherButton,
   VoucherEmpty,
@@ -67,6 +68,7 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
   const products = productsProp || productsFallback;
   const { tenant } = useTenant();
   const tenantId = tenant?.id;
+  const permissions = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
   const isCreateRoute = useMemo(() => location.pathname === '/inventory-count/create', [location.pathname]);
@@ -973,7 +975,9 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
             <div className="inventory-count-page__toolbar-divider"></div>
             <button onClick={handleExportCountExcel} className="inventory-count-page__toolbar-btn inventory-count-page__toolbar-btn--export" title="Xuất danh sách phiếu kiểm kê ra Excel"><Download /><span>Xuất</span></button>
           </div>
+          {permissions.canManageInventory && (
           <button onClick={() => openCountForm()} className="btn-primary"><Plus className="inventory-count-page__btn-icon" /> Tạo phiếu kiểm kê</button>
+          )}
           <ActionButton
             variant="secondary"
             size="md"
@@ -1074,6 +1078,7 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
                 emptyTitle="Chưa có phiếu kiểm kê nào"
                 emptyDescription="Tạo phiếu kiểm kê mới để bắt đầu."
                 emptyAction={
+                  permissions.canManageInventory ? (
                   <ActionButton
                     variant="primary"
                     size="md"
@@ -1082,6 +1087,7 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
                   >
                     Tạo phiếu kiểm kê
                   </ActionButton>
+                  ) : undefined
                 }
               />
             ) : (
@@ -1203,8 +1209,8 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
                               >
                                 <FileText />
                               </button>
-                              {/* Phase 7a: Nút Hủy phiếu (cancel) — cho draft/completed */}
-                              {(count.status === 'draft' || count.status === 'completed') && onCancelInventoryCount && (
+                              {/* Phase 7a: Nút Hủy phiếu (cancel) — cho draft/completed, chỉ admin */}
+                              {permissions.canDeleteRecord && (count.status === 'draft' || count.status === 'completed') && onCancelInventoryCount && (
                                 <button
                                   onClick={() => onCancelInventoryCount(count.id)}
                                   className="inventory-count-table__action-btn inventory-count-table__action-btn--cancel"
@@ -1213,8 +1219,8 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
                                   <Ban />
                                 </button>
                               )}
-                              {/* Phase 7a: Nút Xóa hẳn — chỉ cho draft/cancelled */}
-                              {(count.status === 'draft' || count.status === 'cancelled') && onDeleteInventoryCount && (
+                              {/* Phase 7a: Nút Xóa hẳn — chỉ cho draft/cancelled, chỉ admin */}
+                              {permissions.canDeleteRecord && (count.status === 'draft' || count.status === 'cancelled') && onDeleteInventoryCount && (
                                 <button
                                   onClick={() => onDeleteInventoryCount(count.id)}
                                   className="inventory-count-table__action-btn inventory-count-table__action-btn--delete"
@@ -1236,9 +1242,11 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
                           title="Chưa có phiếu kiểm kê nào"
                           description="Tạo phiếu kiểm kê mới để bắt đầu."
                           action={
+                            permissions.canManageInventory ? (
                             <button onClick={() => openCountForm()} className="btn-primary">
                               <Plus className="inventory-count-page__btn-icon" /> Tạo phiếu kiểm kê
                             </button>
+                            ) : undefined
                           }
                         />
                       </td>
@@ -1362,9 +1370,11 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
                  title="Chưa có phiếu kiểm kê nào"
                  description="Tạo phiếu kiểm kê mới để bắt đầu."
                  action={
+                   permissions.canManageInventory ? (
                    <button onClick={() => openCountForm()} className="btn-primary">
                      <Plus className="inventory-count-page__btn-icon" /> Tạo phiếu kiểm kê
                    </button>
+                   ) : undefined
                  }
                />
              )}
@@ -1410,7 +1420,7 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
            </div>
 
            {/* Bulk Actions Bar (Inventory Counts) */}
-           {selectedCountIds.size > 0 && (
+           {permissions.canDeleteRecord && selectedCountIds.size > 0 && (
              <div className="inventory-count-page__bulk-bar">
                <div className="inventory-count-page__bulk-bar-count">
                  Đã chọn <span>{selectedCountIds.size}</span> phiếu
@@ -1444,8 +1454,8 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
             actions={
               <>
                 <ActionButton variant="ghost" onClick={closeCountForm}>Hủy</ActionButton>
-                <ActionButton variant="secondary" onClick={() => handleSaveCount('draft')}>Lưu nháp</ActionButton>
-                <ActionButton variant="primary" onClick={() => handleSaveCount('completed')}>Hoàn thành</ActionButton>
+                <ActionButton variant="secondary" disabled={!permissions.canManageInventory} onClick={() => handleSaveCount('draft')}>Lưu nháp</ActionButton>
+                <ActionButton variant="primary" disabled={!permissions.canManageInventory} onClick={() => handleSaveCount('completed')}>Hoàn thành</ActionButton>
               </>
             }
           >

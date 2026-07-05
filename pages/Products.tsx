@@ -15,6 +15,7 @@ import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
 import { useTenant } from '../hooks/useTenant';
+import { usePermissions } from '../hooks/usePermissions';
 import '../components/shared/FilterBar.css';
 import './Inventory.css';
 
@@ -65,6 +66,7 @@ export const Products: React.FC<InventoryProps> = ({
   const products = productsProp || productsFallback;
   const { tenant } = useTenant();
   const tenantId = tenant?.id;
+  const permissions = usePermissions();
 
   useEffect(() => {
     if (!tenantId) return;
@@ -887,6 +889,7 @@ export const Products: React.FC<InventoryProps> = ({
       align: 'center',
       render: (product) => (
         <div className="inventory-v2-actions">
+          {permissions.canUpdateProduct && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -894,6 +897,8 @@ export const Products: React.FC<InventoryProps> = ({
             onClick={() => openModal(product)}
             aria-label="Chỉnh sửa"
           />
+          )}
+          {permissions.canDeleteProduct && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -901,6 +906,7 @@ export const Products: React.FC<InventoryProps> = ({
             onClick={() => onDeleteProduct(product.id)}
             aria-label="Xoá"
           />
+          )}
         </div>
       ),
     },
@@ -1257,7 +1263,7 @@ export const Products: React.FC<InventoryProps> = ({
               </div>
 
               {/* Bulk Delete */}
-              {useNewDataGridInventory && selectedIds.size > 0 && (
+              {useNewDataGridInventory && permissions.canDeleteProduct && selectedIds.size > 0 && (
                 <button
                   onClick={handleBulkDeleteAction}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm bg-red-600 text-white hover:bg-red-700 transition-colors"
@@ -1266,7 +1272,9 @@ export const Products: React.FC<InventoryProps> = ({
                 </button>
               )}
 
+              {permissions.canCreateProduct && (
               <button onClick={() => openModal()} className="btn-primary"><Plus className="w-4 h-4" /> Thêm sản phẩm</button>
+              )}
            </div>
       </div>
         <>
@@ -1355,9 +1363,11 @@ export const Products: React.FC<InventoryProps> = ({
                 emptyTitle="Không tìm thấy sản phẩm nào"
                 emptyDescription="Thử tìm kiếm với từ khóa khác hoặc thêm sản phẩm mới."
                 emptyAction={
+                  permissions.canCreateProduct ? (
                   <ActionButton variant="primary" size="md" icon={<Plus size={18} />} onClick={() => openModal()}>
                     Thêm sản phẩm
                   </ActionButton>
+                  ) : undefined
                 }
               />
             </DataGridBox>
@@ -1468,6 +1478,7 @@ export const Products: React.FC<InventoryProps> = ({
                           </td>
                           <td className="text-right">
                             <div className="inline-flex items-center gap-1">
+                              {permissions.canUpdateProduct && (
                               <button
                                 onClick={() => openModal(product)}
                                 className="prd-action-btn edit"
@@ -1475,6 +1486,8 @@ export const Products: React.FC<InventoryProps> = ({
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
+                              )}
+                              {permissions.canDeleteProduct && (
                               <button
                                 onClick={() => onDeleteProduct(product.id)}
                                 className="prd-action-btn delete"
@@ -1482,6 +1495,7 @@ export const Products: React.FC<InventoryProps> = ({
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2119,7 +2133,14 @@ export const Products: React.FC<InventoryProps> = ({
             {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-end gap-3">
               <button onClick={closeModal} className="px-4 py-2 text-gray-600 font-medium">Huỷ</button>
-              <button type="submit" form="productForm" className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200">{editingProduct ? 'Cập nhật' : 'Lưu sản phẩm'}</button>
+              <button
+                type="submit"
+                form="productForm"
+                disabled={editingProduct ? !permissions.canUpdateProduct : !permissions.canCreateProduct}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {editingProduct ? 'Cập nhật' : 'Lưu sản phẩm'}
+              </button>
             </div>
           </div>
         </div>

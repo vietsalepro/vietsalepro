@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LayoutDashboard, Package, Users, Truck, ShoppingCart, ArrowDownToLine, FileText, Menu, X, LogOut, User as UserIcon, Settings as SettingsIcon, Receipt, ChevronDown, TrendingUp, Sparkles, RotateCcw, ClipboardList, Trash2, ArrowLeftRight, BookOpen } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import './AppTopbar.css';
 
 interface AppTopbarProps {
@@ -10,18 +11,22 @@ interface AppTopbarProps {
   isLocked?: boolean;
 }
 
+type MenuItem = { path: string; label: string; icon: React.ElementType; requires?: keyof ReturnType<typeof usePermissions> };
+
+type MenuGroup = { label: string; icon: React.ElementType; children: MenuItem[] };
+
 // Desktop dropdown menu groups
-const desktopMenuGroups = [
+const desktopMenuGroups: MenuGroup[] = [
   {
     label: 'Hàng Hóa',
     icon: Package,
     children: [
       { path: '/products', label: 'Danh mục sản phẩm', icon: Package },
-      { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine },
-      { path: '/inventory-count', label: 'Kiểm kê', icon: ClipboardList },
-      { path: '/inventory/disposals', label: 'Xuất hủy', icon: Trash2 },
-      { path: '/inventory/supplier-exchanges', label: 'Đổi trả hàng NCC', icon: ArrowLeftRight },
-      { path: '/stock-ledger', label: 'Sổ cái kho', icon: BookOpen },
+      { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine, requires: 'canManageInventory' },
+      { path: '/inventory-count', label: 'Kiểm kê', icon: ClipboardList, requires: 'canManageInventory' },
+      { path: '/inventory/disposals', label: 'Xuất hủy', icon: Trash2, requires: 'canManageInventory' },
+      { path: '/inventory/supplier-exchanges', label: 'Đổi trả hàng NCC', icon: ArrowLeftRight, requires: 'canManageInventory' },
+      { path: '/stock-ledger', label: 'Sổ cái kho', icon: BookOpen, requires: 'canManageInventory' },
     ],
   },
   {
@@ -37,33 +42,33 @@ const desktopMenuGroups = [
     icon: Users,
     children: [
       { path: '/customers', label: 'Khách hàng', icon: Users },
-      { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck },
+      { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, requires: 'canManageInventory' },
     ],
   },
   {
     label: 'Báo Cáo',
     icon: TrendingUp,
     children: [
-      { path: '/reports', label: 'Báo cáo', icon: TrendingUp },
-      { path: '/tax', label: 'Tính thuế', icon: Receipt },
+      { path: '/reports', label: 'Báo cáo', icon: TrendingUp, requires: 'canViewReports' },
+      { path: '/tax', label: 'Tính thuế', icon: Receipt, requires: 'canViewReports' },
     ],
   },
 ];
 
-// Mobile flat menu (unchanged)
-const mobileMenuItems = [
+// Mobile flat menu
+const mobileMenuItems: MenuItem[] = [
   { path: '/tong-quan', label: 'Tổng quan', icon: LayoutDashboard },
   { path: '/products', label: 'Hàng hoá', icon: Package },
   { path: '/customers', label: 'Khách hàng', icon: Users },
-  { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck },
-  { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine },
+  { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, requires: 'canManageInventory' },
+  { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine, requires: 'canManageInventory' },
   { path: '/orders', label: 'Đơn hàng', icon: FileText },
-  { path: '/tax', label: 'Tính thuế', icon: Receipt },
+  { path: '/tax', label: 'Tính thuế', icon: Receipt, requires: 'canViewReports' },
   { path: '/return-orders', label: 'Trả hàng', icon: RotateCcw },
-  { path: '/inventory/disposals', label: 'Xuất hủy', icon: Trash2 },
-  { path: '/inventory/supplier-exchanges', label: 'Đổi trả hàng NCC', icon: ArrowLeftRight },
-  { path: '/stock-ledger', label: 'Sổ kho', icon: BookOpen },
-  { path: '/reports', label: 'Báo cáo', icon: TrendingUp },
+  { path: '/inventory/disposals', label: 'Xuất hủy', icon: Trash2, requires: 'canManageInventory' },
+  { path: '/inventory/supplier-exchanges', label: 'Đổi trả hàng NCC', icon: ArrowLeftRight, requires: 'canManageInventory' },
+  { path: '/stock-ledger', label: 'Sổ kho', icon: BookOpen, requires: 'canManageInventory' },
+  { path: '/reports', label: 'Báo cáo', icon: TrendingUp, requires: 'canViewReports' },
 ];
 
 interface DropdownGroupProps {
@@ -132,6 +137,13 @@ const DropdownGroup: React.FC<DropdownGroupProps> = ({ label, icon: Icon, items,
 export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocked }) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const permissions = usePermissions();
+
+  const filterMenuItems = (items: MenuItem[]) => items.filter(item => !item.requires || permissions[item.requires]);
+  const visibleDesktopGroups = desktopMenuGroups
+    .map(group => ({ ...group, children: filterMenuItems(group.children) }))
+    .filter(group => group.children.length > 0);
+  const visibleMobileItems = filterMenuItems(mobileMenuItems);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -207,7 +219,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
           </Link>
 
           {/* Dropdown groups */}
-          {desktopMenuGroups.map(group => (
+          {visibleDesktopGroups.map(group => (
             <DropdownGroup
               key={group.label}
               label={group.label}
@@ -223,6 +235,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
             ============================================ */}
         <div className="app-topbar__right">
           {/* Desktop POS Button - Featured */}
+          {permissions.canCreateOrder && (
           <Link
             to="/pos"
             className={`app-topbar__pos ${location.pathname.startsWith('/pos') ? 'app-topbar__pos--active' : ''}`}
@@ -238,6 +251,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
             <span className="app-topbar__pos-label">Bán hàng</span>
             <TrendingUp size={16} className="app-topbar__pos-trend" />
           </Link>
+          )}
 
           {/* User Dropdown */}
           <div ref={userMenuRef} className="app-topbar__user">
@@ -279,6 +293,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
                   </div>
                   Hồ sơ cá nhân
                 </Link>
+                {permissions.canManageUsers && (
                 <Link
                   to="/settings"
                   onClick={() => setIsUserMenuOpen(false)}
@@ -289,6 +304,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
                   </div>
                   Cài đặt hệ thống
                 </Link>
+                )}
                 <Link
                   to="/gioi-thieu"
                   onClick={() => setIsUserMenuOpen(false)}
@@ -314,6 +330,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
           </div>
 
           {/* Mobile POS Button */}
+          {permissions.canCreateOrder && (
           <Link
             to="/pos"
             onClick={() => setIsOpen(false)}
@@ -322,6 +339,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
             <ShoppingCart size={16} />
             <span>Bán hàng</span>
           </Link>
+          )}
 
           {/* Mobile Menu Toggle */}
           <button
@@ -340,7 +358,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
       {isOpen && (
         <div className="app-topbar__mobile">
           <nav className="app-topbar__mobile-nav">
-            {mobileMenuItems.map((item) => {
+            {visibleMobileItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActiveLink(item.path);
               return (

@@ -13,6 +13,7 @@ import { useNewDataGridReturnOrders } from '../features';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { usePermissions } from '../hooks/usePermissions';
 import '../components/shared/FilterBar.css';
 import './ReturnOrders.css';
 import {
@@ -132,6 +133,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
     setFilters,
     resetFilters,
   } = useReturnOrder(appSettings);
+  const permissions = usePermissions();
 
   // STATE QUẢN LÝ TÍNH NĂNG CHECKBOX CHỌN NHIỀU
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -743,7 +745,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
             }}
             aria-label="In phiếu trả"
           />
-          {r.status !== 'cancelled' && (
+          {permissions.canDeleteOrder && r.status !== 'cancelled' && (
             <ActionButton
               variant="ghost"
               size="sm"
@@ -1835,7 +1837,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
             <div className="p-3 border-t border-slate-200 shrink-0 bg-white">
               <button
                 onClick={handleSubmitReturn}
-                disabled={loading || !canSubmit}
+                disabled={loading || !canSubmit || !permissions.canCreateOrder}
                 className="w-full h-12 inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-lg shadow-sm transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -2031,7 +2033,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl flex flex-wrap justify-between items-center gap-2">
                   <div className="flex gap-2">
-                    {!isCancelled && (
+                    {permissions.canDeleteOrder && !isCancelled && (
                       <Button variant="danger" icon={<Trash2 className="w-4 h-4" />} onClick={() => setConfirmCancelId(ret.id || null)}>
                         Hủy phiếu trả
                       </Button>
@@ -2163,7 +2165,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
         </div>
 
         <div className="flex items-center gap-3 self-end md:self-center flex-shrink-0">
-          {selectedIds.length > 0 && (
+          {permissions.canDeleteOrder && selectedIds.length > 0 && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2 animate-fade-in">
               <span className="text-sm font-semibold text-red-700">Đã chọn {selectedIds.length} phiếu</span>
               <button 
@@ -2175,6 +2177,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
               </button>
             </div>
           )}
+          {permissions.canCreateOrder && (
           <button 
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-purple-100 transition-all"
             onClick={handleCreateNew}
@@ -2182,6 +2185,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
             <Plus className="w-4 h-4" />
             Tạo phiếu trả hàng
           </button>
+          )}
         </div>
       </div>
 
@@ -2293,6 +2297,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
               emptyTitle="Chưa có phiếu trả hàng nào"
               emptyDescription="Tạo phiếu trả hàng mới để bắt đầu."
               emptyAction={
+                permissions.canCreateOrder ? (
                 <ActionButton
                   variant="primary"
                   size="md"
@@ -2301,6 +2306,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
                 >
                   Tạo phiếu trả
                 </ActionButton>
+                ) : undefined
               }
             />
           </div>
@@ -2445,7 +2451,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
                           >
                             <Printer className="w-4 h-4" />
                           </button>
-                          {r.status !== 'cancelled' && (
+                          {permissions.canDeleteOrder && r.status !== 'cancelled' && (
                             <button
                               onClick={() => setConfirmCancelId(r.id || null)}
                               className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
@@ -2468,7 +2474,11 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
                 icon={<RotateCcw className="w-10 h-10" />}
                 title="Chưa có phiếu trả hàng nào"
                 description="Tạo phiếu trả hàng mới để bắt đầu."
-                action={<Button variant="primary" onClick={handleCreateNew} icon={<Plus className="w-4 h-4" />}>Tạo phiếu trả</Button>}
+                action={
+                  permissions.canCreateOrder ? (
+                    <Button variant="primary" onClick={handleCreateNew} icon={<Plus className="w-4 h-4" />}>Tạo phiếu trả</Button>
+                  ) : undefined
+                }
               />
             )}
 

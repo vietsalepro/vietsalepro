@@ -28,6 +28,7 @@ import { useNewDataGridImportGoods } from '../features';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { usePermissions } from '../hooks/usePermissions';
 import { supabaseService } from '../services/supabaseService';
 import './ImportGoods.css';
 
@@ -52,6 +53,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const activeTab = useMemo<'create' | 'history'>(() => location.pathname === '/import/create' ? 'create' : 'history', [location.pathname]);
   const [viewingReceipt, setViewingReceipt] = useState<ImportReceipt | null>(null);
   const dataGridBoxRef = useRef<HTMLDivElement>(null);
@@ -1072,7 +1074,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
             }}
             aria-label="Xem chi tiết"
           />
-          {r.status === 'draft' && (
+          {permissions.canDeleteRecord && r.status === 'draft' && (
             <ActionButton
               variant="ghost"
               size="sm"
@@ -1084,6 +1086,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
               aria-label="Mở lại / Sửa"
             />
           )}
+          {permissions.canDeleteRecord && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -1094,6 +1097,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
             }}
             aria-label="Xóa"
           />
+          )}
         </div>
       ),
     },
@@ -1128,7 +1132,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
             />
           </div>
         )}
-        {activeTab === 'history' && !viewingReceipt && (
+        {activeTab === 'history' && !viewingReceipt && permissions.canManageInventory && (
           <button onClick={() => { navigate('/import/create'); setViewingReceipt(null); resetForm(); }} className="btn-primary flex items-center gap-2 px-4 py-2.5 self-start flex-shrink-0">
             <Plus className="w-4 h-4" /> Nhập hàng
           </button>
@@ -1651,7 +1655,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                   size="md"
                   fullWidth
                   loading={isSubmitting}
-                  disabled={importList.length === 0 || isSubmitting}
+                  disabled={importList.length === 0 || isSubmitting || !permissions.canManageInventory}
                   icon={<Save className="w-5 h-5" />}
                   onClick={() => submitReceipt('draft')}
                   title="Lưu tạm (chưa ghi nhận tồn kho)"
@@ -1663,7 +1667,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                   size="md"
                   fullWidth
                   loading={isSubmitting}
-                  disabled={importList.length === 0 || isSubmitting}
+                  disabled={importList.length === 0 || isSubmitting || !permissions.canManageInventory}
                   icon={<Check className="w-5 h-5" />}
                   onClick={() => submitReceipt('completed')}
                   title={editingId ? 'Cập nhật phiếu nhập' : 'Hoàn thành — ghi nhận tồn kho và công nợ'}
@@ -1695,10 +1699,12 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                  <h3 className="ig-page-detail-header__title">Chi tiết phiếu: {viewingReceipt.id}</h3>
                  <div className="ig-page-detail-header__actions">
                     {/* REBUILD V2: Chỉ hiển thị nút Sửa/Mở lại khi phiếu ở dạng draft */}
-                    {viewingReceipt.status === 'draft' && (
+                    {permissions.canDeleteRecord && viewingReceipt.status === 'draft' && (
                       <button onClick={() => handleEditClick(viewingReceipt)} className="btn-primary flex items-center gap-2 px-4 py-2"><Edit className="w-4 h-4" /> Sửa</button>
                     )}
+                    {permissions.canDeleteRecord && (
                     <button onClick={() => handleDeleteClick(viewingReceipt.id)} className="flex items-center gap-2 px-4 py-2 btn-danger"><Trash2 className="w-4 h-4" /> Xoá</button>
+                    )}
                  </div>
               </div>
               <div className="ig-page-detail-body">
@@ -1912,6 +1918,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                 emptyTitle="Chưa có phiếu nhập nào"
                 emptyDescription="Tạo phiếu nhập mới để bắt đầu."
                 emptyAction={
+                  permissions.canManageInventory ? (
                   <ActionButton
                     variant="primary"
                     size="md"
@@ -1920,6 +1927,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                   >
                     Nhập hàng
                   </ActionButton>
+                  ) : undefined
                 }
               />
             ) : (
@@ -2107,10 +2115,12 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                                <span className="ig-page-mobile-card__footer-count">{(receipt.items || []).length} mặt hàng</span>
                                <div className="inline-flex items-center gap-1">
                                 <button onClick={(e) => { e.stopPropagation(); handleViewDetail(receipt); }} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition" title="Xem chi tiết"><FileText className="w-4 h-4"/></button>
-                                {receipt.status === 'draft' && (
+                                {permissions.canDeleteRecord && receipt.status === 'draft' && (
                                   <button onClick={(e) => { e.stopPropagation(); handleEditClick(receipt); }} className="p-2 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition" title="Mở lại / Sửa"><Edit className="w-4 h-4"/></button>
                                 )}
+                                {permissions.canDeleteRecord && (
                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(receipt.id); }} className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Xóa"><Trash2 className="w-4 h-4"/></button>
+                                )}
                               </div>
                            </div>
                         </div>
@@ -2121,6 +2131,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                         title="Chưa có phiếu nhập nào"
                         description="Tạo phiếu nhập mới để bắt đầu."
                         action={
+                          permissions.canManageInventory ? (
                           <ActionButton
                             variant="primary"
                             size="md"
@@ -2129,6 +2140,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                           >
                             Nhập hàng
                           </ActionButton>
+                          ) : undefined
                         }
                       />
                    )}

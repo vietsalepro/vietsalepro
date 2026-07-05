@@ -1,6 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, ShoppingCart, FileText, Users, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface BottomNavProps {
   onMenuClick: () => void;
@@ -16,11 +17,12 @@ export function BottomNav(props: BottomNavProps) {
     }
   };
   const location = useLocation();
+  const permissions = usePermissions();
 
   const navItems = [
     { path: '/tong-quan', label: 'Tổng quan', icon: LayoutDashboard },
     { path: '/orders', label: 'Đơn hàng', icon: FileText },
-    { path: '/pos', label: 'Bán hàng', icon: ShoppingCart, highlight: true },
+    ...(permissions.canCreateOrder ? [{ path: '/pos', label: 'Bán hàng', icon: ShoppingCart, highlight: true as const }] : []),
     { path: '/customers', label: 'Khách hàng', icon: Users },
   ];
 
@@ -74,7 +76,8 @@ export function BottomNav(props: BottomNavProps) {
           );
         })}
 
-        {/* Nút thứ 5: Cài đặt (giữ nguyên logic onMenuClick) */}
+        {/* Nút thứ 5: Cài đặt — chỉ admin quản lý user / hệ thống */}
+        {permissions.canManageUsers && (
         <button
           type="button"
           onClick={props.onMenuClick}
@@ -84,6 +87,7 @@ export function BottomNav(props: BottomNavProps) {
           <Settings className="w-5 h-5" strokeWidth={2} />
           <span className="text-[10px] font-medium tracking-tight">Cài đặt</span>
         </button>
+        )}
       </div>
     </nav>
   );

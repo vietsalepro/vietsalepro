@@ -10,6 +10,7 @@ import StatsRow from '../components/shared/StatsRow';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { usePermissions } from '../hooks/usePermissions';
 import { DebtLedgerModal } from '../components/DebtLedgerModal';
 import '../components/shared/FilterBar.css';
 import './Suppliers.css';
@@ -42,6 +43,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const permissions = usePermissions();
   
   // Tab State for Modal
   const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
@@ -282,6 +284,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
       align: 'right',
       render: (supplier) => (
         <div className="suppliers-v2-actions">
+          {permissions.canDeleteRecord && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -292,6 +295,8 @@ export const Suppliers: React.FC<SuppliersProps> = ({
             }}
             aria-label="Xem / Sửa"
           />
+          )}
+          {permissions.canDeleteRecord && (
           <ActionButton
             variant="ghost"
             size="sm"
@@ -302,6 +307,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
             }}
             aria-label="Xoá"
           />
+          )}
         </div>
       ),
     },
@@ -646,7 +652,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Bulk Action Bar */}
-          {selectedIds.length > 0 && (
+          {permissions.canDeleteRecord && selectedIds.length > 0 && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-1.5 animate-fade-in mr-2">
               <span className="text-xs font-semibold text-red-700">Đã chọn {selectedIds.length}</span>
               <button 
@@ -675,9 +681,11 @@ export const Suppliers: React.FC<SuppliersProps> = ({
             </button>
           </div>
 
+          {permissions.canManageInventory && (
           <button onClick={() => openModal()} className="btn-primary flex items-center gap-2 px-4 py-2.5 self-start flex-shrink-0">
             <Plus className="w-4 h-4" /> Thêm nhà cung cấp
           </button>
+          )}
         </div>
       </div>
 
@@ -717,6 +725,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
               emptyTitle="Không tìm thấy nhà cung cấp nào"
               emptyDescription="Thử tìm kiếm với từ khóa khác hoặc thêm nhà cung cấp mới."
               emptyAction={
+                permissions.canManageInventory ? (
                 <ActionButton
                   variant="primary"
                   size="md"
@@ -725,6 +734,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                 >
                   Thêm nhà cung cấp
                 </ActionButton>
+                ) : undefined
               }
             />
           </div>
@@ -802,6 +812,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                         </td>
                         <td className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {permissions.canDeleteRecord && (
                             <button
                               onClick={() => openModal(supplier)}
                               className="crm-action-btn edit"
@@ -809,6 +820,8 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                             >
                               <Edit className="w-4 h-4" />
                             </button>
+                            )}
+                            {permissions.canDeleteRecord && (
                             <button
                               onClick={() => onDeleteSupplier(supplier.id)}
                               className="crm-action-btn delete"
@@ -816,6 +829,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1003,7 +1017,11 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                     {/* Action buttons */}
                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                       <button type="button" onClick={closeModal} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Đóng</button>
-                      <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || (editingSupplier ? !permissions.canDeleteRecord : !permissions.canManageInventory)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         {editingSupplier ? 'Cập nhật' : 'Lưu thông tin'}
                       </button>

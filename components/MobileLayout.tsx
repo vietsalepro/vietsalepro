@@ -5,6 +5,7 @@ import {
   BarChart3, Settings, X, Receipt, Sparkles, ChevronRight,
   ClipboardList
 } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 import './MobileLayout.css';
 
 interface MobileLayoutProps {
@@ -14,23 +15,27 @@ interface MobileLayoutProps {
 export function MobileLayout({ children }: MobileLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const permissions = usePermissions();
 
   const menuItems = [
     { section: 'Quản lý', items: [
       { path: '/products', label: 'Hàng hoá', icon: Package, color: 'bg-blue-100 text-blue-600' },
       { path: '/customers', label: 'Khách hàng', icon: Users, color: 'bg-emerald-100 text-emerald-600' },
-      { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, color: 'bg-cyan-100 text-cyan-600' },
+      { path: '/suppliers', label: 'Nhà cung cấp', icon: Truck, color: 'bg-cyan-100 text-cyan-600', requires: 'canManageInventory' as const },
     ]},
     { section: 'Giao dịch', items: [
-      { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine, color: 'bg-indigo-100 text-indigo-600' },
+      { path: '/import', label: 'Nhập hàng', icon: ArrowDownToLine, color: 'bg-indigo-100 text-indigo-600', requires: 'canManageInventory' as const },
       { path: '/orders', label: 'Đơn hàng', icon: FileText, color: 'bg-orange-100 text-orange-600' },
-      { path: '/inventory-count', label: 'Kiểm kê', icon: ClipboardList, color: 'bg-purple-100 text-purple-600' },
+      { path: '/inventory-count', label: 'Kiểm kê', icon: ClipboardList, color: 'bg-purple-100 text-purple-600', requires: 'canManageInventory' as const },
     ]},
     { section: 'Báo cáo', items: [
-      { path: '/reports', label: 'Báo cáo', icon: BarChart3, color: 'bg-pink-100 text-pink-600' },
-      { path: '/tax', label: 'Thuế', icon: Receipt, color: 'bg-amber-100 text-amber-600' },
+      { path: '/reports', label: 'Báo cáo', icon: BarChart3, color: 'bg-pink-100 text-pink-600', requires: 'canViewReports' as const },
+      { path: '/tax', label: 'Thuế', icon: Receipt, color: 'bg-amber-100 text-amber-600', requires: 'canViewReports' as const },
     ]},
-  ];
+  ].map(group => ({
+    ...group,
+    items: group.items.filter(item => !item.requires || permissions[item.requires]),
+  })).filter(group => group.items.length > 0);
 
   return (
     <div className="m-bg min-h-screen md:pb-0">
@@ -117,6 +122,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
           </div>
 
           {/* Footer */}
+          {permissions.canManageUsers && (
           <div className="p-4 border-t border-slate-100 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <Link
               to="/settings"
@@ -129,6 +135,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
               <span className="text-sm font-medium text-slate-700">Cài đặt</span>
             </Link>
           </div>
+          )}
         </div>
       </aside>
     </div>

@@ -702,3 +702,4 @@ Yêu cầu:
 - Bật monitoring: Supabase Log Explorer, disk usage alert, tenant/user growth alert.
 - Viết `runbook.md`.
 ```
+Apply toàn bộ multi-tenancy phases 2–17 lên Production

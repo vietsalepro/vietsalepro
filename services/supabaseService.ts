@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, requireTenantId, getCurrentTenantId } from '../lib/supabase';
 import { 
   Product, Customer, Supplier, Order, ImportReceipt, 
   InventoryCount, AppSettings, Reward, PointHistory,
@@ -70,7 +70,7 @@ const mapProductFromDB = (item: any): Product => ({
  * Cột products.lots đã bị xóa khỏi DB trong Phase 4b SSOT.
  * Lot data chỉ được ghi vào product_lots TABLE qua replaceProductLots().
  */
-const mapProductToDB = (item: Product) => ({
+const mapProductToDB = (item: Product, tenantId: string) => ({
   id: item.id,
   name: capitalizeProductName(item.name),
   display_name: capitalizeProductName(item.displayName || item.name),
@@ -92,6 +92,7 @@ const mapProductToDB = (item: Product) => ({
   is_point_accumulation_enabled: item.isPointAccumulationEnabled,
   has_lots: item.hasBatches,
   conversion_units: item.conversionUnits,
+  tenant_id: tenantId,
   // PHASE 4b SSOT: cột products.lots JSONB đã bị xóa khỏi DB.
   // Lot data được ghi riêng vào product_lots TABLE qua replaceProductLots().
 });
@@ -111,7 +112,7 @@ const mapCustomerFromDB = (item: any): Customer => ({
   updatedAt: item.updated_at
 });
 
-const mapCustomerToDB = (item: Customer) => ({
+const mapCustomerToDB = (item: Customer, tenantId: string) => ({
   id: item.id,
   code: item.code,
   name: item.name,
@@ -123,7 +124,8 @@ const mapCustomerToDB = (item: Customer) => ({
   rank: item.rank,
   last_purchase_date: item.lastPurchaseDate,
   created_at: item.createdAt,
-  updated_at: item.updatedAt
+  updated_at: item.updatedAt,
+  tenant_id: tenantId
 });
 
 const mapSupplierFromDB = (item: any): Supplier => ({
@@ -136,14 +138,15 @@ const mapSupplierFromDB = (item: any): Supplier => ({
   debt: item.debt
 });
 
-const mapSupplierToDB = (item: Supplier) => ({
+const mapSupplierToDB = (item: Supplier, tenantId: string) => ({
   id: item.id,
   code: item.code,
   name: item.name,
   phone: item.phone,
   address: item.address,
   contact_person: item.contactPerson,
-  debt: item.debt
+  debt: item.debt,
+  tenant_id: tenantId
 });
 
 const mapImportReceiptFromDB = (r: any) => ({
@@ -247,7 +250,7 @@ export const supabaseService = {
 
   async addCategory(name: string) {
     const id = `CAT${Date.now()}${Math.random().toString(36).substring(2, 7)}`;
-    const { error } = await supabase.from('categories').insert({ id, name });
+    const { error } = await supabase.from('categories').insert({ id, name, tenant_id: requireTenantId() });
     if (error) throw error;
   },
 
@@ -270,7 +273,7 @@ export const supabaseService = {
 
   async addBrand(name: string) {
     const id = `BRD${Date.now()}${Math.random().toString(36).substring(2, 7)}`;
-    const { error } = await supabase.from('brands').insert({ id, name });
+    const { error } = await supabase.from('brands').insert({ id, name, tenant_id: requireTenantId() });
     if (error) throw error;
   },
 
@@ -320,6 +323,7 @@ export const supabaseService = {
       quantity: Number(lot.quantity ?? 0),
       original_quantity: lot.originalQuantity != null ? Number(lot.originalQuantity) : Number(lot.quantity ?? 0),
       cost: lot.cost != null ? Number(lot.cost) : null,
+      tenant_id: requireTenantId(),
     }, { onConflict: 'product_id,code' });
     if (error) throw error;
   },
@@ -356,6 +360,7 @@ export const supabaseService = {
 
     if (uniqueLots.length === 0) return;
 
+    const tenantId = requireTenantId();
     const rows = uniqueLots.map(lot => ({
       id: lot.id || crypto.randomUUID(),
       product_id: productId,
@@ -364,6 +369,7 @@ export const supabaseService = {
       quantity: Number(lot.quantity ?? 0),
       original_quantity: lot.originalQuantity != null ? Number(lot.originalQuantity) : Number(lot.quantity ?? 0),
       cost: lot.cost != null ? Number(lot.cost) : null,
+      tenant_id: tenantId,
     }));
 
     const { error: insertError } = await supabase.from('product_lots').insert(rows);
@@ -529,12 +535,13 @@ export const supabaseService = {
   },
 
   async upsertProduct(product: Product) {
-    const { error } = await supabase.from('products').upsert(mapProductToDB(product));
+    const { error } = await supabase.from('products').upsert(mapProductToDB(product, requireTenantId()));
     if (error) throw error;
   },
 
   async upsertProducts(products: Product[]) {
-    const { error } = await supabase.from('products').upsert(products.map(mapProductToDB));
+    const tenantId = requireTenantId();
+    const { error } = await supabase.from('products').upsert(products.map(p => mapProductToDB(p, tenantId)));
     if (error) throw error;
   },
 
@@ -717,7 +724,7 @@ export const supabaseService = {
   },
 
   async upsertCustomer(customer: Customer) {
-    const { error } = await supabase.from('customers').upsert(mapCustomerToDB(customer));
+    const { error } = await supabase.from('customers').upsert(mapCustomerToDB(customer, requireTenantId()));
     if (error) throw error;
   },
 
@@ -890,7 +897,7 @@ export const supabaseService = {
   },
 
   async upsertSupplier(supplier: Supplier) {
-    const { error } = await supabase.from('suppliers').upsert(mapSupplierToDB(supplier));
+    const { error } = await supabase.from('suppliers').upsert(mapSupplierToDB(supplier, requireTenantId()));
     if (error) throw error;
   },
 
@@ -1090,6 +1097,7 @@ export const supabaseService = {
 
   async createOrder(order: Order) {
     // Try to create order online first
+    const tenantId = requireTenantId();
     try {
       // 1. Insert Order
       const { error: orderError } = await supabase.from('orders').insert({
@@ -1103,10 +1111,11 @@ export const supabaseService = {
         debt_recorded: order.debtRecorded,
         payment_method: order.paymentMethod,
         status: order.status,
-      points_earned: order.pointsEarned,
-      points_redeemed: order.pointsRedeemed,
-      rewards_redeemed: order.rewardsRedeemed,
-      note: order.note || null
+        points_earned: order.pointsEarned,
+        points_redeemed: order.pointsRedeemed,
+        rewards_redeemed: order.rewardsRedeemed,
+        note: order.note || null,
+        tenant_id: tenantId,
       });
       if (orderError) throw orderError;
 
@@ -1117,7 +1126,8 @@ export const supabaseService = {
         product_name: item.productName,
         quantity: item.quantity,
         unit_name: item.unitName,
-        price: item.price
+        price: item.price,
+        tenant_id: tenantId,
       }));
       
       const { error: itemsError } = await supabase.from('order_items').insert(items);
@@ -1199,6 +1209,7 @@ export const supabaseService = {
         // offline-first sáº½ truyá»n delta chÃ­nh xÃ¡c hÆ¡n khi gá»i trá»±c tiáº¿p.
         offlineQueue.add({
           type: 'checkout',
+          tenantId,
           order,
           productDeltas: order.items.map(i => ({
             productId: i.productId,
@@ -1625,7 +1636,8 @@ export const supabaseService = {
       created_order_ids: record.createdOrderIds || [],
       new_customer_ids: record.newCustomerIds || [],
       error_log: record.errorLog || [],
-      status: record.status
+      status: record.status,
+      tenant_id: requireTenantId()
     });
     // KhÃ´ng throw Ä‘á»ƒ lá»—i ghi log khÃ´ng lÃ m há»ng káº¿t quáº£ import
     if (error) console.error('createImportHistory failed:', error);
@@ -2006,6 +2018,7 @@ export const supabaseService = {
       return_fee_percent: settings.returnFeePercent ?? 0,
       // Phase 7.3: allow_negative_stock (admin override)
       allow_negative_stock: (settings as any).allowNegativeStock ?? false,
+      tenant_id: requireTenantId(),
     };
 
     
@@ -2077,7 +2090,8 @@ export const supabaseService = {
       name: reward.name,
       point_cost: reward.pointCost,
       description: reward.description,
-      stock: reward.stock || 0
+      stock: reward.stock || 0,
+      tenant_id: requireTenantId()
     });
     if (error) throw error;
   },
@@ -2116,7 +2130,8 @@ export const supabaseService = {
       type: history.type,
       amount: history.amount,
       description: history.description,
-      order_id: history.orderId
+      order_id: history.orderId,
+      tenant_id: requireTenantId()
     });
     if (error) throw error;
   },
@@ -2160,6 +2175,7 @@ export const supabaseService = {
   },
 
   async upsertInventoryCount(count: InventoryCount) {
+    const tenantId = requireTenantId();
     // 1. Upsert Header
     const { error: headerError } = await supabase.from('inventory_counts').upsert({
       id: count.id,
@@ -2168,7 +2184,8 @@ export const supabaseService = {
       status: count.status,
       notes: count.notes,
       created_at: count.createdAt,
-      completed_at: count.completedAt
+      completed_at: count.completedAt,
+      tenant_id: tenantId
     });
     if (headerError) throw headerError;
 
@@ -2192,7 +2209,8 @@ export const supabaseService = {
         reason: item.reason,
         lot_id: item.lotId || null,
         lot_code: item.lotCode || null,
-        expiry_date: item.expiryDate || null
+        expiry_date: item.expiryDate || null,
+        tenant_id: tenantId
       }));
       
       const { error: itemsError } = await supabase.from('inventory_count_items').insert(items);
@@ -2319,12 +2337,13 @@ export const supabaseService = {
   async restoreSystemBackup(backupData: any) {
     const { data } = backupData;
     if (!data) throw new Error('Invalid backup file format');
+    const tenantId = requireTenantId();
 
     const upsertBatch = async (table: string, items: any[]) => {
       if (!items || items.length === 0) return;
       const BATCH_SIZE = 100;
       for (let i = 0; i < items.length; i += BATCH_SIZE) {
-        const batch = items.slice(i, i + BATCH_SIZE);
+        const batch = items.slice(i, i + BATCH_SIZE).map((item: any) => ({ ...item, tenant_id: tenantId }));
         const { error } = await supabase.from(table).upsert(batch);
         if (error) {
           console.error(`Error restoring batch for ${table}:`, error);
@@ -2402,16 +2421,17 @@ export const supabaseService = {
     customers: Customer[], 
     suppliers: Supplier[]
   ) {
+    const tenantId = requireTenantId();
     if (products.length > 0) {
-      const { error } = await supabase.from('products').upsert(products.map(mapProductToDB));
+      const { error } = await supabase.from('products').upsert(products.map(p => mapProductToDB(p, tenantId)));
       if (error) console.error('Error seeding products:', error);
     }
     if (customers.length > 0) {
-      const { error } = await supabase.from('customers').upsert(customers.map(mapCustomerToDB));
+      const { error } = await supabase.from('customers').upsert(customers.map(c => mapCustomerToDB(c, tenantId)));
       if (error) console.error('Error seeding customers:', error);
     }
     if (suppliers.length > 0) {
-      const { error } = await supabase.from('suppliers').upsert(suppliers.map(mapSupplierToDB));
+      const { error } = await supabase.from('suppliers').upsert(suppliers.map(s => mapSupplierToDB(s, tenantId)));
       if (error) console.error('Error seeding suppliers:', error);
     }
   },
@@ -2537,6 +2557,7 @@ export const supabaseService = {
    */
   async _legacyPushCheckout(op: CheckoutOp) {
     const { order } = op;
+    const tenantId = requireTenantId();
 
     const { error: orderError } = await supabase.from('orders').upsert({
       id: order.id,
@@ -2552,7 +2573,8 @@ export const supabaseService = {
       points_earned: order.pointsEarned,
       points_redeemed: order.pointsRedeemed,
       rewards_redeemed: order.rewardsRedeemed,
-      note: order.note || null
+      note: order.note || null,
+      tenant_id: tenantId
     });
     if (orderError) throw orderError;
 
@@ -2564,7 +2586,8 @@ export const supabaseService = {
         product_name: item.productName,
         quantity: item.quantity,
         unit_name: item.unitName,
-        price: item.price
+        price: item.price,
+        tenant_id: tenantId
       }));
       const { error: itemsError } = await supabase.from('order_items').insert(items);
       if (itemsError) throw itemsError;
@@ -2614,7 +2637,8 @@ export const supabaseService = {
         type: ph.type,
         amount: ph.amount,
         description: ph.description,
-        order_id: ph.orderId
+        order_id: ph.orderId,
+        tenant_id: tenantId
       });
     }
   },
@@ -2624,11 +2648,23 @@ export const supabaseService = {
     const ops = offlineQueue.getAll();
     if (ops.length === 0) return { synced: 0, failed: 0 };
 
-    console.log(`Syncing ${ops.length} offline operations...`);
-    const remaining: QueuedOp[] = [];
+    const currentTenantId = getCurrentTenantId();
+    if (!currentTenantId) {
+      console.log('No tenant selected; skipping offline sync.');
+      return { synced: 0, failed: ops.length };
+    }
+
+    const tenantOps = ops.filter(op => op.tenantId === currentTenantId);
+    const skippedOps = ops.filter(op => op.tenantId !== currentTenantId);
+    if (skippedOps.length > 0) {
+      console.log(`Skipping ${skippedOps.length} offline ops belonging to other tenants.`);
+    }
+
+    console.log(`Syncing ${tenantOps.length} offline operations for tenant ${currentTenantId}...`);
+    const remaining: QueuedOp[] = [...skippedOps];
     let synced = 0;
 
-    for (const op of ops) {
+    for (const op of tenantOps) {
       try {
         if (op.type === 'checkout') {
           await this.pushCheckout(op);
@@ -2689,8 +2725,8 @@ export const supabaseService = {
     };
   },
 
-  mapPromotionToDB(promo: Promotion) {
-    return {
+  mapPromotionToDB(promo: Promotion, tenantId?: string) {
+    const result: any = {
       id: promo.id,
       name: promo.name,
       type: promo.type,
@@ -2721,6 +2757,8 @@ export const supabaseService = {
       created_at: promo.createdAt,
       updated_at: promo.updatedAt,
     };
+    if (tenantId) result.tenant_id = tenantId;
+    return result;
   },
 
   async getPromotions(): Promise<Promotion[]> {
@@ -2737,7 +2775,7 @@ export const supabaseService = {
   async addPromotion(promo: Promotion): Promise<void> {
     const { error } = await supabase
       .from('promotions')
-      .insert(this.mapPromotionToDB(promo));
+      .insert(this.mapPromotionToDB(promo, requireTenantId()));
     if (error) throw error;
   },
 
@@ -2793,6 +2831,7 @@ export const supabaseService = {
       discount_percent: config.discountPercent,
       created_at: config.createdAt,
       updated_at: config.updatedAt,
+      tenant_id: requireTenantId()
     });
     if (error) throw error;
   },
@@ -2842,6 +2881,7 @@ export const supabaseService = {
       changed_at: history.changedAt,
       reason: history.reason,
       total_spent_at_change: history.totalSpentAtChange,
+      tenant_id: requireTenantId()
     });
     if (error) throw error;
   },
@@ -3130,6 +3170,7 @@ export const supabaseService = {
       reason: params.reason,
       note: params.note || null,
       status: 'completed',
+      tenant_id: requireTenantId(),
     };
     const feeRow: any = {
       ...baseRow,
@@ -3150,6 +3191,7 @@ export const supabaseService = {
 
 
     // 2. ThÃªm chi tiáº¿t
+    const tenantId = requireTenantId();
     const itemsToInsert = params.items.map((item) => ({
       id: `${returnId}_${item.productId}`,
       return_order_id: returnId,
@@ -3160,6 +3202,7 @@ export const supabaseService = {
       unit_price: item.unitPrice,
       subtotal: item.subtotal,
       reason: item.reason,
+      tenant_id: tenantId,
     }));
 
     const { error: itemsError } = await supabase.from('return_order_items').insert(itemsToInsert);
@@ -3417,6 +3460,7 @@ export const supabaseService = {
 
     const disposalId = `DSP${Date.now()}`;
     const now = new Date().toISOString();
+    const tenantId = requireTenantId();
 
     // Insert disposal
     const { error: disposalError } = await supabase.from('disposals').insert({
@@ -3429,6 +3473,7 @@ export const supabaseService = {
       note: disposal.note,
       total_quantity: disposal.items.reduce((sum, i) => sum + i.quantity, 0),
       total_value: disposal.items.reduce((sum, i) => sum + i.totalValue, 0),
+      tenant_id: tenantId,
     });
     if (disposalError) throw disposalError;
 
@@ -3448,6 +3493,7 @@ export const supabaseService = {
       category_name: item.categoryName || null,
       brand_id: item.brandId || null,
       brand_name: item.brandName || null,
+      tenant_id: tenantId,
     }));
 
     if (items.length > 0) {
@@ -3510,6 +3556,7 @@ export const supabaseService = {
     const { error: deleteError } = await supabase.from('disposal_items').delete().eq('disposal_id', id);
     if (deleteError) throw deleteError;
 
+    const tenantId = requireTenantId();
     const items = disposal.items.map((item: any) => ({
       disposal_id: id,
       product_id: item.productId,
@@ -3525,6 +3572,7 @@ export const supabaseService = {
       category_name: item.categoryName || null,
       brand_id: item.brandId || null,
       brand_name: item.brandName || null,
+      tenant_id: tenantId,
     }));
 
     if (items.length > 0) {

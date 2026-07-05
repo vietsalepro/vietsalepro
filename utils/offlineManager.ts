@@ -18,6 +18,8 @@ export interface CheckoutOp {
   // Phase 2: opId duy nhất cho mỗi op để RPC server idempotent check.
   // Sinh bằng generateOpId() khi tạo op. Tồn tại cả khi op rồi sync nhiều lần.
   opId?: string;
+  // Phase 6.2: mỗi op thuộc về một tenant; sync chỉ xử lý op của tenant hiện tại.
+  tenantId?: string;
   order: Order;
   // Số lượng cần trừ kho, quy về đơn vị cơ bản.
   // Phase 4: thêm lotId (tuỳ chọn) — bắt buộc nếu product.has_lots = TRUE.

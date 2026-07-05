@@ -39,7 +39,11 @@ import { BrandManagement } from './pages/BrandManagement';
 import { CategoryManagement } from './pages/CategoryManagement';
 import { StockLedger } from './pages/StockLedger';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TenantProvider, useTenant } from './contexts/TenantContext';
 import LandingPage from './pages/LandingPage';
+import SystemAdminDashboard from './pages/SystemAdminDashboard';
+import { TenantNotFoundPage, TenantSuspendedPage, TenantForbiddenPage } from './components/TenantStatusPages';
+import { getSubdomain } from './lib/tenant';
 import { 
   INITIAL_PRODUCTS, 
   INITIAL_CUSTOMERS, 
@@ -68,6 +72,7 @@ function CustomersWrapper(props: any) {
 
 function AppContent() {
   const { user, signOut, loading: authLoading } = useAuth();
+  const { tenant, membership, isLoading: tenantLoading } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -134,7 +139,7 @@ function AppContent() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [pointHistory, setPointHistory] = useState<PointHistory[]>([]);
 
-  const loadedForUserId = useRef<string | null>(null);
+  const loadedForUserId = useRef<{ userId: string; tenantId: string | null } | null>(null);
 
   // Viewport detection
   const [viewport, setViewport] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
@@ -157,10 +162,19 @@ function AppContent() {
   useEffect(() => {
     if (!user) {
       loadedForUserId.current = null;
+      setIsLoading(false);
       return;
     }
-    if (loadedForUserId.current === user.id) return;
-    loadedForUserId.current = user.id;
+    // ponytail: global data chỉ load sau khi tenant đã xác định.
+    if (tenantLoading) return;
+    if (!tenant) {
+      loadedForUserId.current = null;
+      setIsLoading(false);
+      return;
+    }
+    const tenantId = tenant.id;
+    if (loadedForUserId.current?.userId === user.id && loadedForUserId.current?.tenantId === tenantId) return;
+    loadedForUserId.current = { userId: user.id, tenantId };
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -226,7 +240,7 @@ function AppContent() {
       }
     };
     fetchData();
-  }, [user]);
+  }, [user, tenantLoading, tenant?.id]);
 
   useEffect(() => {
     try { localStorage.setItem('vietsale_promotions', JSON.stringify(promotions)); } catch(e) {}
@@ -1229,7 +1243,7 @@ function AppContent() {
     }
   };
 
-  if (authLoading || (isLoading && user)) {
+  if (authLoading || tenantLoading || (isLoading && user)) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
@@ -1240,8 +1254,32 @@ function AppContent() {
     );
   }
 
+  const subdomain = getSubdomain();
+
+  // ponytail: admin hoặc root domain không resolve tenant; routing riêng cho SystemAdminDashboard/LandingPage.
+  if (!subdomain || subdomain === 'admin') {
+    if (subdomain === 'admin') {
+      if (!user) return <Login />;
+      return <SystemAdminDashboard />;
+    }
+    return <LandingPage />;
+  }
+
+  // Subdomain là cửa hàng: phải tồn tại, không bị tạm dừng, và user phải là thành viên.
+  if (!tenant) {
+    return <TenantNotFoundPage />;
+  }
+
+  if (tenant.status === 'suspended') {
+    return <TenantSuspendedPage />;
+  }
+
   if (!user) {
     return <Login />;
+  }
+
+  if (!membership) {
+    return <TenantForbiddenPage />;
   }
 
   const isPosView = location.pathname === '/pos';
@@ -1610,7 +1648,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <TenantProvider>
+        <AppContent />
+      </TenantProvider>
     </AuthProvider>
   );
 }

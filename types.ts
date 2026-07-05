@@ -136,6 +136,7 @@ export interface BrandManagementItem {
 // ─── ORDER ────────────────────────────────────────────────────
 export interface Order {
   id: string;
+  orderCode?: string;
   tenantId?: string;
   customer?: string;
   customerId?: string;
@@ -629,7 +630,7 @@ export interface EInvoiceOrder {
   order_id: string;
   
   // Thông tin hóa đơn
-  invoice_no?: string;
+  invoice_number?: string;
   invoice_pattern: string;
   invoice_serial: string;
   
@@ -649,8 +650,8 @@ export interface EInvoiceOrder {
   tax_rate: number;
   
   // Xử lý sai sót
-  replacing_invoice_no?: string;
-  replaced_by_invoice_no?: string;
+  replacing_invoice_number?: string;
+  replaced_by_invoice_number?: string;
   cancel_reason?: string;
   cancel_at?: string;
   

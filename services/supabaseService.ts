@@ -42,7 +42,7 @@ const mapProductFromDB = (item: any): Product => ({
   id: item.id,
   name: item.name,
   displayName: item.display_name,
-  code: item.code,
+  code: item.sku ?? item.code,
   barcode: item.barcode,
   price: item.price,
   cost: item.cost,
@@ -74,7 +74,7 @@ const mapProductToDB = (item: Product) => ({
   id: item.id,
   name: capitalizeProductName(item.name),
   display_name: capitalizeProductName(item.displayName || item.name),
-  code: item.code,
+  sku: item.code,
   barcode: item.barcode,
   price: item.price,
   cost: item.cost,
@@ -925,6 +925,7 @@ export const supabaseService = {
 
     return data.map((order: any) => ({
       id: order.id,
+      orderCode: order.order_code,
       date: order.date,
       customerId: order.customer_id,
       customerName: order.customer_name,
@@ -988,6 +989,7 @@ export const supabaseService = {
 
     const orders = data.map((order: any) => ({
       id: order.id,
+      orderCode: order.order_code,
       date: order.date,
       customerId: order.customer_id,
       customerName: order.customer_name,
@@ -1059,6 +1061,7 @@ export const supabaseService = {
 
     return data.map((order: any) => ({
       id: order.id,
+      orderCode: order.order_code,
       date: order.date,
       customerId: order.customer_id,
       customerName: order.customer_name,
@@ -1091,6 +1094,7 @@ export const supabaseService = {
       // 1. Insert Order
       const { error: orderError } = await supabase.from('orders').insert({
         id: order.id,
+        order_code: order.orderCode || order.id,
         date: order.date,
         customer_id: order.customerId,
         customer_name: order.customerName,
@@ -1745,6 +1749,7 @@ export const supabaseService = {
     if (error) throw error;
     return (data || []).map((order: any) => ({
       id: order.id,
+      orderCode: order.order_code,
       date: order.date,
       customerId: order.customer_id,
       customerName: order.customer_name,
@@ -2535,6 +2540,7 @@ export const supabaseService = {
 
     const { error: orderError } = await supabase.from('orders').upsert({
       id: order.id,
+      order_code: order.orderCode || order.id,
       date: order.date,
       customer_id: order.customerId === 'guest' ? null : order.customerId,
       customer_name: order.customerName,

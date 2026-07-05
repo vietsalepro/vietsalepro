@@ -1,25 +1,25 @@
 ## 0. Pre-Flight
 
-- [ ] 0.1 Create project backup to `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_multi_tenancy_phase_12_1_<YYYYMMDD_HHMMSS>`
-- [ ] 0.2 Confirm `npm run lint` passes (skip if no code changes)
-- [ ] 0.3 Read the sub-phase section in `KE_HOACH_CHI_TIET_MULTI_TENANCY_SUB_PHASE.md`
+- [x] 0.1 Create project backup to `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_multi_tenancy_phase_12_1_<YYYYMMDD_HHMMSS>`
+- [x] 0.2 Confirm `npm run lint` passes (skip if no code changes)
+- [x] 0.3 Read the sub-phase section in `KE_HOACH_CHI_TIET_MULTI_TENANCY_SUB_PHASE.md`
 
 ## 1. Sub-phase 12.1: Bật strict + fix core services/types
 
-- [ ] 1.1 `tsconfig.json`: `"strict": true`
-- [ ] 1.2 Fix `services/supabaseService.ts` (chỉ phần CRUD cơ bản, không chạm logic nghiệp vụ sâu).
-- [ ] 1.3 Fix `types.ts`, `utils/`, `hooks/`.
+- [x] 1.1 `tsconfig.json`: `"strict": true`
+- [x] 1.2 Fix `services/supabaseService.ts` (chỉ phần CRUD cơ bản, không chạm logic nghiệp vụ sâu).
+- [x] 1.3 Fix `types.ts`, `utils/`, `hooks/`.
 
 ## 2. Verification
 
-- [ ] 2.1 Run `npm run lint`
-- [ ] 2.2 Run `npm run build` if this sub-phase touches code
-- [ ] 2.3 Manual test the acceptance criteria
+- [x] 2.1 Run `npm run lint`
+- [x] 2.2 Run `npm run build` if this sub-phase touches code
+- [x] 2.3 Manual test the acceptance criteria
 
 ## Acceptance Criteria
 
-- [ ] `npm run lint` pass
-- [ ] `npm run build` pass
+- [x] `npm run lint` pass
+- [x] `npm run build` pass
 
 ## Rollback Plan
 

@@ -434,7 +434,7 @@ export function MobileSettings(props: MobileSettingsProps) {
             setRankConfigs(DEFAULT_RANK_CONFIGS);
           }
         } catch (error) {
-          console.error('Error loading rank configs:', error);
+
         }
       };
       loadRankConfigs();
@@ -449,7 +449,7 @@ export function MobileSettings(props: MobileSettingsProps) {
           const { orders } = await supabaseService.getOrdersPaginated(1, 5000);
           setRankOrders(orders);
         } catch (error) {
-          console.error('Error loading orders for ranking:', error);
+
         } finally {
           setIsRankLoading(false);
         }
@@ -506,7 +506,7 @@ export function MobileSettings(props: MobileSettingsProps) {
       setEditingRank(null);
       alert('Đã lưu cấu hình hạng!');
     } catch (error) {
-      console.error('Error saving rank config:', error);
+
       alert('Lỗi lưu cấu hình hạng.');
     }
   };
@@ -517,7 +517,7 @@ export function MobileSettings(props: MobileSettingsProps) {
       await supabaseService.deleteRankConfig(id);
       setRankConfigs(prev => prev.filter(r => r.id !== id));
     } catch (error) {
-      console.error('Error deleting rank config:', error);
+
     }
   };
 
@@ -547,7 +547,7 @@ export function MobileSettings(props: MobileSettingsProps) {
       
       alert(`Đã tính lại hạng cho ${allCustomers.length} khách hàng. ${changedCount} khách hàng thay đổi hạng.`);
     } catch (error) {
-      console.error('Error recalculating ranks:', error);
+
       alert('Lỗi tính lại hạng.');
     } finally {
       setIsRankLoading(false);
@@ -608,7 +608,7 @@ export function MobileSettings(props: MobileSettingsProps) {
       document.body.removeChild(a);
       alert('Sao lưu thành công!');
     } catch (error) {
-      console.error('Backup error:', error);
+
       alert('Sao lưu thất bại.');
     } finally {
       setIsBackingUp(false);

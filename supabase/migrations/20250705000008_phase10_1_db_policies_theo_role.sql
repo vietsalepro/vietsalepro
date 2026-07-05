@@ -29,6 +29,10 @@ BEGIN
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_insert ON public.%I', tbl);
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_update ON public.%I', tbl);
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_delete ON public.%I', tbl);
+      -- ponytail: make idempotent in case role-based policies were already created
+      EXECUTE format('DROP POLICY IF EXISTS %I_insert_by_role ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS %I_update_by_role ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS %I_delete_admin_only ON public.%I', tbl, tbl);
 
       EXECUTE format(
         'CREATE POLICY %I_insert_by_role ON public.%I FOR INSERT TO authenticated '
@@ -58,6 +62,10 @@ BEGIN
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_insert ON public.%I', tbl);
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_update ON public.%I', tbl);
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_delete ON public.%I', tbl);
+      -- ponytail: make idempotent in case role-based policies were already created
+      EXECUTE format('DROP POLICY IF EXISTS %I_insert_by_role ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS %I_update_by_role ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS %I_delete_admin_only ON public.%I', tbl, tbl);
 
       EXECUTE format(
         'CREATE POLICY %I_insert_by_role ON public.%I FOR INSERT TO authenticated '
@@ -87,6 +95,10 @@ BEGIN
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_insert ON public.%I', tbl);
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_update ON public.%I', tbl);
       EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_delete ON public.%I', tbl);
+      -- ponytail: make idempotent in case role-based policies were already created
+      EXECUTE format('DROP POLICY IF EXISTS %I_insert_admin_only ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS %I_update_admin_only ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS %I_delete_admin_only ON public.%I', tbl, tbl);
 
       EXECUTE format(
         'CREATE POLICY %I_insert_admin_only ON public.%I FOR INSERT TO authenticated '

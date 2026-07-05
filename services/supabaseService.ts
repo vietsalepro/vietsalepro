@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { offlineQueue, isNetworkError, CheckoutOp, QueuedOp } from '../utils/offlineManager';
 import { capitalizeProductName } from '../utils/stringHelper';
+import { AppError } from '../utils/errors';
 
 
 // --- Mappers (Snake_case DB -> CamelCase App) ---
@@ -42,7 +43,7 @@ const mapProductFromDB = (item: any): Product => ({
   id: item.id,
   name: item.name,
   displayName: item.display_name,
-  code: item.sku ?? item.code,
+  code: item.sku ?? item.code ?? '',
   barcode: item.barcode,
   price: item.price,
   cost: item.cost,
@@ -149,7 +150,7 @@ const mapSupplierToDB = (item: Supplier, tenantId: string) => ({
   tenant_id: tenantId
 });
 
-const mapImportReceiptFromDB = (r: any) => ({
+const mapImportReceiptFromDB = (r: any): ImportReceipt => ({
   id: r.id,
   invoiceNumber: r.invoice_number,
   date: r.date,
@@ -425,7 +426,7 @@ export const supabaseService = {
     return flattened.map(mapProductFromDB);
   },
 
-  async searchProducts(searchTerm: string, limit: number = 100) {
+  async searchProducts(searchTerm: string, limit: number = 100): Promise<Product[]> {
     const { data, error } = await supabase.rpc('search_products_rpc', {
       p_search_term: searchTerm || null,
       p_limit: limit
@@ -582,7 +583,7 @@ export const supabaseService = {
     });
     if (error) {
       // Fallback: náº¿u chÆ°a cháº¡y migration (RPC chÆ°a tá»“n táº¡i), dÃ¹ng query + client filter
-      console.warn('RPC search_customers_rpc not found, falling back to direct query:', error.message);
+
       const { data: fallbackData, error: fallbackError } = await supabase
         .from('customers')
         .select('*')
@@ -675,7 +676,7 @@ export const supabaseService = {
     } catch (err: any) {
       // Fallback: náº¿u chÆ°a cháº¡y migration (RPC chÆ°a tá»“n táº¡i), dÃ¹ng query cÅ©
       if (err.message && err.message.includes('function') && err.message.includes('not found')) {
-        console.warn('RPC filter_customers_rpc not found, falling back to direct query');
+
         let query = supabase.from('customers').select('*', { count: 'exact' });
         
         if (searchTerm) {
@@ -1120,7 +1121,7 @@ export const supabaseService = {
       if (orderError) throw orderError;
 
       // 2. Insert Items
-      const items = order.items.map(item => ({
+      const items = (order.items || []).map(item => ({
         order_id: order.id,
         product_id: item.productId,
         product_name: item.productName,
@@ -1164,20 +1165,20 @@ export const supabaseService = {
           await supabase.from('customers').update({ loyalty_points: newPoints }).eq('id', order.customerId);
 
           // Record History: Earned
-          if (order.pointsEarned > 0) {
+          if ((order.pointsEarned || 0) > 0) {
             await this.addPointHistory({
               id: `PH-${Date.now()}-E`,
               customerId: order.customerId,
               date: new Date().toISOString(),
               type: 'earn',
-              amount: order.pointsEarned,
+              amount: order.pointsEarned || 0,
               description: `TÃ­ch Ä‘iá»ƒm tá»« Ä‘Æ¡n hÃ ng #${order.id}`,
               orderId: order.id
             });
           }
 
           // Record History: Redeemed
-          if (order.pointsRedeemed > 0) {
+          if ((order.pointsRedeemed || 0) > 0) {
              // Detailed description for rewards
              const rewardNames = order.rewardsRedeemed?.map(r => r.rewardName).join(', ') || 'Äá»•i quÃ ';
              await this.addPointHistory({
@@ -1185,7 +1186,7 @@ export const supabaseService = {
               customerId: order.customerId,
               date: new Date().toISOString(),
               type: 'redeem',
-              amount: -order.pointsRedeemed, // Negative for deduction
+              amount: -(order.pointsRedeemed || 0), // Negative for deduction
               description: `Äá»•i Ä‘iá»ƒm: ${rewardNames} (ÄÆ¡n hÃ ng #${order.id})`,
               orderId: order.id
             });
@@ -1204,14 +1205,14 @@ export const supabaseService = {
         error.name === 'TypeError';
 
       if (offline) {
-        console.log('Network error detected, queueing order offline:', error);
+
         // HÃ ng Ä‘á»£i op tá»‘i thiá»ƒu (giáº£ Ä‘á»‹nh Ä‘Æ¡n vá»‹ cÆ¡ báº£n). handleCheckout
         // offline-first sáº½ truyá»n delta chÃ­nh xÃ¡c hÆ¡n khi gá»i trá»±c tiáº¿p.
         offlineQueue.add({
           type: 'checkout',
           tenantId,
           order,
-          productDeltas: order.items.map(i => ({
+          productDeltas: (order.items || []).map(i => ({
             productId: i.productId,
             deductBaseQty: i.quantity
           })),
@@ -1224,7 +1225,7 @@ export const supabaseService = {
               ? {
                   customerId: order.customerId,
                   addSpent: order.totalAmount,
-                  addDebt: order.debtRecorded,
+                  addDebt: order.debtRecorded || 0,
                   addPoints: (order.pointsEarned || 0) - (order.pointsRedeemed || 0)
                 }
               : undefined,
@@ -1235,7 +1236,7 @@ export const supabaseService = {
       } else {
 
         // If it's a logic/DB error (e.g. constraint violation), rethrow it
-        console.error('Database/Logic error creating order:', error);
+
         throw error;
       }
     }
@@ -1263,11 +1264,11 @@ export const supabaseService = {
       const msg = (rpcError.message || '') + ' ' + ((rpcError as any).details || '');
       const notFound = /function.*delete_order.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        console.warn('[deleteOrder] RPC chưa tồn tại — chạy migration supabase_migration_delete_order_rpc.sql. Fallback về legacy path.');
+
         return this._legacyDeleteOrder(id);
       }
       // Lỗi business (đơn có phiếu trả, không tồn tại, ...) → throw nguyên message
-      throw new Error(rpcError.message || 'Lỗi xoá đơn hàng');
+      throw new AppError(rpcError.message || 'Lỗi xoá đơn hàng', 'BUSINESS_ERROR');
     }
   },
 
@@ -1283,10 +1284,10 @@ export const supabaseService = {
       const msg = (rpcError.message || '') + ' ' + ((rpcError as any).details || '');
       const notFound = /function.*cancel_order.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        throw new Error('RPC cancel_order chưa được tạo. Vui lòng chạy migration: supabase_migration_cancel_order_rpc.sql');
+        throw new AppError('RPC cancel_order chưa được tạo. Vui lòng chạy migration: supabase_migration_cancel_order_rpc.sql', 'BUSINESS_ERROR');
       }
       // Lỗi business (đơn còn phiếu trả, đơn đã hủy, không tồn tại, ...) → throw nguyên message
-      throw new Error(rpcError.message || 'Lỗi huỷ đơn hàng');
+      throw new AppError(rpcError.message || 'Lỗi huỷ đơn hàng', 'BUSINESS_ERROR');
     }
   },
 
@@ -1363,10 +1364,10 @@ export const supabaseService = {
       const msg = (error.message || '') + ' ' + ((error as any).details || '');
       const notFound = /function.*pay_order_debt.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        throw new Error('RPC pay_order_debt chưa được tạo. Vui lòng chạy migration: supabase_migration_pay_order_debt_rpc.sql');
+        throw new AppError('RPC pay_order_debt chưa được tạo. Vui lòng chạy migration: supabase_migration_pay_order_debt_rpc.sql', 'BUSINESS_ERROR');
       }
       // Lỗi business (đơn không tồn tại, đã huỷ, đã trả đủ, ...) → throw nguyên message
-      throw new Error(error.message || 'Lỗi thanh toán công nợ');
+      throw new AppError(error.message || 'Lỗi thanh toán công nợ', 'BUSINESS_ERROR');
     }
 
     const r = data as any;
@@ -1410,9 +1411,9 @@ export const supabaseService = {
       const msg = (error.message || '') + ' ' + ((error as any).details || '');
       const notFound = /function.*pay_supplier_debt.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        throw new Error('RPC pay_supplier_debt chưa được tạo. Vui lòng chạy migration: supabase/migration_phase8a_debt_ledger.sql');
+        throw new AppError('RPC pay_supplier_debt chưa được tạo. Vui lòng chạy migration: supabase/migration_phase8a_debt_ledger.sql', 'BUSINESS_ERROR');
       }
-      throw new Error(error.message || 'Lỗi thanh toán công nợ NCC');
+      throw new AppError(error.message || 'Lỗi thanh toán công nợ NCC', 'BUSINESS_ERROR');
     }
 
     const r = data as any;
@@ -1453,9 +1454,9 @@ export const supabaseService = {
       const msg = (error.message || '') + ' ' + ((error as any).details || '');
       const notFound = /function.*adjust_customer_debt.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        throw new Error('RPC adjust_customer_debt chưa được tạo. Vui lòng chạy migration: supabase/migration_phase8a_debt_ledger.sql');
+        throw new AppError('RPC adjust_customer_debt chưa được tạo. Vui lòng chạy migration: supabase/migration_phase8a_debt_ledger.sql', 'BUSINESS_ERROR');
       }
-      throw new Error(error.message || 'Lỗi điều chỉnh công nợ KH');
+      throw new AppError(error.message || 'Lỗi điều chỉnh công nợ KH', 'BUSINESS_ERROR');
     }
 
     const r = data as any;
@@ -1492,9 +1493,9 @@ export const supabaseService = {
       const msg = (error.message || '') + ' ' + ((error as any).details || '');
       const notFound = /function.*adjust_supplier_debt.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        throw new Error('RPC adjust_supplier_debt chưa được tạo. Vui lòng chạy migration: supabase/migration_phase8a_debt_ledger.sql');
+        throw new AppError('RPC adjust_supplier_debt chưa được tạo. Vui lòng chạy migration: supabase/migration_phase8a_debt_ledger.sql', 'BUSINESS_ERROR');
       }
-      throw new Error(error.message || 'Lỗi điều chỉnh công nợ NCC');
+      throw new AppError(error.message || 'Lỗi điều chỉnh công nợ NCC', 'BUSINESS_ERROR');
     }
 
     const r = data as any;
@@ -1536,7 +1537,7 @@ export const supabaseService = {
     });
 
     if (error) {
-      throw new Error(error.message || 'Lỗi đọc sổ cái công nợ KH');
+      throw new AppError(error.message || 'Lỗi đọc sổ cái công nợ KH', 'BUSINESS_ERROR');
     }
 
     const r = data as any;
@@ -1586,7 +1587,7 @@ export const supabaseService = {
     });
 
     if (error) {
-      throw new Error(error.message || 'Lỗi đọc sổ cái công nợ NCC');
+      throw new AppError(error.message || 'Lỗi đọc sổ cái công nợ NCC', 'BUSINESS_ERROR');
     }
 
     const r = data as any;
@@ -1640,8 +1641,7 @@ export const supabaseService = {
       tenant_id: requireTenantId()
     });
     // KhÃ´ng throw Ä‘á»ƒ lá»—i ghi log khÃ´ng lÃ m há»ng káº¿t quáº£ import
-    if (error) console.error('createImportHistory failed:', error);
-  },
+    if (error)  { /* error silently ignored */ }  },
 
   async getImportHistory() {
     const { data, error } = await supabase
@@ -1650,7 +1650,7 @@ export const supabaseService = {
       .order('import_date', { ascending: false })
       .limit(50);
     if (error) {
-      console.error('getImportHistory failed:', error);
+
       return [];
     }
     return (data || []).map((r: any) => ({
@@ -1744,7 +1744,7 @@ export const supabaseService = {
     return (data || []).map(mapImportReceiptFromDB);
   },
 
-  async getImportReceiptsByProductAndLot(productId: string, lotId: string) {
+  async getImportReceiptsByProductAndLot(productId: string, lotId: string): Promise<ImportReceipt[]> {
     const { data, error } = await supabase.rpc('get_import_receipts_by_product_and_lot', {
       p_product_id: productId,
       p_lot_id: lotId
@@ -1782,7 +1782,7 @@ export const supabaseService = {
   // Import Receipts
   // NOTE: getImportReceipts() (full-load) đã bị xoá — không còn caller nào.
   // Dùng filterImportReceiptsPaginated cho list, getImportReceiptById cho chi tiết.
-  async getImportReceiptById(id: string) {
+  async getImportReceiptById(id: string): Promise<ImportReceipt | null> {
     const { data, error } = await supabase
       .from('import_receipts')
       .select(`
@@ -1882,8 +1882,8 @@ export const supabaseService = {
     });
 
     if (error) {
-      console.error('Lỗi process_import_v2 RPC error:', error);
-      throw new Error(error.message || 'Lỗi xử lý phiếu nhập kho');
+
+      throw new AppError(error.message || 'Lỗi xử lý phiếu nhập kho', 'BUSINESS_ERROR');
     }
 
     return data;
@@ -1907,7 +1907,7 @@ export const supabaseService = {
   async updateImportReceipt(receipt: any) {
     const { id, items = [], ...receiptData } = receipt;
     if (!id) {
-      throw new Error('Cập nhật phiếu nhập yêu cầu receipt.id');
+      throw new AppError('Cập nhật phiếu nhập yêu cầu receipt.id', 'BUSINESS_ERROR');
     }
 
     const payload = {
@@ -1940,8 +1940,8 @@ export const supabaseService = {
     });
 
     if (error) {
-      console.error('Lỗi update_import_v2 RPC error:', error);
-      throw new Error(error.message || 'Lỗi cập nhật phiếu nhập kho');
+
+      throw new AppError(error.message || 'Lỗi cập nhật phiếu nhập kho', 'BUSINESS_ERROR');
     }
 
     return data;
@@ -1957,8 +1957,8 @@ export const supabaseService = {
     });
 
     if (error) {
-      console.error('Lỗi delete_import_v2 RPC error:', error);
-      throw new Error(error.message || 'Lỗi hủy và hoàn kho phiếu nhập hàng');
+
+      throw new AppError(error.message || 'Lỗi hủy và hoàn kho phiếu nhập hàng', 'BUSINESS_ERROR');
     }
 
     return data;
@@ -2063,7 +2063,7 @@ export const supabaseService = {
       }
       if (!changed) break;
 
-      console.warn('Retrying app_settings save without missing columns:', toRemove);
+
       ({ error } = await supabase.from('app_settings').upsert(payload));
     }
 
@@ -2248,8 +2248,8 @@ export const supabaseService = {
 
     if (error) {
       // PostgreSQL function đã tự rollback - không có dữ liệu nào bị thay đổi
-      console.error('completeInventoryCount RPC error:', error);
-      throw new Error(error.message || 'Lỗi hoàn thành phiếu kiểm kê');
+
+      throw new AppError(error.message || 'Lỗi hoàn thành phiếu kiểm kê', 'BUSINESS_ERROR');
     }
   },
 
@@ -2329,14 +2329,14 @@ export const supabaseService = {
         }
       };
     } catch (error) {
-      console.error('Backup failed:', error);
+
       throw error;
     }
   },
 
   async restoreSystemBackup(backupData: any) {
     const { data } = backupData;
-    if (!data) throw new Error('Invalid backup file format');
+    if (!data) throw new AppError('Invalid backup file format', 'BUSINESS_ERROR');
     const tenantId = requireTenantId();
 
     const upsertBatch = async (table: string, items: any[]) => {
@@ -2346,7 +2346,7 @@ export const supabaseService = {
         const batch = items.slice(i, i + BATCH_SIZE).map((item: any) => ({ ...item, tenant_id: tenantId }));
         const { error } = await supabase.from(table).upsert(batch);
         if (error) {
-          console.error(`Error restoring batch for ${table}:`, error);
+
           throw error;
         }
       }
@@ -2380,7 +2380,7 @@ export const supabaseService = {
 
       return true;
     } catch (error) {
-      console.error('Restore failed:', error);
+
       throw error;
     }
   },
@@ -2424,16 +2424,13 @@ export const supabaseService = {
     const tenantId = requireTenantId();
     if (products.length > 0) {
       const { error } = await supabase.from('products').upsert(products.map(p => mapProductToDB(p, tenantId)));
-      if (error) console.error('Error seeding products:', error);
-    }
+      if (error)  { /* error silently ignored */ }    }
     if (customers.length > 0) {
       const { error } = await supabase.from('customers').upsert(customers.map(c => mapCustomerToDB(c, tenantId)));
-      if (error) console.error('Error seeding customers:', error);
-    }
+      if (error)  { /* error silently ignored */ }    }
     if (suppliers.length > 0) {
       const { error } = await supabase.from('suppliers').upsert(suppliers.map(s => mapSupplierToDB(s, tenantId)));
-      if (error) console.error('Error seeding suppliers:', error);
-    }
+      if (error)  { /* error silently ignored */ }    }
   },
 
   // --- Offline-first Checkout ---
@@ -2473,7 +2470,7 @@ export const supabaseService = {
       note: order.note || null,
     };
 
-    const itemsPayload = order.items.map(item => ({
+    const itemsPayload = (order.items || []).map(item => ({
       productId: item.productId,
       productName: item.productName,
       quantity: item.quantity,
@@ -2537,16 +2534,16 @@ export const supabaseService = {
       const msg = (error.message || '') + ' ' + ((error as any).details || '');
       const notFound = /function.*process_checkout.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        console.warn('[pushCheckout] RPC process_checkout chưa tồn tại — chạy migration supabase/migration_phase4c_checkout_lot_write.sql + supabase/migration_phase5a_checkout_cost.sql. Fallback về legacy path.');
+
         return this._legacyPushCheckout(op);
       }
       // Lỗi nghiệp vụ (tồn kho không đủ, sản phẩm không tồn tại, ...) → throw nguyên message tiếng Việt
-      throw new Error(error.message || 'Lỗi xử lý đơn hàng');
+      throw new AppError(error.message || 'Lỗi xử lý đơn hàng', 'BUSINESS_ERROR');
     }
 
     // Phase 2: log nếu server skip (op đã xử lý trước đó)
     if (data && (data as any).skipped) {
-      console.log(`[pushCheckout] op ${op.opId} đã xử lý trước đó (idempotent skip).`);
+
     }
   },
 
@@ -2579,8 +2576,9 @@ export const supabaseService = {
     if (orderError) throw orderError;
 
     await supabase.from('order_items').delete().eq('order_id', order.id);
-    if (order.items.length > 0) {
-      const items = order.items.map(item => ({
+    const orderItems = order.items || [];
+    if (orderItems.length > 0) {
+      const items = orderItems.map(item => ({
         order_id: order.id,
         product_id: item.productId,
         product_name: item.productName,
@@ -2650,17 +2648,17 @@ export const supabaseService = {
 
     const currentTenantId = getCurrentTenantId();
     if (!currentTenantId) {
-      console.log('No tenant selected; skipping offline sync.');
+
       return { synced: 0, failed: ops.length };
     }
 
     const tenantOps = ops.filter(op => op.tenantId === currentTenantId);
     const skippedOps = ops.filter(op => op.tenantId !== currentTenantId);
     if (skippedOps.length > 0) {
-      console.log(`Skipping ${skippedOps.length} offline ops belonging to other tenants.`);
+
     }
 
-    console.log(`Syncing ${tenantOps.length} offline operations for tenant ${currentTenantId}...`);
+
     const remaining: QueuedOp[] = [...skippedOps];
     let synced = 0;
 
@@ -2676,7 +2674,7 @@ export const supabaseService = {
           remaining.push(op);
         } else {
           // Lá»—i logic/DB: log vÃ  bá» qua Ä‘á»ƒ khÃ´ng káº¹t hÃ ng Ä‘á»£i mÃ£i
-          console.error('Failed to sync operation (dropped):', error, op);
+
         }
       }
     }
@@ -2904,7 +2902,7 @@ export const supabaseService = {
       if (error || !data) throw error || new Error('empty code');
       return data as string;
     } catch (err) {
-      console.warn('[getReturnOrderAutoCode] RPC chưa tồn tại — chạy migration supabase_migration_return_order_auto_code.sql. Fallback về RTN.', err);
+
       return `RTN${Date.now()}`;
     }
   },
@@ -2971,11 +2969,11 @@ export const supabaseService = {
       const msg = (rpcError.message || '') + ' ' + ((rpcError as any).details || '');
       const notFound = /function.*create_return_order.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        console.warn('[createReturnOrder] RPC chưa tồn tại — chạy migration supabase_migration_v7_core_consolidation.sql. Fallback về legacy path.');
+
         return this._legacyCreateReturnOrder(params);
       }
       // Lỗi business (trả vượt số bán, vượt tổng tiền, ...) → throw nguyên message
-      throw new Error(rpcError.message || 'Lỗi tạo phiếu trả hàng');
+      throw new AppError(rpcError.message || 'Lỗi tạo phiếu trả hàng', 'BUSINESS_ERROR');
     }
 
     // Trả về object đầy đủ để UI hiển thị (server không trả về full row)
@@ -3117,11 +3115,11 @@ export const supabaseService = {
       const msg = (rpcError.message || '') + ' ' + ((rpcError as any).details || '');
       const notFound = /function.*create_exchange_transaction.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
-        console.warn('[createExchangeTransaction] RPC chưa tồn tại — chạy migration supabase_migration_v7_core_consolidation.sql');
-        throw new Error('EXCHANGE_RPC_NOT_AVAILABLE');
+
+        throw new AppError('EXCHANGE_RPC_NOT_AVAILABLE', 'BUSINESS_ERROR');
       }
       // Lỗi business (tồn không đủ, trả vượt, ...) → throw nguyên message tiếng Việt
-      throw new Error(rpcError.message || 'Lỗi xử lý đổi-trả hàng');
+      throw new AppError(rpcError.message || 'Lỗi xử lý đổi-trả hàng', 'BUSINESS_ERROR');
     }
 
     const result: any = data || {};
@@ -3184,7 +3182,7 @@ export const supabaseService = {
     let { error: returnError } = await supabase.from('return_orders').insert(feeRow);
     if (returnError && (returnError.code === 'PGRST204' || /column|not found|schema cache/i.test(returnError.message || ''))) {
       // Schema chưa có cột phí → insert phần cốt lõi
-      console.warn('return_orders thiếu cột phí, insert fallback (chạy supabase_migration_return_fee.sql để bật phí):', returnError.message);
+
       ({ error: returnError } = await supabase.from('return_orders').insert(baseRow));
     }
     if (returnError) throw returnError;
@@ -3215,14 +3213,14 @@ export const supabaseService = {
       .eq('id', params.originalOrderId)
       .single();
     if (getOrderError) {
-      console.warn('Could not fetch current order for cumulative update:', getOrderError);
+
     }
     const currentReturnedAmount = (currentOrder?.total_returned_amount || 0);
     const newTotalReturned = currentReturnedAmount + params.totalRefundAmount;
 
     // Server-side validation: prevent negative total_returned_amount (safety check)
     if (newTotalReturned < 0) {
-      throw new Error('Tá»•ng tiá»n hoÃ n tráº£ khÃ´ng thá»ƒ Ã¢m. Dá»¯ liá»‡u khÃ´ng há»£p lá»‡.');
+      throw new AppError('Tá»•ng tiá»n hoÃ n tráº£ khÃ´ng thá»ƒ Ã¢m. Dá»¯ liá»‡u khÃ´ng há»£p lá»‡.', 'BUSINESS_ERROR');
     }
 
     const { error: updateOrderError } = await supabase
@@ -3241,7 +3239,7 @@ export const supabaseService = {
         p_quantity: item.quantity,
       });
       if (stockError) {
-        throw new Error(`Hoàn kho thất bại cho sản phẩm ${item.productName}: ${stockError.message}`);
+        throw new AppError(`Hoàn kho thất bại cho sản phẩm ${item.productName}: ${stockError.message}`, 'BUSINESS_ERROR');
       }
     }
 
@@ -3259,7 +3257,9 @@ export const supabaseService = {
           .from('customers')
           .update({ debt: newDebt })
           .eq('id', params.customerId);
-        if (updateDebtError) console.warn('KhÃ´ng thá»ƒ cáº­p nháº­t cÃ´ng ná»£:', updateDebtError);
+        if (updateDebtError) {
+          // ponytail: lỗi cập nhật công nợ không làm hỏng luồng tạo return order
+        }
       }
     }
 
@@ -3456,7 +3456,7 @@ export const supabaseService = {
     const codeRes = await supabase.rpc('get_disposal_auto_code');
     if (codeRes.error) throw codeRes.error;
     const code = codeRes.data;
-    if (!code) throw new Error('Không sinh được mã xuất hủy');
+    if (!code) throw new AppError('Không sinh được mã xuất hủy', 'BUSINESS_ERROR');
 
     const disposalId = `DSP${Date.now()}`;
     const now = new Date().toISOString();
@@ -3521,7 +3521,7 @@ export const supabaseService = {
     const { data, error } = await supabase
       .rpc('complete_disposal', { p_disposal_id: id });
 
-    if (error) throw new Error(error.message || 'Lỗi hoàn thành xuất hủy');
+    if (error) throw new AppError(error.message || 'Lỗi hoàn thành xuất hủy', 'BUSINESS_ERROR');
 
     return this.getDisposalById(id) as Promise<Disposal>;
   },
@@ -3595,12 +3595,12 @@ export const supabaseService = {
       const notFound = /function.*delete_disposal_with_restore.*does not exist|Could not find the function/i.test(msg);
       if (notFound) {
         // Fallback: RPC chưa migrate → xóa đơn giản (KHÔNG hoàn kho)
-        console.warn('[deleteDisposal] RPC chưa tồn tại — chạy migration supabase_migration_delete_disposal_with_restore.sql. Fallback xóa đơn giản (KHÔNG hoàn kho).');
+
         const { error: delErr } = await supabase.from('disposals').delete().eq('id', id);
         if (delErr) throw delErr;
         return;
       }
-      throw new Error(error.message || 'Lỗi xóa phiếu xuất hủy');
+      throw new AppError(error.message || 'Lỗi xóa phiếu xuất hủy', 'BUSINESS_ERROR');
     }
   },
 
@@ -3760,12 +3760,12 @@ export const supabaseService = {
     });
 
     if (error) {
-      console.error('create_supplier_exchange error:', error);
-      throw new Error(error.message || 'Lỗi khi tạo phiếu đổi trả hàng NCC');
+
+      throw new AppError(error.message || 'Lỗi khi tạo phiếu đổi trả hàng NCC', 'BUSINESS_ERROR');
     }
 
     if (!data?.ok) {
-      throw new Error(data?.message || 'Tạo phiếu đổi trả thất bại');
+      throw new AppError(data?.message || 'Tạo phiếu đổi trả thất bại', 'BUSINESS_ERROR');
     }
 
     return this.getSupplierExchangeById(exchangeId) as Promise<SupplierExchange>;
@@ -3777,7 +3777,7 @@ export const supabaseService = {
     });
 
     if (error) {
-      throw new Error(error.message || 'Lỗi khi hủy phiếu đổi trả hàng NCC');
+      throw new AppError(error.message || 'Lỗi khi hủy phiếu đổi trả hàng NCC', 'BUSINESS_ERROR');
     }
 
     return data;

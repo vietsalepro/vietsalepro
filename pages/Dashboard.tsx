@@ -436,10 +436,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewDebtCustomers }) => 
       try {
         const { from, to } = getDateRange(dateRange);
         const data = await supabaseService.getDashboardSummary(from, to);
-        const totalRevenue = data.revenueData.reduce((sum, d) => sum + d.revenue, 0);
-        const totalProfit = data.revenueData.reduce((sum, d) => sum + d.profit, 0);
-        const totalOrders = data.revenueData.reduce((sum, d) => sum + d.orders, 0);
-        const totalDebtAmount = data.debtCustomers.reduce((sum, c) => sum + (c.debt || 0), 0);
+        const totalRevenue = data.revenueData.reduce((sum: number, d: { revenue: number }) => sum + d.revenue, 0);
+        const totalProfit = data.revenueData.reduce((sum: number, d: { profit: number }) => sum + d.profit, 0);
+        const totalOrders = data.revenueData.reduce((sum: number, d: { orders: number }) => sum + d.orders, 0);
+        const totalDebtAmount = data.debtCustomers.reduce((sum: number, c: { debt?: number }) => sum + (c.debt || 0), 0);
         setSummary({
           ...data,
           totalRevenue,
@@ -448,7 +448,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewDebtCustomers }) => 
           totalDebtAmount
         });
       } catch (error) {
-        console.error("Error fetching dashboard summary:", error);
+
       } finally {
         setIsLoading(false);
       }

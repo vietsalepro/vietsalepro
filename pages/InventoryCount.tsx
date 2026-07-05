@@ -805,7 +805,7 @@ export const InventoryCount: React.FC<InventoryCountProps> = ({
         alert(`✅ Đã nhập ${addedCount} sản phẩm vào phiếu kiểm kê.`);
         
       } catch (error) {
-        console.error('Error importing count excel:', error);
+
         alert('❌ Lỗi đọc file Excel.');
       } finally {
         if (countFileInputRef.current) countFileInputRef.current.value = '';

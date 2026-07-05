@@ -128,7 +128,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
       });
 
     } catch (error) {
-      console.error('Error fetching orders:', error);
+
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +143,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
   // Phase 6: prefetch customers cho trang hiện tại
   useEffect(() => {
     if (!tenantId) return;
-    const ids = [...new Set(orders.map(o => o.customerId).filter(Boolean))];
+    const ids = [...new Set(orders.map(o => o.customerId).filter((id): id is string => !!id))];
     if (ids.length === 0) return;
     ids.forEach(async (id) => {
       if (customerCache.has(id)) return;
@@ -227,7 +227,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
       await exportOrdersToExcel(orders, { startDate, endDate, customerSearch });
       alert('✅ Xuất file Excel thành công!');
     } catch (error: any) {
-      console.error('Export error:', error);
+
       alert(`❌ Lỗi khi xuất file: ${error.message || 'Vui lòng thử lại'}`);
     } finally {
       setIsExporting(false);
@@ -238,7 +238,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
     try {
       await downloadOrderTemplate();
     } catch (error: any) {
-      console.error('Template download error:', error);
+
       alert(`❌ Lỗi khi tải file mẫu: ${error.message || 'Vui lòng thử lại'}`);
     }
   };
@@ -260,7 +260,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
       const result = await importOrdersFromExcel(file);
       setImportResult(result);
     } catch (error: any) {
-      console.error('Import error:', error);
+
       alert(`❌ Lỗi khi đọc file:\n${error.message}`);
     } finally {
       setIsImporting(false);
@@ -293,7 +293,7 @@ export const Orders: React.FC<OrdersProps> = ({ products = [], customers: _custo
       // Refresh danh sách
       fetchOrders(currentPage);
     } catch (error: any) {
-      console.error('Execute import error:', error);
+
       alert(`❌ Lỗi khi nhập dữ liệu: ${error.message}`);
     }
   };

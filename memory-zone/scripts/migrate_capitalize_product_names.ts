@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment.');
+
   process.exit(1);
 }
 
@@ -24,7 +24,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 async function main() {
-  console.log('Start migrating product names...');
 
   const pageSize = 500;
   let page = 0;
@@ -62,7 +61,6 @@ async function main() {
       .filter(({ row, changes }) => row.name !== changes.name || row.display_name !== changes.display_name);
 
     if (updates.length > 0) {
-      console.log(`Page ${page + 1}: updating ${updates.length}/${rows.length} products...`);
 
       for (const { row, changes } of updates) {
         const { error: updateError } = await supabase
@@ -71,12 +69,12 @@ async function main() {
           .eq('id', row.id);
 
         if (updateError) {
-          console.error(`Failed to update product ${row.id}:`, updateError.message);
+
           continue;
         }
 
         totalUpdated++;
-        console.log(`- ${row.id}: "${row.name || ''}" -> "${changes.name}"`);
+
       }
     }
 
@@ -84,12 +82,12 @@ async function main() {
     page++;
   }
 
-  console.log('Migration finished.');
-  console.log(`Scanned: ${totalScanned}`);
-  console.log(`Updated: ${totalUpdated}`);
+
+
+
 }
 
 main().catch((err) => {
-  console.error('Migration failed:', err);
+
   process.exit(1);
 });

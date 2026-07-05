@@ -24,12 +24,13 @@
       ]
     },
     "allowImportingTsExtensions": true,
+    "strict": true,
     "noEmit": true
   },
   "exclude": [
     "node_modules",
-    "components/MobilePOS.backup.tsx",
     "template-ui",
-    "OLD"
+    "OLD",
+    "supabase/functions"
   ]
 }

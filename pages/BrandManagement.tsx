@@ -78,7 +78,7 @@ export const BrandManagement: React.FC<BrandManagementProps> = ({ products: prod
         setBrandProductCounts(countsMap);
         setUnsyncedBrands(unsyncedMap);
       })
-      .catch(err => console.error('BrandManagement: refresh counts error', err));
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -162,7 +162,7 @@ export const BrandManagement: React.FC<BrandManagementProps> = ({ products: prod
       refreshCounts();
       closeModal();
     } catch (err) {
-      console.error('Error saving brand:', err);
+
       alert('Có lỗi xảy ra khi lưu thương hiệu.');
     }
   };
@@ -173,7 +173,7 @@ export const BrandManagement: React.FC<BrandManagementProps> = ({ products: prod
       await onDeleteBrand(id);
       refreshCounts();
     } catch (err) {
-      console.error('Error deleting brand:', err);
+
       alert('Có lỗi xảy ra khi xóa thương hiệu.');
     }
   };
@@ -183,7 +183,7 @@ export const BrandManagement: React.FC<BrandManagementProps> = ({ products: prod
       await onAddBrand(brandName);
       refreshCounts();
     } catch (err) {
-      console.error('Error syncing brand:', err);
+
       alert('Có lỗi xảy ra khi đồng bộ thương hiệu.');
     }
   };
@@ -193,7 +193,7 @@ export const BrandManagement: React.FC<BrandManagementProps> = ({ products: prod
       try {
         await onAddBrand(brandName);
       } catch (err) {
-        console.warn(`Không thể thêm thương hiệu "${brandName}":`, err);
+
       }
     }
     refreshCounts();

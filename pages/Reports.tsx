@@ -298,7 +298,7 @@ export const Reports: React.FC<ReportsProps> = () => {
         });
         if (!cancelled) setSalesReport(result);
       } catch (e) {
-        console.error('Reports: fetch sales error', e);
+
       } finally {
         if (!cancelled) setIsFetchingSales(false);
       }
@@ -323,7 +323,7 @@ export const Reports: React.FC<ReportsProps> = () => {
         });
         if (!cancelled) setProfitReport(result);
       } catch (e) {
-        console.error('Reports: fetch profit error', e);
+
       } finally {
         if (!cancelled) setIsFetchingProfit(false);
       }
@@ -342,7 +342,7 @@ export const Reports: React.FC<ReportsProps> = () => {
         const result = await supabaseService.getCustomerReport(startDateStr, endDateStr);
         if (!cancelled) setCustomerReport(result);
       } catch (e) {
-        console.error('Reports: fetch customer error', e);
+
       } finally {
         if (!cancelled) setIsFetchingCustomer(false);
       }
@@ -361,7 +361,7 @@ export const Reports: React.FC<ReportsProps> = () => {
         const result = await supabaseService.getSupplierReport(startDateStr, endDateStr);
         if (!cancelled) setSupplierReport(result);
       } catch (e) {
-        console.error('Reports: fetch supplier error', e);
+
       } finally {
         if (!cancelled) setIsFetchingSupplier(false);
       }
@@ -383,7 +383,7 @@ export const Reports: React.FC<ReportsProps> = () => {
         });
         if (!cancelled) setInventoryReport(result);
       } catch (e) {
-        console.error('Reports: fetch inventory error', e);
+
       } finally {
         if (!cancelled) setIsFetchingInventory(false);
       }

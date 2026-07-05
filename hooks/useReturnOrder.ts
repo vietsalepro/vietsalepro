@@ -184,7 +184,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       setReturnOrders(orders);
     } catch (err: any) {
       setError(err.message || 'Lỗi khi tải danh sách phiếu trả hàng');
-      console.error('Error fetching return orders:', err);
+
     } finally {
       setLoading(false);
     }
@@ -209,7 +209,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       setTotalPages(Math.max(1, Math.ceil(totalCount / pageSize)));
     } catch (err: any) {
       setError(err.message || 'Lỗi khi tải danh sách phiếu trả hàng');
-      console.error('Error fetching paginated return orders:', err);
+
     } finally {
       setLoading(false);
     }
@@ -230,7 +230,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       setReturnOrderItems(allItems);
     } catch (err: any) {
       setError(err.message || 'Lỗi khi tải phiếu trả hàng');
-      console.error('Error fetching return orders by order id:', err);
+
     } finally {
       setLoading(false);
     }
@@ -251,16 +251,16 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
         }
       }
 
-      const items: ReturnFormItem[] = order.items.map(item => {
+      const items: ReturnFormItem[] = (order.items || []).map(item => {
         const alreadyReturned = alreadyReturnedMap[item.productId] || 0;
         const availableQuantity = Math.max(0, item.quantity - alreadyReturned);
         return {
           productId: item.productId,
-          productName: item.productName,
+          productName: item.productName || '',
           quantity: 0,
           availableQuantity,
-          unitName: item.unitName,
-          unitPrice: item.price,
+          unitName: item.unitName || '',
+          unitPrice: item.price ?? 0,
           subtotal: 0,
           reason: '',
           lotId: item.lotId,
@@ -301,7 +301,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       setReturnOrderItems(allReturnedItems);
     } catch (err: any) {
       setError(err.message || 'Lỗi khi khởi tạo phiếu trả hàng');
-      console.error('Error initializing from order:', err);
+
     } finally {
       setLoading(false);
     }
@@ -412,7 +412,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       return result;
     } catch (err: any) {
       setError(err.message || 'Lỗi khi tạo phiếu trả hàng');
-      console.error('Error submitting return order:', err);
+
       return null;
     } finally {
       setLoading(false);
@@ -459,7 +459,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       setSelectedReturnOrder(order);
     } catch (err: any) {
       setDetailError(err.message || 'Lỗi khi tải chi tiết phiếu trả hàng');
-      console.error('Error fetching return order detail:', err);
+
     } finally {
       setDetailLoading(false);
     }
@@ -527,7 +527,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       try {
         exchangeOrderId = await generateInvoiceNumber();
       } catch (error) {
-        console.error('Failed to generate exchange invoice number:', error);
+
         exchangeOrderId = generateOfflineInvoiceNumber();
       }
     }
@@ -633,7 +633,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       const msg = err?.message || '';
       if (msg === 'EXCHANGE_RPC_NOT_AVAILABLE') {
         setError('Chưa cài đặt migration đổi-trả hàng. Vui lòng chạy supabase_migration_create_exchange_transaction.sql trên Supabase.');
-        console.warn('[submitExchange] Fallback: RPC chưa migrate. Chỉ tạo phiếu trả qua submitReturn cũ (bỏ qua hàng đổi).');
+
         // Fallback: nếu có hàng trả → tạo phiếu trả qua đường cũ
         if (hasReturn) {
           const fallback = await submitReturn();
@@ -642,7 +642,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
         return null;
       }
       setError(msg || 'Lỗi xử lý đổi-trả hàng');
-      console.error('Error submitting exchange:', err);
+
       return null;
     } finally {
       setLoading(false);
@@ -665,7 +665,7 @@ export function useReturnOrder(settings?: AppSettings | null): UseReturnOrderRet
       return true;
     } catch (err: any) {
       setDetailError(err.message || 'Lỗi khi hủy phiếu trả hàng');
-      console.error('Error cancelling return order:', err);
+
       return false;
     } finally {
       setDetailLoading(false);

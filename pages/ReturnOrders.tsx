@@ -184,7 +184,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
       }
       return customer;
     } catch (err) {
-      console.error('Error fetching customer:', err);
+
       return null;
     }
   }, [customerCache]);
@@ -200,7 +200,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
       }
       return product;
     } catch (err) {
-      console.error('Error fetching product:', err);
+
       return null;
     }
   }, [productCache]);
@@ -249,7 +249,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
         }
       })
       .catch((err) => {
-        console.error('Exchange product search error:', err);
+
         if (requestId === exchangeSearchRequestId.current) {
           setExchangeSearchResults([]);
           setIsSearchingExchange(false);
@@ -273,7 +273,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
           return next;
         });
       })
-      .catch(err => console.error('Error prefetching return-order customers:', err));
+      .catch(() => {});
   }, [returnOrders, customerCache]);
 
   // Prefetch products appearing in detail / create / exchange views
@@ -296,7 +296,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
           return next;
         });
       })
-      .catch(err => console.error('Error prefetching products:', err));
+      .catch(() => {});
   }, [productIdsToPrefetch, productCache]);
 
   const getReturnItemLotDetails = (item: any, originalOrderId?: string) => {
@@ -509,7 +509,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
           return next;
         });
       })
-      .catch(err => console.error('Error prefetching order-search customers:', err));
+      .catch(() => {});
   }, [filteredOrders, customerCache]);
 
   const handleCreateNew = () => {
@@ -592,7 +592,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
 
   const handlePrintReturn = async (r: ReturnOrder) => {
     const customer = await ensureCustomer(r.customerId || '');
-    printReturnOrder(r, appSettings, customer);
+    printReturnOrder(r, appSettings, customer ?? undefined);
   };
 
   // LOGIC XỬ LÝ CHECKBOX HÀNG LOẠT
@@ -1474,7 +1474,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
                                 key={p.id}
                                 onClick={() => {
                                   if (!outOfStock) {
-                                    addExchangeItem(p).catch(err => console.error('Error adding exchange item:', err));
+                                    addExchangeItem(p).catch(() => {});
                                   }
                                 }}
                                 disabled={outOfStock}
@@ -1487,7 +1487,7 @@ export const ReturnOrders: React.FC<ReturnOrdersProps> = ({ products = [], custo
                                   <p className="text-sm font-medium text-slate-800 truncate">{p.name}</p>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <p className="text-sm font-bold text-emerald-700 tabular-nums">{formatCurrency(p.price)}</p>
+                                  <p className="text-sm font-bold text-emerald-700 tabular-nums">{formatCurrency(p.price ?? 0)}</p>
                                   <p className={`text-[10px] ${outOfStock ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
                                     {outOfStock ? 'HẾT HÀNG' : `Tồn: ${p.quantity} ${p.unit}`}
                                   </p>

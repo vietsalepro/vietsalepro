@@ -88,7 +88,7 @@ export function MobileHome(props: MobileHomeProps) {
   useEffect(() => {
     supabaseService.getOrdersPaginated(1, 5)
       .then(data => setRecentOrders(data.orders || []))
-      .catch(err => console.error('Error loading recent orders:', err));
+      .catch(() => {});
     supabaseService.getDashboardSummary().then(data => {
       setSummary({
         todayRevenue: data.todayRevenue,
@@ -99,7 +99,7 @@ export function MobileHome(props: MobileHomeProps) {
         activeProducts: data.activeProducts,
         totalCustomers: data.totalCustomers
       });
-    }).catch(err => console.error('Error loading mobile home summary:', err));
+    }).catch(() => {});
   }, []);
 
   // Feature list from AsyncStorage / localStorage
@@ -111,7 +111,7 @@ export function MobileHome(props: MobileHomeProps) {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {
-      console.error('Error loading home feature list', e);
+
     }
     return DEFAULT_HOME_FEATURES;
   });
@@ -121,7 +121,7 @@ export function MobileHome(props: MobileHomeProps) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(featurePaths));
     } catch (e) {
-      console.error('Error saving home feature list', e);
+
     }
   }, [featurePaths]);
 

@@ -128,7 +128,7 @@ export const Customers: React.FC<CustomersProps> = ({
       setLocalCustomers(customers);
       setTotalCount(totalCount);
     } catch (error) {
-      console.error("Error fetching paginated customers:", error);
+
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +148,7 @@ export const Customers: React.FC<CustomersProps> = ({
           const orders = await supabaseService.getCustomerOrders(editingCustomer.id);
           setCustomerOrders(orders);
         } catch (error) {
-          console.error("Error fetching customer orders:", error);
+
         } finally {
           setIsOrdersLoading(false);
         }
@@ -162,7 +162,7 @@ export const Customers: React.FC<CustomersProps> = ({
           const history = await supabaseService.getPointHistory(editingCustomer.id);
           setCustomerPointHistory(history as any);
         } catch (error) {
-          console.error("Error fetching point history:", error);
+
         } finally {
           setIsPointHistoryLoading(false);
         }
@@ -207,7 +207,7 @@ export const Customers: React.FC<CustomersProps> = ({
         setLocalCustomers(customers);
         setTotalCount(totalCount);
       }).catch(err => {
-        console.error("Error fetching sorted customers:", err);
+
       }).finally(() => {
         setIsLoading(false);
       });
@@ -255,7 +255,7 @@ export const Customers: React.FC<CustomersProps> = ({
         return;
       }
     } catch (error) {
-      console.error("Error checking phone existence:", error);
+
     }
 
     let finalCode = formData.code;
@@ -263,7 +263,7 @@ export const Customers: React.FC<CustomersProps> = ({
       try {
         finalCode = await supabaseService.getNextCustomerCode();
       } catch (error) {
-        console.error("Error generating sequential code:", error);
+
         finalCode = `KH${Date.now().toString().slice(-6)}`;
       }
     }
@@ -293,7 +293,7 @@ export const Customers: React.FC<CustomersProps> = ({
       setFormData({ code: '', name: '', phone: '', address: '', debt: 0 });
       fetchCustomers(currentPage, debouncedSearchTerm);
     } catch (error) {
-      console.error("Error saving customer:", error);
+
       showToast("Lỗi khi lưu khách hàng!", "error");
     }
   };
@@ -341,7 +341,7 @@ export const Customers: React.FC<CustomersProps> = ({
       .then(stats => {
         if (!cancelled) setCustomerStats(stats);
       })
-      .catch(err => console.error('Customers: fetch stats error', err))
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setIsLoadingStats(false);
       });
@@ -403,13 +403,13 @@ export const Customers: React.FC<CustomersProps> = ({
           } as any);
           imported++;
         } catch (err) {
-          console.error("Error importing row:", err);
+
         }
       }
       showToast(`Đã nhập ${imported} khách hàng từ file Excel!`);
       fetchCustomers(currentPage, debouncedSearchTerm);
     } catch (error) {
-      console.error("Error importing Excel:", error);
+
       showToast("Lỗi khi nhập file Excel!", "error");
     } finally {
       setIsImporting(false);
@@ -434,7 +434,7 @@ export const Customers: React.FC<CustomersProps> = ({
       XLSX.writeFile(wb, `KhachHang_${new Date().toISOString().slice(0, 10)}.xlsx`);
       showToast("Xuất Excel thành công!");
     } catch (error) {
-      console.error("Error exporting Excel:", error);
+
       showToast("Lỗi khi xuất Excel!", "error");
     }
   };
@@ -1561,7 +1561,7 @@ export const Customers: React.FC<CustomersProps> = ({
                                     setCustomerOrders(orders);
                                     fetchCustomers(currentPage, debouncedSearchTerm);
                                   } catch (err) {
-                                    console.error("Error paying debt:", err);
+
                                     showToast("Lỗi thanh toán!", "error");
                                   }
                                 }
@@ -1663,7 +1663,7 @@ export const Customers: React.FC<CustomersProps> = ({
                                     setCustomerPointHistory(history);
                                     fetchCustomers(currentPage, debouncedSearchTerm);
                                   } catch (err) {
-                                    console.error("Error adjusting points:", err);
+
                                     showToast("Lỗi điều chỉnh điểm!", "error");
                                   }
                                 }
@@ -1710,7 +1710,7 @@ export const Customers: React.FC<CustomersProps> = ({
                 if (fresh) setEditingCustomer(fresh);
                 setCustomerOrders(orders);
               } catch (err) {
-                console.error('Refresh customer detail failed:', err);
+
               }
             }
           }}
@@ -1731,7 +1731,7 @@ export const Customers: React.FC<CustomersProps> = ({
               const fresh = await supabaseService.getCustomerById(ledgerCustomerId);
               if (fresh) setEditingCustomer(fresh);
             } catch (err) {
-              console.error('Refresh customer after adjust failed:', err);
+
             }
             await fetchCustomers(currentPage, debouncedSearchTerm);
           }}

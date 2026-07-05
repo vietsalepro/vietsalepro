@@ -45,7 +45,7 @@ export const CustomerOrdersModal: React.FC<CustomerOrdersModalProps> = ({
         ).slice(0, 20);
         setOrders(customerOrders);
       } catch (err) {
-        console.error('Failed to load orders', err);
+
       } finally {
         setLoading(false);
       }

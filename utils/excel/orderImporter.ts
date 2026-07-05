@@ -232,7 +232,7 @@ export async function executeImport(
       createdOrderIds.push(orderToInsert.id);
       success++;
     } catch (error: any) {
-      console.error('Import order failed:', error);
+
       errorLog.push({ orderId: parsed.order.id, error: error.message });
       failed++;
     }
@@ -474,7 +474,7 @@ function validateOrderData(order: Order): { valid: boolean; errors: string[] } {
   if (!order.items || order.items.length === 0) {
     errors.push('Đơn hàng không có sản phẩm');
   }
-  if (order.paidAmount > order.totalAmount) {
+  if ((order.paidAmount || 0) > order.totalAmount) {
     errors.push('Số tiền khách trả không được lớn hơn tổng tiền');
   }
   return { valid: errors.length === 0, errors };

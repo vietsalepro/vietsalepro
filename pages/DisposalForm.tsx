@@ -129,7 +129,7 @@ const DisposalRow: React.FC<DisposalRowProps> = ({
         {hasLots && (
           <div className="mt-2">
             <DisposalLotSelector
-              lots={product.lots}
+              lots={product.lots || []}
               selectedLot={item.selectedLot}
               onSelectLot={handleSelectLot}
               productName={item.productName}
@@ -224,7 +224,7 @@ export const DisposalForm: React.FC = () => {
         upsertCache(results);
       })
       .catch((err) => {
-        console.error('DisposalForm: searchProducts error', err);
+
         if (reqId === searchReqId.current) setSearchResults([]);
       })
       .finally(() => {
@@ -263,7 +263,7 @@ export const DisposalForm: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+
         alert('Lỗi tải dữ liệu');
       } finally {
         setLoading(false);
@@ -415,7 +415,7 @@ export const DisposalForm: React.FC = () => {
       alert('Lưu tạm thành công');
       navigate('/inventory/disposals');
     } catch (error) {
-      console.error('Error saving draft:', error);
+
       alert('Lỗi lưu tạm');
     } finally {
       setSubmitLoading(false);
@@ -452,7 +452,7 @@ export const DisposalForm: React.FC = () => {
       alert('Xuất hủy thành công');
       navigate('/inventory/disposals');
     } catch (error) {
-      console.error('Error completing disposal:', error);
+
       alert('Lỗi hoàn thành xuất hủy');
     } finally {
       setSubmitLoading(false);

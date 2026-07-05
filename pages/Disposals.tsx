@@ -66,7 +66,7 @@ export const Disposals: React.FC = () => {
       setDisposals(data);
       setTotalCount(totalCount);
     } catch (error) {
-      console.error('Error fetching disposals:', error);
+
       alert('Lỗi tải danh sách xuất hủy');
     } finally {
       setLoading(false);
@@ -145,7 +145,7 @@ export const Disposals: React.FC = () => {
       fetchDisposals(currentPage);
       alert(status === 'COMPLETED' ? 'Đã xóa phiếu và hoàn kho' : 'Đã xóa phiếu');
     } catch (error) {
-      console.error('Error deleting disposal:', error);
+
       alert('Lỗi xóa phiếu xuất hủy');
     }
   };
@@ -191,7 +191,7 @@ export const Disposals: React.FC = () => {
           alert('Đã xóa các phiếu đã chọn');
         })
         .catch((error) => {
-          console.error('Error bulk deleting disposals:', error);
+
           alert('Lỗi xóa một số phiếu xuất hủy');
         });
     }

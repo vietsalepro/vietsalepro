@@ -102,7 +102,7 @@ export const DebtLedgerModal: React.FC<DebtLedgerModalProps> = ({
       setEntries((res.entries || []) as DebtLedgerEntry[]);
       setTotalEntries(Number(res.totalEntries) || 0);
     } catch (err: any) {
-      console.error('DebtLedgerModal: fetch error', err);
+
       setError(err?.message || 'Không tải được sổ cái công nợ.');
     } finally {
       setIsLoading(false);
@@ -144,7 +144,7 @@ export const DebtLedgerModal: React.FC<DebtLedgerModalProps> = ({
       await fetchLedger();
       onAdjusted?.();
     } catch (err: any) {
-      console.error('DebtLedgerModal: adjust error', err);
+
       setAdjustError(err?.message || 'Lỗi khi điều chỉnh công nợ.');
     } finally {
       setIsSubmitting(false);

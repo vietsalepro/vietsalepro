@@ -11,6 +11,7 @@ export const usePermissions = () => {
     canDeleteProduct: role === 'admin',
     canManageInventory: role === 'admin' || role === 'inventory_manager',
     canViewReports: role === 'admin' || role === 'accountant',
+    canViewAuditLogs: role === 'admin',
     canManageUsers: role === 'admin',
     canDeleteRecord: role === 'admin',
   };

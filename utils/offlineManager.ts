@@ -102,7 +102,7 @@ export const offlineQueue = {
         type: 'checkout',
         order,
         // Recreate stock deltas from order items (base unit assumed for legacy)
-        productDeltas: order.items.map(i => ({
+        productDeltas: (order.items || []).filter(i => i.productId).map(i => ({
           productId: i.productId,
           deductBaseQty: i.quantity,
         })),
@@ -114,12 +114,12 @@ export const offlineQueue = {
           ? {
               customerId: order.customerId,
               addSpent: order.totalAmount,
-              addDebt: order.debtRecorded,
+              addDebt: order.debtRecorded || 0,
               addPoints: (order.pointsEarned || 0) - (order.pointsRedeemed || 0),
             }
           : undefined,
         pointHistory: [],
-        timestamp: new Date(order.date).getTime() || Date.now(),
+        timestamp: new Date(order.date || Date.now()).getTime() || Date.now(),
       }));
       const combined = [...migrated, ...ops];
       localStorage.setItem(QUEUE_KEY, JSON.stringify(combined));

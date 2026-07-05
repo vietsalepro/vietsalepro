@@ -34,6 +34,7 @@ import { SupplierExchanges } from './pages/SupplierExchanges';
 import { Settings } from './pages/Settings';
 import { Profile } from './pages/Profile';
 import { TaxCalculation } from './pages/TaxCalculation';
+import { AuditLog } from './pages/AuditLog';
 import { Login } from './pages/Login';
 import { BrandManagement } from './pages/BrandManagement';
 import { CategoryManagement } from './pages/CategoryManagement';
@@ -52,6 +53,7 @@ import {
 } from './constants';
 import { Product, Customer, Supplier, Order, CartItem, ImportReceipt, ImportItemInput, ProductLot, InventoryCount, AppSettings, Reward, PointHistory, Invoice, Category, Brand, Promotion, AppliedPromotion, CustomerRankConfig, CustomerRankHistory } from './types';
 import { supabaseService } from './services/supabaseService';
+import { supabase } from './lib/supabase';
 import { offlineCache, offlineQueue, isOnline, isNetworkError, CheckoutOp, generateOpId } from './utils/offlineManager';
 import { generateInvoiceNumber, generateOfflineInvoiceNumber, isDuplicateInvoiceNumberError } from './utils/invoiceNumber';
 import { calculatePromotionDiscount } from './utils/promotionUtils';
@@ -80,6 +82,8 @@ function AppContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAppLocked, setIsAppLocked] = useState(false);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
 
   const [inventoryCounts, setInventoryCounts] = useState<InventoryCount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -101,7 +105,7 @@ function AppContent() {
       }
       return [{ id: 1, name: 'Hóa đơn 1', cart: [], customerId: '', redeemedRewards: [] }];
     } catch (e) {
-      console.error("Error loading POS invoices from local storage", e);
+
       return [{ id: 1, name: 'Hóa đơn 1', cart: [], customerId: '', redeemedRewards: [] }];
     }
   });
@@ -157,7 +161,39 @@ function AppContent() {
 
   const isDesktopView = viewport === 'desktop';
 
-  
+  // ponytail: kiểm tra system admin khi user thay đổi; chỉ chạy khi đang ở admin subdomain hoặc route /admin.
+  useEffect(() => {
+    if (!user) {
+      setIsSystemAdmin(false);
+      setIsAdminLoading(false);
+      return;
+    }
+    const subdomain = getSubdomain();
+    const isAdminPath = location.pathname.startsWith('/admin');
+    if (subdomain !== 'admin' && !isAdminPath) {
+      setIsSystemAdmin(false);
+      setIsAdminLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const check = async () => {
+      setIsAdminLoading(true);
+      try {
+        const { data } = await supabase
+          .from('system_admins')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!cancelled) setIsSystemAdmin(!!data);
+      } catch (e) {
+        if (!cancelled) setIsSystemAdmin(false);
+      } finally {
+        if (!cancelled) setIsAdminLoading(false);
+      }
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [user, location.pathname]);
 
   useEffect(() => {
     if (!user) {
@@ -223,7 +259,7 @@ function AppContent() {
         offlineCache.setRewards(fetchedRewards);
         offlineCache.markUpdated();
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+
         if (isNetworkError(error) && offlineCache.hasData()) {
           const cachedSettings = offlineCache.getSettings();
           if (cachedSettings) setAppSettings(cachedSettings);
@@ -248,7 +284,7 @@ function AppContent() {
 
   useEffect(() => {
     const handleOnline = async () => {
-      console.log('Network status: Online');
+
       try {
         const result = await supabaseService.syncOfflineQueue();
         if (result.synced > 0) {
@@ -263,7 +299,7 @@ function AppContent() {
           alert(`Đã đồng bộ ${result.synced} đơn hàng offline lên hệ thống.`);
         }
       } catch (error) {
-        console.error('Sync on online failed:', error);
+
       }
     };
     if (isOnline() && offlineQueue.count() > 0) {
@@ -284,7 +320,7 @@ function AppContent() {
       await supabaseService.saveSettings(newSettings);
       setAppSettings(newSettings);
     } catch (error) {
-      console.error("Error saving settings:", error);
+
       alert("Lỗi lưu cài đặt.");
       throw error;
     }
@@ -295,7 +331,7 @@ function AppContent() {
       await supabaseService.upsertReward(reward);
       setRewards(prev => [...prev, reward]);
     } catch (error) {
-      console.error("Error adding reward:", error);
+
       alert("Lỗi thêm quà tặng.");
     }
   };
@@ -305,7 +341,7 @@ function AppContent() {
       await supabaseService.deleteReward(id);
       setRewards(prev => prev.filter(r => r.id !== id));
     } catch (error) {
-      console.error("Error deleting reward:", error);
+
       alert("Lỗi xoá quà tặng.");
     }
   };
@@ -317,7 +353,7 @@ function AppContent() {
       const allHistory = await supabaseService.getPointHistory();
       setPointHistory(allHistory);
     } catch (error) {
-      console.error("Error adjusting points:", error);
+
       alert("Lỗi cập nhật điểm.");
     }
   };
@@ -328,7 +364,7 @@ function AppContent() {
       const updated = await supabaseService.getCategories();
       setCategories(updated);
     } catch (error) {
-      console.error("Error adding category:", error);
+
       alert("Lỗi thêm danh mục.");
     }
   };
@@ -339,7 +375,7 @@ function AppContent() {
       const updated = await supabaseService.getCategories();
       setCategories(updated);
     } catch (error) {
-      console.error("Error updating category:", error);
+
       alert("Lỗi cập nhật danh mục.");
     }
   };
@@ -350,7 +386,7 @@ function AppContent() {
         await supabaseService.deleteCategory(id);
         setCategories(prev => prev.filter(c => c.id !== id));
       } catch (error) {
-        console.error("Error deleting category:", error);
+
         alert("Lỗi xoá danh mục.");
       }
     }
@@ -362,7 +398,7 @@ function AppContent() {
       const updated = await supabaseService.getBrands();
       setBrands(updated);
     } catch (error) {
-      console.error("Error adding brand:", error);
+
       alert("Lỗi thêm thương hiệu.");
     }
   };
@@ -373,7 +409,7 @@ function AppContent() {
       const updated = await supabaseService.getBrands();
       setBrands(updated);
     } catch (error) {
-      console.error("Error updating brand:", error);
+
       alert("Lỗi cập nhật thương hiệu.");
     }
   };
@@ -384,7 +420,7 @@ function AppContent() {
         await supabaseService.deleteBrand(id);
         setBrands(prev => prev.filter(b => b.id !== id));
       } catch (error) {
-        console.error("Error deleting brand:", error);
+
         alert("Lỗi xoá thương hiệu.");
       }
     }
@@ -399,7 +435,7 @@ function AppContent() {
         await supabaseService.replaceProductLots(product.id, product.lots);
       }
     } catch (error) {
-      console.error("Error adding product:", error);
+
       alert("Lỗi thêm sản phẩm.");
     }
   };
@@ -418,7 +454,7 @@ function AppContent() {
         await supabaseService.replaceProductLots(updatedProduct.id, []);
       }
     } catch (error) {
-      console.error("Error updating product:", error);
+
       alert("Lỗi cập nhật sản phẩm.");
     }
   };
@@ -446,7 +482,7 @@ function AppContent() {
       }
       alert("Nhập dữ liệu thành công!");
     } catch (error) {
-      console.error("Error bulk importing:", error);
+
       alert("Lỗi nhập dữ liệu hàng loạt.");
     }
   };
@@ -456,7 +492,7 @@ function AppContent() {
       try {
         await supabaseService.deleteProduct(id);
       } catch (error) {
-        console.error("Error deleting product:", error);
+
         alert("Lỗi xoá sản phẩm.");
       }
     }
@@ -467,7 +503,7 @@ function AppContent() {
       await supabaseService.deleteProducts(ids);
       alert(`Đã xoá ${ids.length} sản phẩm.`);
     } catch (error) {
-      console.error("Error bulk deleting products:", error);
+
       alert("Lỗi xoá sản phẩm hàng loạt.");
     }
   };
@@ -477,7 +513,7 @@ function AppContent() {
       await supabaseService.updateProducts(ids, updates);
       alert(`Đã cập nhật ${ids.length} sản phẩm.`);
     } catch (error) {
-      console.error("Error bulk updating products:", error);
+
       alert("Lỗi cập nhật sản phẩm hàng loạt.");
     }
   };
@@ -552,7 +588,7 @@ function AppContent() {
       }
       
     } catch (error: any) {
-      console.error('Error saving inventory count:', error);
+
       // PostgreSQL function đã tự rollback - DB ở trạng thái nhất quán
       alert(error?.message || 'Lỗi lưu phiếu kiểm kê. Vui lòng thử lại.');
     }
@@ -581,7 +617,7 @@ function AppContent() {
 
         alert('Đã xoá phiếu kiểm kê.');
       } catch (error: any) {
-        console.error("Error deleting inventory count:", error);
+
         alert(error?.message || "Lỗi xoá phiếu kiểm kê.");
       }
     }
@@ -617,7 +653,7 @@ function AppContent() {
 
         alert('Đã hủy phiếu kiểm kê. Tồn kho đã được hoàn lại (nếu phiếu đã hoàn thành).');
       } catch (error: any) {
-        console.error("Error cancelling inventory count:", error);
+
         alert(error?.message || "Lỗi hủy phiếu kiểm kê.");
       }
     }
@@ -627,7 +663,7 @@ function AppContent() {
     try {
       await supabaseService.upsertCustomer(customer);
     } catch (error) {
-      console.error("Error adding customer:", error);
+
       alert("Lỗi thêm khách hàng.");
     }
   };
@@ -636,7 +672,7 @@ function AppContent() {
     try {
       await supabaseService.upsertCustomer(updated);
     } catch (error) {
-      console.error("Error updating customer:", error);
+
       alert("Lỗi cập nhật khách hàng.");
     }
   };
@@ -646,7 +682,7 @@ function AppContent() {
       try {
         await supabaseService.deleteCustomer(id);
       } catch (error) {
-        console.error("Error deleting customer:", error);
+
         alert("Lỗi xoá khách hàng.");
       }
     }
@@ -657,7 +693,7 @@ function AppContent() {
       await supabaseService.deleteCustomers(ids);
       alert(`Đã xoá ${ids.length} khách hàng.`);
     } catch (error) {
-      console.error("Error bulk deleting customers:", error);
+
       alert("Lỗi xoá khách hàng hàng loạt.");
     }
   };
@@ -666,7 +702,7 @@ function AppContent() {
     try {
       await supabaseService.upsertSupplier(supplier);
     } catch (error) {
-      console.error("Error adding supplier:", error);
+
       alert("Lỗi thêm nhà cung cấp.");
     }
   };
@@ -675,7 +711,7 @@ function AppContent() {
     try {
       await supabaseService.upsertSupplier(updated);
     } catch (error) {
-      console.error("Error updating supplier:", error);
+
       alert("Lỗi cập nhật nhà cung cấp.");
     }
   };
@@ -685,7 +721,7 @@ function AppContent() {
       try {
         await supabaseService.deleteSupplier(id);
       } catch (error) {
-        console.error("Error deleting supplier:", error);
+
         alert("Lỗi xoá nhà cung cấp.");
       }
     }
@@ -698,7 +734,7 @@ function AppContent() {
       await supabaseService.seedData(INITIAL_PRODUCTS, INITIAL_CUSTOMERS, INITIAL_SUPPLIERS);
       alert("Đã đồng bộ dữ liệu mẫu thành công!");
     } catch (error) {
-      console.error("Error seeding data:", error);
+
       alert("Lỗi đồng bộ dữ liệu mẫu.");
     } finally {
       setIsLoading(false);
@@ -715,11 +751,11 @@ function AppContent() {
     const invoice = posInvoices.find(i => i.id === invoiceId);
     if (!invoice) return;
     const cartItems = invoice.cart;
-    const total = cartItems.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
+    const total = cartItems.reduce((sum, item) => sum + (item.price ?? 0) * (item.cartQuantity ?? 0), 0);
     const targetCustomerId = customerId || invoice.customerId;
     let promotionCustomer: Customer | undefined;
     if (targetCustomerId) {
-      promotionCustomer = await supabaseService.getCustomerById(targetCustomerId);
+      promotionCustomer = (await supabaseService.getCustomerById(targetCustomerId)) ?? undefined;
     }
     const appPromotions: AppliedPromotion[] = (appliedPromotions || []).map(p => {
       const { discount, description } = calculatePromotionDiscount(p, cartItems, promotionCustomer);
@@ -763,18 +799,18 @@ function AppContent() {
     const eligibleTotal = cartItems.reduce((sum, item) => {
       const product = allProducts.find(p => p.id === item.id);
       if (product?.isPointAccumulationEnabled) {
-        return sum + (item.price * item.cartQuantity);
+        return sum + (item.price ?? 0) * (item.cartQuantity ?? 0);
       }
       return sum;
     }, 0);
 
-    const pointsEarned = Math.floor(eligibleTotal / appSettings.pointConversionRate);
+    const pointsEarned = Math.floor(eligibleTotal / (appSettings.pointConversionRate || 1));
     const pointsRedeemed = rewardsRedeemed.reduce((sum, r) => sum + (r.pointCost * r.quantity), 0);
 
     // STEP 4: Kiểm tra không đổi quá số điểm hiện có
     let validationCustomer: Customer | undefined;
     if (customerId) {
-      validationCustomer = await supabaseService.getCustomerById(customerId);
+      validationCustomer = (await supabaseService.getCustomerById(customerId)) ?? undefined;
     }
     if (rewardsRedeemed.length > 0) {
       const currentPoints = (validationCustomer as any)?.loyaltyPoints || (validationCustomer as any)?.points || 0;
@@ -811,9 +847,9 @@ function AppContent() {
         items: cartItems.map(item => ({
           productId: item.id,
           productName: item.name,
-          quantity: item.cartQuantity,
+          quantity: item.cartQuantity ?? 0,
           unitName: item.selectedUnit?.name || item.unit,
-          price: item.price,
+          price: item.price ?? 0,
           // Phase 3B.2: persist lot reference into order_items
           lotId: (item as any).selectedLot?.id || undefined,
           lotCode: (item as any).selectedLot?.code || undefined,
@@ -834,8 +870,8 @@ function AppContent() {
         .map(item => {
           const product = allProducts.find(p => p.id === item.id);
           if (!product) return null;
-          let deductBaseQty = item.cartQuantity;
-          if (item.selectedUnit) deductBaseQty *= item.selectedUnit.ratio;
+          let deductBaseQty = item.cartQuantity ?? 0;
+          if (item.selectedUnit) deductBaseQty *= item.selectedUnit.ratio ?? 1;
           // Phase 4: nếu product có lot và user đã chọn lot trong cart, đính kèm lotId
           // để RPC trừ vào dòng product_lots tương ứng (thay vì products.quantity).
           const lotId = (item as any).selectedLot?.id || undefined;
@@ -847,7 +883,7 @@ function AppContent() {
         .map(d => {
           const product = allProducts.find(p => p.id === d.productId);
           if (!product) return null;
-          return { ...product, quantity: product.quantity - d.deductBaseQty };
+          return { ...product, quantity: (product.quantity ?? 0) - d.deductBaseQty };
         })
         .filter(Boolean) as Product[];
 
@@ -913,13 +949,13 @@ function AppContent() {
       } catch (error: any) {
         if (isNetworkError(error)) {
           // Mất mạng giữa chừng → queue để sync sau
-          console.warn("Checkout network error, queued offline:", error);
+
           offlineQueue.add(op);
         } else {
           // Lỗi nghiệp vụ từ RPC (tồn kho không đủ, sản phẩm không tồn tại, ...)
           // KHÔNG cập nhật state client, KHÔNG queue → throw cho usePOS hiển thị toast đỏ.
           // DB đã tự rollback (transaction trong RPC).
-          console.error("Checkout business error (RPC rejected):", error);
+
           throw new Error(error?.message || 'Lỗi xử lý đơn hàng');
         }
       }
@@ -932,7 +968,7 @@ function AppContent() {
     try {
       orderId = isOnline() ? await generateInvoiceNumber() : generateOfflineInvoiceNumber();
     } catch (error) {
-      console.error('Failed to generate invoice number:', error);
+
       orderId = generateOfflineInvoiceNumber();
     }
 
@@ -951,7 +987,7 @@ function AppContent() {
       } catch (error: any) {
         attempts++;
         if (isDuplicateInvoiceNumberError(error) && attempts < maxAttempts) {
-          console.warn(`Invoice number ${orderId} conflict, retrying with new number...`);
+
           try {
             orderId = await generateInvoiceNumber();
           } catch (e) {
@@ -1044,7 +1080,7 @@ function AppContent() {
 
       alert("Đã huỷ đơn hàng và hoàn tác dữ liệu.");
     } catch (error: any) {
-      console.error("Error cancelling order:", error);
+
       // Lỗi business (đơn có phiếu trả, đơn đã huỷ, ...) → hiển thị nguyên message tiếng Việt
       alert(error?.message || "Lỗi khi huỷ đơn hàng.");
     }
@@ -1183,7 +1219,7 @@ function AppContent() {
 
       alert(isDraft ? 'Đã lưu tạm phiếu nhập (chưa ghi nhận tồn kho/công nợ).' : 'Nhập hàng thành công!');
     } catch (error: any) {
-      console.error('Error during import:', error);
+
       // PostgreSQL function đã rollback - DB ở trạng thái nhất quán
       alert(error?.message || 'Lỗi nhập hàng. Vui lòng kiểm tra lại kết nối.');
     }
@@ -1211,7 +1247,7 @@ function AppContent() {
 
       alert('Đã xoá phiếu nhập và hoàn kho thành công!');
     } catch (err: any) {
-      console.error('Error deleting import receipt:', err);
+
       alert(parseDeleteError(err?.message || ''));
     }
   };
@@ -1227,7 +1263,7 @@ function AppContent() {
         ? 'Đã lưu tạm phiếu nhập.'
         : 'Đã cập nhật và hoàn thành phiếu nhập kho thành công!');
     } catch (error: any) {
-      console.error("Error updating/completing import receipt:", error);
+
       alert(error?.message || "Lỗi cập nhật phiếu nhập. Vui lòng thử lại.");
     }
   };
@@ -1238,12 +1274,12 @@ function AppContent() {
     try {
       await supabaseService.paySupplierDebt(receiptId, amount);
     } catch (error: any) {
-      console.error("Error persisting supplier debt payment:", error);
+
       alert(error?.message || "Lỗi khi lưu thanh toán công nợ nhà cung cấp vào hệ thống.");
     }
   };
 
-  if (authLoading || tenantLoading || (isLoading && user)) {
+  if (authLoading || tenantLoading || isAdminLoading || (isLoading && user)) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
@@ -1255,13 +1291,17 @@ function AppContent() {
   }
 
   const subdomain = getSubdomain();
+  const isAdminPath = location.pathname.startsWith('/admin');
 
-  // ponytail: admin hoặc root domain không resolve tenant; routing riêng cho SystemAdminDashboard/LandingPage.
-  if (!subdomain || subdomain === 'admin') {
-    if (subdomain === 'admin') {
-      if (!user) return <Login />;
-      return <SystemAdminDashboard />;
-    }
+  // ponytail: admin subdomain hoặc route /admin/* đều vào admin dashboard; user thường bị chặn.
+  if (subdomain === 'admin' || isAdminPath) {
+    if (!user) return <Login />;
+    if (!isSystemAdmin) return <TenantForbiddenPage />;
+    return <SystemAdminDashboard />;
+  }
+
+  // ponytail: root domain không resolve tenant; hiển thị landing page.
+  if (!subdomain) {
     return <LandingPage />;
   }
 
@@ -1430,6 +1470,7 @@ function AppContent() {
       <Route path="/reports" element={
         <Reports />
       } />
+      <Route path="/audit-log" element={<AuditLog />} />
       <Route path="/stock-ledger" element={<StockLedger />} />
       <Route path="/tax" element={<TaxCalculation />} />
       <Route path="/settings" element={

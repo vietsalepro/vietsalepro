@@ -11,11 +11,24 @@ function isPromotionActive(promo: Promotion): boolean {
   return true;
 }
 
+// ponytail: strict-safe accessors for cart fields that may be undefined in legacy data
+function getCartItemPrice(item: CartItem): number {
+  return item.price ?? 0;
+}
+
+function getCartItemQuantity(item: CartItem): number {
+  return item.cartQuantity ?? 0;
+}
+
+function getCartItemSubtotal(item: CartItem): number {
+  return getCartItemPrice(item) * getCartItemQuantity(item);
+}
+
 /**
  * Tính tổng tiền giỏ hàng (trước giảm)
  */
 function getCartSubtotal(cart: CartItem[]): number {
-  return cart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
+  return cart.reduce((sum, item) => sum + getCartItemSubtotal(item), 0);
 }
 
 /**
@@ -77,7 +90,7 @@ export function calculatePromotionDiscount(
       if (promo.targetProductId && promo.discountPercent) {
         const targetItem = cart.find(item => item.id === promo.targetProductId);
         if (targetItem) {
-          const itemTotal = targetItem.price * targetItem.cartQuantity;
+          const itemTotal = getCartItemSubtotal(targetItem);
           const discount = clampDiscount((itemTotal * promo.discountPercent) / 100, promo.maxDiscount);
           return {
             discount,
@@ -93,7 +106,7 @@ export function calculatePromotionDiscount(
       if (promo.targetCategory && promo.discountPercent) {
         const categoryItems = cart.filter(item => item.category === promo.targetCategory);
         if (categoryItems.length > 0) {
-          const categoryTotal = categoryItems.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
+          const categoryTotal = categoryItems.reduce((sum, item) => sum + getCartItemSubtotal(item), 0);
           const discount = clampDiscount((categoryTotal * promo.discountPercent) / 100, promo.maxDiscount);
           return {
             discount,
@@ -108,23 +121,23 @@ export function calculatePromotionDiscount(
       // 5. Mua X tặng Y
       if (promo.buyProductId && promo.giftProductId && promo.buyQuantity) {
         const buyItem = cart.find(item => item.id === promo.buyProductId);
-        if (buyItem && buyItem.cartQuantity >= promo.buyQuantity) {
+        if (buyItem && getCartItemQuantity(buyItem) >= promo.buyQuantity) {
           const giftItem = cart.find(item => item.id === promo.giftProductId);
           if (giftItem) {
             // Tính số lần được hưởng KM
-            const times = Math.floor(buyItem.cartQuantity / promo.buyQuantity);
-            const giftQty = Math.min(times * (promo.giftQuantity || 1), giftItem.cartQuantity);
+            const times = Math.floor(getCartItemQuantity(buyItem) / promo.buyQuantity);
+            const giftQty = Math.min(times * (promo.giftQuantity || 1), getCartItemQuantity(giftItem));
             if (giftQty > 0) {
               // Nếu giftDiscountPercent -> giảm %, nếu không -> tặng luôn
               if (promo.giftDiscountPercent) {
-                const discount = clampDiscount((giftItem.price * giftQty * promo.giftDiscountPercent) / 100, promo.maxDiscount);
+                const discount = clampDiscount((getCartItemPrice(giftItem) * giftQty * promo.giftDiscountPercent) / 100, promo.maxDiscount);
                 return {
                   discount,
                   description: `Mua ${promo.buyQuantity} "${buyItem.name}" được giảm ${promo.giftDiscountPercent}% "${giftItem.name}" (-${discount.toLocaleString('vi-VN')}đ)`,
                 };
               } else {
                 // Tặng free sản phẩm Y
-                const discount = clampDiscount(giftItem.price * giftQty, promo.maxDiscount);
+                const discount = clampDiscount(getCartItemPrice(giftItem) * giftQty, promo.maxDiscount);
                 return {
                   discount,
                   description: `Mua ${promo.buyQuantity} "${buyItem.name}" tặng ${giftQty} "${giftItem.name}" (-${discount.toLocaleString('vi-VN')}đ)`,
@@ -148,7 +161,7 @@ export function calculatePromotionDiscount(
 
         if (itemsToCheck.length > 0) {
           // Tìm bậc cao nhất có thể áp dụng dựa trên tổng số lượng
-          const totalQty = itemsToCheck.reduce((sum, item) => sum + item.cartQuantity, 0);
+          const totalQty = itemsToCheck.reduce((sum, item) => sum + getCartItemQuantity(item), 0);
           // Sắp xếp tiers theo minQty giảm dần để tìm bậc cao nhất đủ đk
           const sortedTiers = [...promo.tiers].sort((a, b) => b.minQty - a.minQty);
           const applicableTier = sortedTiers.find(t => totalQty >= t.minQty);
@@ -169,8 +182,8 @@ export function calculatePromotionDiscount(
       if (promo.mainProductId && promo.comboProductId && promo.comboDiscountPercent) {
         const mainItem = cart.find(item => item.id === promo.mainProductId);
         const comboItem = cart.find(item => item.id === promo.comboProductId);
-        if (mainItem && comboItem && comboItem.cartQuantity > 0) {
-          const discount = clampDiscount((comboItem.price * comboItem.cartQuantity * promo.comboDiscountPercent) / 100, promo.maxDiscount);
+        if (mainItem && comboItem && getCartItemQuantity(comboItem) > 0) {
+          const discount = clampDiscount((getCartItemSubtotal(comboItem) * promo.comboDiscountPercent) / 100, promo.maxDiscount);
           return {
             discount,
             description: `Combo: mua "${mainItem.name}" giảm ${promo.comboDiscountPercent}% "${comboItem.name}" (-${discount.toLocaleString('vi-VN')}đ)`,

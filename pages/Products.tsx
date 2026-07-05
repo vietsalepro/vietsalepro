@@ -124,7 +124,7 @@ export const Products: React.FC<InventoryProps> = ({
       .then(stats => {
         if (!cancelled) setProductStats(stats);
       })
-      .catch(err => console.error('Inventory: fetch product stats error', err))
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setIsLoadingStats(false);
       });
@@ -202,7 +202,7 @@ export const Products: React.FC<InventoryProps> = ({
       setLocalProducts(data);
       setTotalProductCount(totalCount);
     } catch (error) {
-      console.error("Error fetching products:", error);
+
     } finally {
       setIsLoadingProducts(false);
     }
@@ -735,7 +735,7 @@ export const Products: React.FC<InventoryProps> = ({
                 await onAddCategory(catName);
                 createdItems.push(`Danh mục "${catName}"`);
               } catch (e) {
-                console.warn(`Không thể tạo danh mục "${catName}":`, e);
+
               }
             }
             // Tạo brand sau
@@ -744,7 +744,7 @@ export const Products: React.FC<InventoryProps> = ({
                 await onAddBrand(brandName);
                 createdItems.push(`Thương hiệu "${brandName}"`);
               } catch (e) {
-                console.warn(`Không thể tạo thương hiệu "${brandName}":`, e);
+
               }
             }
           }
@@ -783,11 +783,11 @@ export const Products: React.FC<InventoryProps> = ({
 
         // Hiển thị chi tiết lỗi nếu có
         if (errors.length > 0) {
-          console.warn('Chi tiết lỗi:', errors);
+
         }
 
       } catch (error) {
-        console.error('Lỗi import Excel:', error);
+
         alert('❌ Có lỗi xảy ra khi đọc file Excel. Vui lòng kiểm tra định dạng file!');
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = '';

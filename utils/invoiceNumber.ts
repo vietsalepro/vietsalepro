@@ -58,11 +58,7 @@ export async function generateInvoiceNumber(): Promise<string> {
   if (!error && typeof data === 'string' && data) {
     return data;
   }
-  console.warn(
-    '[invoiceNumber] RPC get_order_auto_code không khả dụng — fallback MAX+1 (không atomic). ' +
-    'Hãy chạy migration supabase_migration_order_auto_code.sql.',
-    error
-  );
+  
   const next = await getNextInvoiceNumber();
   return formatInvoiceNumber(next);
 }

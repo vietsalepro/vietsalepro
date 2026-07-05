@@ -45,7 +45,7 @@ export const Profile: React.FC = () => {
         setDraft(merged);
       }
     } catch (e) {
-      console.error('Error loading profile', e);
+
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

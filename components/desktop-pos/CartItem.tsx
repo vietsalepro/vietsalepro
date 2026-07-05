@@ -23,7 +23,7 @@ interface CartItemProps {
 export const CartItemComponent: React.FC<CartItemProps> = ({
   item, index, isInvalid, onUpdateQuantity, onRemove, onChangeLot, availableLots = []
 }) => {
-  const totalPrice = item.price * ((item as any).cartQuantity ?? item.quantity);
+  const totalPrice = (item.price ?? 0) * ((item as any).cartQuantity ?? item.quantity);
 
   return (
     <tr className={`cart-item ${isInvalid ? 'cart-item--invalid' : ''}`}>
@@ -106,7 +106,7 @@ export const CartItemComponent: React.FC<CartItemProps> = ({
 
       {/* Đơn giá */}
       <td className="cart-item__cell cart-item__cell--price">
-        <span className="cart-item__price">{item.price.toLocaleString('vi-VN')}</span>
+        <span className="cart-item__price">{(item.price ?? 0).toLocaleString('vi-VN')}</span>
       </td>
 
       {/* Thành tiền */}

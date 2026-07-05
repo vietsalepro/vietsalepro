@@ -30,7 +30,7 @@ export const TaxCalculation: React.FC = () => {
         setOrders(ordersData);
         setSettings(settingsData);
       } catch (error) {
-        console.error("Error fetching data for tax calculation:", error);
+
       } finally {
         setIsLoading(false);
       }

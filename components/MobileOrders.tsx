@@ -63,7 +63,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
       }
       return customer;
     } catch (err) {
-      console.error('Error fetching customer:', err);
+
       return null;
     }
   }, [customerCache]);
@@ -79,7 +79,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
       }
       return product;
     } catch (err) {
-      console.error('Error fetching product:', err);
+
       return null;
     }
   }, [productCache]);
@@ -97,7 +97,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
       setOrders(result.orders as Order[]);
       setTotalCount(result.totalCount);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +115,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
       tasks.push(
         supabaseService.getCustomerById(selectedOrder.customerId).then(c => {
           if (c) setCustomerCache(prev => new Map(prev).set(c.id, c));
-        }).catch(err => console.error('Error fetching order customer:', err))
+        }).catch(() => {})
       );
     }
     const productIds = Array.from(new Set((selectedOrder.items || []).map(it => it.productId).filter((id): id is string => !!id)));
@@ -128,7 +128,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
             products.forEach(p => next.set(p.id, p));
             return next;
           });
-        }).catch(err => console.error('Error fetching order products:', err))
+        }).catch(() => {})
       );
     }
     if (tasks.length > 0) Promise.all(tasks);
@@ -166,7 +166,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
         setSelectedOrder(null);
         fetchOrders(currentPage);
       } catch (error) {
-        console.error("Error cancelling order:", error);
+
       }
     }
   };
@@ -174,7 +174,7 @@ const MobileOrders: React.FC<MobileOrdersProps> = ({ products = [], customers = 
   const handlePrint = async () => {
     if (selectedOrder) {
       const customer = await ensureCustomer(selectedOrder.customerId || '');
-      printOrder(selectedOrder, appSettings, customer);
+      printOrder(selectedOrder, appSettings, customer ?? undefined);
     }
   };
 

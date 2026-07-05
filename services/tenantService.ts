@@ -74,6 +74,39 @@ export async function getCurrentUserTenants(): Promise<Tenant[]> {
   return (data || []).map((row: any) => mapTenantFromDB(row.tenant_id));
 }
 
+// --- System admin (requires system_admin privileges) ---
+
+export async function getAllTenants(): Promise<Tenant[]> {
+  const { data, error } = await supabase.from('tenants').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapTenantFromDB);
+}
+
+export async function createTenantWithAdmin(input: {
+  name: string;
+  subdomain: string;
+  plan?: Tenant['plan'];
+  ownerId?: string;
+}): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('create_tenant_with_admin', {
+    p_name: input.name,
+    p_subdomain: input.subdomain,
+    p_plan: input.plan ?? 'free',
+    p_owner_user_id: input.ownerId ?? null,
+  });
+  if (error) throw error;
+  return mapTenantFromDB(data);
+}
+
+export async function updateTenantStatus(tenantId: string, status: Tenant['status']): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('update_tenant_status', {
+    p_tenant_id: tenantId,
+    p_status: status,
+  });
+  if (error) throw error;
+  return mapTenantFromDB(data);
+}
+
 // --- Membership ---
 
 export async function getMembership(tenantId: string, userId?: string): Promise<TenantMembership | null> {

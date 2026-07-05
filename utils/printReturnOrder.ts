@@ -55,7 +55,7 @@ const buildRawPrintText = (ret: ReturnOrder, settings: any, customer?: Customer)
   // Phiếu info
   text += center('Số phiếu: ' + ret.id, width) + '\n';
   if (ret.originalOrderId) text += center('Đơn gốc: ' + ret.originalOrderId, width) + '\n';
-  text += center('Ngày ' + new Date(ret.createdAt || ret.date).toLocaleDateString('vi-VN'), width) + '\n';
+  text += center('Ngày ' + new Date(ret.createdAt || ret.date || Date.now()).toLocaleDateString('vi-VN'), width) + '\n';
 
   text += '\n';
   text += `Khách hàng: ${ret.customerName || 'Khách lẻ'}\n`;
@@ -78,7 +78,7 @@ const buildRawPrintText = (ret: ReturnOrder, settings: any, customer?: Customer)
   text += line + '\n';
 
   // Totals
-  text += leftRight('Tổng tiền hoàn:', formatCurrency(ret.totalRefundAmount), width) + '\n';
+  text += leftRight('Tổng tiền hoàn:', formatCurrency(ret.totalRefundAmount || 0), width) + '\n';
   text += leftRight('Giảm trừ công nợ:', formatCurrency(ret.debtReduction || 0), width) + '\n';
   text += leftRight('Tiền mặt hoàn:', formatCurrency(ret.cashRefund || 0), width) + '\n';
 
@@ -172,7 +172,7 @@ const openRawPrinterWithForm = (text: string, paperSize: string) => {
         }
       }, 3000);
     } catch (error) {
-      console.error('Lỗi khi mở BR RawPrinter:', error);
+
       resolve(false);
     }
   });
@@ -191,7 +191,7 @@ export const printReturnOrder = async (ret: ReturnOrder, settings: AppSettings, 
         alert('Không mở được ứng dụng in. Vui lòng kiểm tra BR RawPrinter.');
       }
     } catch (error) {
-      console.error('Lỗi in phiếu trả:', error);
+
     }
     return;
   }
@@ -279,7 +279,7 @@ export const printReturnOrder = async (ret: ReturnOrder, settings: AppSettings, 
 
       <div class="text-center font-bold">Số phiếu: ${ret.id}</div>
       ${ret.originalOrderId ? `<div class="text-center">Đơn gốc: ${ret.originalOrderId}</div>` : ''}
-      <div class="text-center">Ngày ${new Date(ret.createdAt || ret.date).toLocaleDateString('vi-VN')}</div>
+      <div class="text-center">Ngày ${new Date(ret.createdAt || ret.date || Date.now()).toLocaleDateString('vi-VN')}</div>
 
       <div class="info-row" style="margin-top: 10px;">
         <div>Khách hàng: <span class="font-bold">${ret.customerName || 'Khách lẻ'}</span></div>
@@ -317,7 +317,7 @@ export const printReturnOrder = async (ret: ReturnOrder, settings: AppSettings, 
       <div class="totals">
         <div class="total-row">
           <span class="font-bold">Tổng tiền hoàn:</span>
-          <span class="final-total">${ret.totalRefundAmount.toLocaleString('vi-VN')}</span>
+          <span class="final-total">${(ret.totalRefundAmount || 0).toLocaleString('vi-VN')}</span>
         </div>
         <div class="total-row">
           <span>Giảm trừ công nợ:</span>

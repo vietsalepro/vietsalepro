@@ -189,7 +189,7 @@ export const StockLedger: React.FC = () => {
         setProductOptions((result || []).map((p: any) => ({ id: p.id, name: p.name })));
         setShowProductDropdown(true);
       } catch (e) {
-        console.error(e);
+
       }
     }, 300);
   }, [productSearch]);

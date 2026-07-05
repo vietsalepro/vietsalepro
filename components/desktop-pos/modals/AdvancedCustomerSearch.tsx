@@ -55,7 +55,7 @@ export const AdvancedCustomerSearch: React.FC<AdvancedCustomerSearchProps> = ({
         }
       })
       .catch((err) => {
-        console.error('Advanced customer search error:', err);
+
         if (requestId === searchRequestId.current) {
           setSearchResults([]);
           setIsSearching(false);

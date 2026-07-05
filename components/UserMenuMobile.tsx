@@ -33,7 +33,7 @@ export function UserMenuMobile({ visible, onClose, storeName, onOpenSettings }: 
       onClose();
       await signOut();
     } catch (error) {
-      console.error('Error signing out:', error);
+
     }
   };
 

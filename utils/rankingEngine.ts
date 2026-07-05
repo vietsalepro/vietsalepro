@@ -134,7 +134,7 @@ export function calculateCustomerTotalQuantity(
   for (const order of orders) {
     if (order.customerId !== customerId) continue;
     if (isOrderInPeriod(order, conditions)) {
-      for (const item of order.items) {
+      for (const item of order.items || []) {
         total += item.quantity;
       }
     }

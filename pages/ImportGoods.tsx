@@ -99,7 +99,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       })
       .catch(err => {
         if (cancelled) return;
-        console.error('Error updating receipt code placeholder:', err);
+
         setReceiptCodePlaceholder(`${prefix}XXX`);
       });
     return () => { cancelled = true; };
@@ -153,7 +153,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       }
       return supplier;
     } catch (err) {
-      console.error('Error fetching supplier:', err);
+
       return null;
     }
   }, [supplierCache]);
@@ -169,7 +169,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       }
       return product;
     } catch (err) {
-      console.error('Error fetching product:', err);
+
       return null;
     }
   }, [productCache]);
@@ -197,8 +197,8 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
           return next;
         });
       })
-      .catch(err => {
-        if (!cancelled) console.error('Error fetching suppliers:', err);
+      .catch(() => {
+        // ponytail: lỗi load suppliers không cần xử lý thêm
       })
       .finally(() => {
         if (!cancelled) setIsLoadingSuppliers(false);
@@ -221,14 +221,14 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
         if (requestId !== productSearchRequestId.current) return;
         setProductCache(prev => {
           const next = new Map(prev);
-          data.forEach(p => next.set(p.id, p));
+          data.forEach((p: Product) => next.set(p.id, p));
           return next;
         });
         setLocalProducts(data);
       })
       .catch(err => {
         if (requestId !== productSearchRequestId.current) return;
-        console.error('Error searching products:', err);
+
         setLocalProducts([]);
       })
       .finally(() => {
@@ -339,7 +339,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       const count = await supabaseService.getImportReceiptCountByDate(`${yyyy}-${mm}-${dd}`);
       return `${prefix}${String((count || 0) + 1).padStart(3, '0')}`;
     } catch (err) {
-      console.error('Error counting import receipts by date:', err);
+
       return `${prefix}001`;
     }
   };
@@ -404,7 +404,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
         paidPercent,
       });
     } catch (error) {
-      console.error('Error fetching import stats:', error);
+
     } finally {
       setIsLoadingStats(false);
     }
@@ -444,7 +444,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
             return next;
           });
         })
-        .catch(err => console.error('Error prefetching suppliers:', err));
+        .catch(() => {});
     }
     const productIds = Array.from(new Set(receiptList.flatMap(r => (r.items || []).map(it => it.productId)).filter((id): id is string => !!id)));
     const missingProductIds = productIds.filter(id => !productCache.has(id));
@@ -457,7 +457,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
             return next;
           });
         })
-        .catch(err => console.error('Error prefetching products:', err));
+        .catch(() => {});
     }
   }, [receiptList, supplierCache, productCache]);
 
@@ -470,7 +470,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       tasks.push(
         supabaseService.getSupplierById(supplierId).then(s => {
           if (s) setSupplierCache(prev => new Map(prev).set(s.id, s));
-        }).catch(err => console.error('Error fetching viewing supplier:', err))
+        }).catch(() => {})
       );
     }
     const missingProductIds = productIds.filter(id => !productCache.has(id));
@@ -482,7 +482,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
             products.forEach(p => next.set(p.id, p));
             return next;
           });
-        }).catch(err => console.error('Error fetching viewing products:', err))
+        }).catch(() => {})
       );
     }
     if (tasks.length > 0) Promise.all(tasks);
@@ -562,7 +562,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
         const receipt = await supabaseService.getImportReceiptById(editingId);
         status = receipt?.status === 'draft' ? 'draft' : 'completed';
       } catch (err) {
-        console.error('Error fetching editing receipt:', err);
+
       }
     }
     await submitReceipt(status);
@@ -598,7 +598,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
           return next;
         });
       } catch (err) {
-        console.error('Error fetching products for validation:', err);
+
       }
     }
     for (const item of importList) {
@@ -671,7 +671,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       await fetchReceipts(currentImportPage);
       await fetchStats();
     } catch (err) {
-      console.error('submitReceipt error:', err);
+
       alert('Có lỗi xảy ra khi lưu phiếu nhập. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
@@ -681,6 +681,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
   const handleEditClick = async (receipt: ImportReceipt) => {
     try {
       const fullReceipt = await supabaseService.getImportReceiptById(receipt.id);
+      if (!fullReceipt) return;
       const productIds = Array.from(new Set((fullReceipt.items || []).map(it => it.productId).filter((id): id is string => typeof id === 'string'))) as string[];
       if (productIds.length > 0) {
         const missingProductIds = productIds.filter(id => !productCache.has(id));
@@ -707,7 +708,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       setViewingReceipt(null);
       navigate('/import/create');
     } catch (err) {
-      console.error('Error loading receipt for edit:', err);
+
       alert('Không thể tải chi tiết phiếu nhập. Vui lòng thử lại.');
     }
   };
@@ -715,6 +716,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
   const handleViewDetail = async (receipt: ImportReceipt) => {
     try {
       const fullReceipt = await supabaseService.getImportReceiptById(receipt.id);
+      if (!fullReceipt) return;
       const productIds = Array.from(new Set((fullReceipt.items || []).map(it => it.productId).filter((id): id is string => typeof id === 'string'))) as string[];
       if (productIds.length > 0) {
         const missingProductIds = productIds.filter(id => !productCache.has(id));
@@ -729,7 +731,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       }
       setViewingReceipt(fullReceipt);
     } catch (err) {
-      console.error('Error loading receipt detail:', err);
+
       alert('Không thể tải chi tiết phiếu nhập. Vui lòng thử lại.');
     }
   };
@@ -802,7 +804,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       setIsSupplierModalOpen(false);
       setNewSupplierData({ name: '', phone: '', address: '', contactPerson: '' });
     } catch (error) {
-      console.error("Error creating supplier:", error);
+
       alert('Có lỗi xảy ra khi tạo nhà cung cấp. Vui lòng thử lại.');
     }
   };
@@ -848,7 +850,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       setReceiptList(receipts);
       setTotalReceiptCount(totalCount);
     } catch (error) {
-      console.error('Error fetching import receipts:', error);
+
       alert('Lỗi tải danh sách phiếu nhập');
     } finally {
       setIsLoadingReceipts(false);
@@ -1494,9 +1496,9 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
                                             <p className="text-sm font-medium text-slate-900 truncate">{s.name}</p>
                                             {s.phone && <p className="text-xs text-slate-500">{s.phone}</p>}
                                           </div>
-                                          {s.debt > 0 && (
+                                          {(s.debt ?? 0) > 0 && (
                                             <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-semibold">
-                                              {s.debt.toLocaleString('vi-VN')} ₫
+                                              {(s.debt ?? 0).toLocaleString('vi-VN')} ₫
                                             </span>
                                           )}
                                         </button>

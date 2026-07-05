@@ -6,7 +6,7 @@ import {
   Banknote, Wallet, History, ChevronRight, ChevronLeft, BadgePercent,
   FileText
 } from 'lucide-react';
-import { Product, Customer, Invoice, CartItem, AppSettings, Reward, Promotion } from '../types';
+import { Product, Customer, Invoice, CartItem, AppSettings, Reward, Promotion, RedeemedReward } from '../types';
 import { supabaseService } from '../services/supabaseService';
 import { useDebounce } from '../hooks/useDebounce';
 import BarcodeScannerFix from './BarcodeScannerFix';
@@ -176,7 +176,7 @@ export function MobilePOS(props: MobilePOSProps) {
           setCustomerCache(prev => new Map(prev).set(activeCustomerId, customer));
         }
       })
-      .catch(err => console.error('Error fetching active customer:', err));
+      .catch(() => {});
   }, [activeCustomerId, customerCache]);
 
   // === SEARCH STATES ===
@@ -281,7 +281,7 @@ export function MobilePOS(props: MobilePOSProps) {
         }
       })
       .catch((err) => {
-        console.error('MobilePOS product search error:', err);
+
         if (requestId === productSearchRequestId.current) {
           setProductSearchResults([]);
           setIsSearchingProduct(false);
@@ -500,11 +500,11 @@ export function MobilePOS(props: MobilePOSProps) {
     }
     const inv = activeInvoice;
     if (!inv) return;
-    const existing = inv.redeemedRewards.find(r => r.rewardId === reward.id);
+    const existing = inv.redeemedRewards.find((r: RedeemedReward) => r.rewardId === reward.id);
     if (existing) {
       updateInvoice({
         ...inv,
-        redeemedRewards: inv.redeemedRewards.map(r =>
+        redeemedRewards: inv.redeemedRewards.map((r: RedeemedReward) =>
           r.rewardId === reward.id ? { ...r, quantity: r.quantity + 1 } : r
         ),
       });
@@ -524,7 +524,7 @@ export function MobilePOS(props: MobilePOSProps) {
   const handleRemoveRedeemedReward = (rewardId: string) => {
     const inv = activeInvoice;
     if (!inv) return;
-    updateInvoice({ ...inv, redeemedRewards: inv.redeemedRewards.filter(r => r.rewardId !== rewardId) });
+    updateInvoice({ ...inv, redeemedRewards: inv.redeemedRewards.filter((r: RedeemedReward) => r.rewardId !== rewardId) });
   };
 
   const handleTogglePromotion = (promo: Promotion) => {
@@ -721,9 +721,9 @@ export function MobilePOS(props: MobilePOSProps) {
                   } catch (e) {
                     // NotFoundError = no camera hardware available (expected on desktop)
                     if (e instanceof DOMException && e.name === 'NotFoundError') {
-                      console.log('No camera hardware available, barcode scan will be unavailable');
+
                     } else {
-                      console.warn('Camera pre-check failed (may need permission):', e);
+
                     }
                     granted = false;
                   }
@@ -756,7 +756,7 @@ export function MobilePOS(props: MobilePOSProps) {
                     </div>
                   ) : filteredProducts.length > 0 ? (
                     filteredProducts.map(product => {
-                      const isOut = product.quantity <= 0;
+                      const isOut = (product.quantity ?? 0) <= 0;
                       return (
                         <button
                           key={product.id}
@@ -781,12 +781,12 @@ export function MobilePOS(props: MobilePOSProps) {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-bold mpos-text-brand">
-                              {formatVnd(product.price)}
+                              {formatVnd(product.price ?? 0)}
                             </p>
                             <p
                               className={`text-xs-caption font-semibold ${isOut ? 'mpos-stock--out' : 'mpos-stock--in'}`}
                             >
-                              {isOut ? 'Hết hàng' : `Tồn ${product.quantity}`}
+                              {isOut ? 'Hết hàng' : `Tồn ${product.quantity ?? 0}`}
                             </p>
                           </div>
                         </button>
@@ -1552,7 +1552,7 @@ export function MobilePOS(props: MobilePOSProps) {
               showToast('Không tìm thấy sản phẩm', 'error');
             }
           } catch (err) {
-            console.error('Barcode lookup error:', err);
+
             showToast('Lỗi tìm sản phẩm', 'error');
           }
         }}
@@ -1574,7 +1574,7 @@ interface SwipeableCartItemProps {
 
 function SwipeableCartItem({ item, isInvalid, onUpdate, onRemove }: SwipeableCartItemProps) {
   const [bounceKey, setBounceKey] = useState(0);
-  const lineTotal = item.price * item.cartQuantity;
+  const lineTotal = (item.price ?? 0) * (item.cartQuantity ?? 0);
 
   const handleDragEnd = (_e: any, info: PanInfo) => {
     if (info.offset.x < -100) {
@@ -1583,11 +1583,11 @@ function SwipeableCartItem({ item, isInvalid, onUpdate, onRemove }: SwipeableCar
   };
 
   const dec = () => {
-    onUpdate(item.id, { cartQuantity: Math.max(1, item.cartQuantity - 1) });
+    onUpdate(item.id, { cartQuantity: Math.max(1, (item.cartQuantity ?? 0) - 1) });
     setBounceKey(k => k + 1);
   };
   const inc = () => {
-    onUpdate(item.id, { cartQuantity: item.cartQuantity + 1 });
+    onUpdate(item.id, { cartQuantity: (item.cartQuantity ?? 0) + 1 });
     setBounceKey(k => k + 1);
   };
 
@@ -1636,7 +1636,7 @@ function SwipeableCartItem({ item, isInvalid, onUpdate, onRemove }: SwipeableCar
               {item.barcode || item.code}
             </span>
             <span className="text-xs font-semibold mpos-text-brand">
-              {formatVnd(item.price)}
+              {formatVnd(item.price ?? 0)}
             </span>
           </div>
           {isInvalid && (
@@ -1838,7 +1838,7 @@ function CustomerSearchModal({ onSearchCustomers, onSelectCustomer, onClose, onO
         }
       })
       .catch((err) => {
-        console.error('MobilePOS customer search error:', err);
+
         if (requestId === searchRequestId.current) {
           setSearchResults([]);
           setIsSearching(false);
@@ -1903,7 +1903,7 @@ function CustomerSearchModal({ onSearchCustomers, onSelectCustomer, onClose, onO
                   {c.phone || 'Không có SĐT'} {c.code ? `· ${c.code}` : ''}
                 </p>
               </div>
-              {c.debt > 0 && (
+              {(c.debt ?? 0) > 0 && (
                 <span
                   className="text-xs-caption font-bold px-2 py-0.5 rounded-full mpos-debt-badge"
                 >
@@ -1942,7 +1942,7 @@ function CustomerOrdersModal({ customer, onClose }: CustomerOrdersModalProps) {
         );
         setOrders(filtered);
       } catch (err) {
-        console.error('Failed to load orders', err);
+
       } finally {
         if (!cancelled) setLoading(false);
       }

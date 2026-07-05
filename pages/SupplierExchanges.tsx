@@ -102,7 +102,7 @@ export const SupplierExchanges: React.FC<SupplierExchangesProps> = ({
   useEffect(() => {
     supabaseService.searchSuppliers('', 500)
       .then(setSuppliers)
-      .catch(err => console.error('SupplierExchanges: fetch suppliers error', err));
+      .catch(() => {});
   }, []);
 
   // ─── VIEW STATE: sync với URL ───
@@ -177,7 +177,7 @@ export const SupplierExchanges: React.FC<SupplierExchangesProps> = ({
       });
       setExchanges(data);
     } catch (err: any) {
-      console.error('Error fetching supplier exchanges:', err);
+
       alert(err.message || 'Lỗi tải danh sách phiếu đổi trả hàng NCC');
     } finally {
       setLoading(false);
@@ -330,7 +330,7 @@ export const SupplierExchanges: React.FC<SupplierExchangesProps> = ({
     let cancelled = false;
     supabaseService.getImportReceiptById(lockedReceiptId)
       .then(r => { if (!cancelled) setLockedReceipt(r); })
-      .catch(err => console.error('SupplierExchanges: fetch lockedReceipt error', err));
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [lockedReceiptId]);
 
@@ -377,7 +377,7 @@ export const SupplierExchanges: React.FC<SupplierExchangesProps> = ({
           setShowProductResults(candidates.length > 0);
         }
       })
-      .catch(err => console.error('SupplierExchanges: search products error', err))
+      .catch(() => {})
       .finally(() => { if (!cancelled) setIsSearchingProduct(false); });
     return () => { cancelled = true; };
   }, [debouncedProductSearch, lockedReceiptId, lockedReceipt, items]);
@@ -412,7 +412,7 @@ export const SupplierExchanges: React.FC<SupplierExchangesProps> = ({
     let cancelled = false;
     supabaseService.getImportReceiptsByProductAndLot(draftProduct.id, draftLot.id)
       .then(receipts => { if (!cancelled) setLotReceipts(receipts.filter(r => r.status === 'completed')); })
-      .catch(err => console.error('SupplierExchanges: fetch lotReceipts error', err));
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [draftProduct?.id, draftLot?.id, lockedReceiptId]);
 
@@ -627,7 +627,7 @@ export const SupplierExchanges: React.FC<SupplierExchangesProps> = ({
       goToList();
       fetchExchanges();
     } catch (err: any) {
-      console.error('Submit supplier exchange error:', err);
+
       alert(err.message || 'Lỗi khi tạo phiếu đổi trả hàng NCC');
     } finally {
       setSubmitting(false);

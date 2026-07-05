@@ -106,7 +106,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
       .then(stats => {
         if (!cancelled) setSupplierStats(stats);
       })
-      .catch(err => console.error('Suppliers: fetch stats error', err))
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setIsLoadingStats(false);
       });
@@ -133,7 +133,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
       setLocalSuppliers(data);
       setTotalCount(totalCount);
     } catch (error) {
-      console.error("Error fetching suppliers:", error);
+
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +158,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
     setIsFetchingReceipts(true);
     supabaseService.getImportReceiptsBySupplierId(editingSupplier.id, 50)
       .then(data => { if (!cancelled) setSupplierReceipts(data); })
-      .catch(err => console.error('Suppliers: fetch receipts error', err))
+      .catch(() => {})
       .finally(() => { if (!cancelled) setIsFetchingReceipts(false); });
     return () => { cancelled = true; };
   }, [editingSupplier?.id]);
@@ -341,7 +341,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
       fetchSuppliers(currentSupplierPage, debouncedSearchTerm);
       closeModal();
     } catch (error) {
-      console.error("Error submitting supplier:", error);
+
     } finally {
       setIsSubmitting(false);
     }
@@ -366,7 +366,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
   };
 
   const handlePayClick = (receipt: ImportReceipt) => {
-    const remainingDebt = receipt.totalCost - receipt.paidAmount;
+    const remainingDebt = receipt.totalCost - (receipt.paidAmount ?? 0);
     setPaymentReceiptId(receipt.id);
     setPaymentAmount(remainingDebt.toString());
   };
@@ -386,12 +386,12 @@ export const Suppliers: React.FC<SuppliersProps> = ({
           setIsFetchingReceipts(true);
           supabaseService.getImportReceiptsBySupplierId(editingSupplier.id, 50)
             .then(data => setSupplierReceipts(data))
-            .catch(err => console.error('Suppliers: refetch receipts error', err))
+            .catch(() => {})
             .finally(() => setIsFetchingReceipts(false));
         }
         supabaseService.getSupplierStats()
           .then(setSupplierStats)
-          .catch(err => console.error('Suppliers: refetch stats error', err));
+          .catch(() => {});
         fetchSuppliers(currentSupplierPage, debouncedSearchTerm);
       } catch (err: any) {
         alert(err?.message || 'Lỗi khi thanh toán công nợ NCC.');
@@ -485,7 +485,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
       fetchSuppliers(currentSupplierPage, debouncedSearchTerm);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
-      console.error("Error importing suppliers:", error);
+
       alert("Lỗi khi nhập dữ liệu nhà cung cấp.");
     } finally {
       setIsImporting(false);
@@ -1048,13 +1048,14 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                           {supplierReceipts.map(receipt => {
-                            const remaining = receipt.totalCost - receipt.paidAmount;
+                            const paid = receipt.paidAmount ?? 0;
+                            const remaining = receipt.totalCost - paid;
                             return (
                               <tr key={receipt.id} className="hover:bg-gray-50">
                                 <td className="px-3 py-2 text-gray-600">{new Date(receipt.date).toLocaleDateString('vi-VN')}</td>
                                 <td className="px-3 py-2 font-medium">{receipt.id}</td>
                                 <td className="px-3 py-2 text-right text-gray-900">{receipt.totalCost.toLocaleString('vi-VN')}</td>
-                                <td className="px-3 py-2 text-right text-green-600">{receipt.paidAmount.toLocaleString('vi-VN')}</td>
+                                <td className="px-3 py-2 text-right text-green-600">{paid.toLocaleString('vi-VN')}</td>
                                 <td className="px-3 py-2 text-right">
                                   {remaining > 0 ? <span className="text-red-600 font-bold">{remaining.toLocaleString('vi-VN')}</span> : <span className="text-gray-400">0</span>}
                                 </td>
@@ -1073,7 +1074,8 @@ export const Suppliers: React.FC<SuppliersProps> = ({
 
                       <div className="md:hidden space-y-3">
                         {supplierReceipts.map(receipt => {
-                          const remaining = receipt.totalCost - receipt.paidAmount;
+                          const paid = receipt.paidAmount ?? 0;
+                          const remaining = receipt.totalCost - paid;
                           return (
                             <div key={receipt.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                               <div className="flex justify-between items-start mb-2">
@@ -1087,7 +1089,7 @@ export const Suppliers: React.FC<SuppliersProps> = ({
                                 </div>
                               </div>
                               <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                                <div className="text-xs text-green-600">Đã trả: {receipt.paidAmount.toLocaleString('vi-VN')}</div>
+                                <div className="text-xs text-green-600">Đã trả: {paid.toLocaleString('vi-VN')}</div>
                                 {remaining > 0 ? (
                                   <button onClick={() => handlePayClick(receipt)} className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-xs font-bold hover:bg-purple-200">Thanh toán</button>
                                 ) : (
@@ -1138,11 +1140,11 @@ export const Suppliers: React.FC<SuppliersProps> = ({
               const fresh = await supabaseService.getSupplierById(ledgerSupplierId);
               if (fresh) setEditingSupplier(fresh as Supplier);
             } catch (err) {
-              console.error('Refresh supplier after adjust failed:', err);
+
             }
             supabaseService.getSupplierStats()
               .then(setSupplierStats)
-              .catch(err => console.error('Suppliers: refetch stats error', err));
+              .catch(() => {});
             fetchSuppliers(currentSupplierPage, debouncedSearchTerm);
           }}
         />

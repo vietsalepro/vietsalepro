@@ -67,7 +67,7 @@ const buildRawPrintText = (order: Order, settings: AppSettings, customer?: Custo
     text += line + '\n';
     
     // Items
-    order.items.forEach(item => {
+    (order.items || []).forEach(item => {
         text += `✿ ${item.productName}\n`;
         
         const unit = item.unitName;
@@ -195,7 +195,7 @@ const openRawPrinterWithForm = (text: string, paperSize: string) => {
       }, 3000);
       
     } catch (error) {
-      console.error('Lỗi khi mở BR RawPrinter:', error);
+
       resolve(false);
     }
   });
@@ -260,7 +260,7 @@ const openRawPrinterWithIframe = (url: string) => {
       }, 3000);
       
     } catch (error) {
-      console.error('Lỗi iframe:', error);
+
       resolve(false);
     }
   });
@@ -685,15 +685,15 @@ export const printOrder = async (order: Order, settings: AppSettings, customer?:
           </tr>
         </thead>
         <tbody>
-          ${order.items.map(item => `
+          ${(order.items || []).map(item => `
             <tr>
               <td colspan="3">
                 <div class="item-name">✿ ${item.productName}</div>
                 <div class="item-details">
                   <span>${item.unitName}</span>
                   <span>${item.quantity}</span>
-                  <span>${item.price.toLocaleString('vi-VN')}</span>
-                  <span class="font-bold">${(item.quantity * item.price).toLocaleString('vi-VN')}</span>
+                  <span>${(item.price || 0).toLocaleString('vi-VN')}</span>
+                  <span class="font-bold">${(item.quantity * (item.price || 0)).toLocaleString('vi-VN')}</span>
                 </div>
                 <div class="dashed-line" style="border-top-style: dotted; opacity: 0.5;"></div>
               </td>

@@ -124,7 +124,7 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
           setDebtOrders(debtList);
         })
         .catch((err) => {
-          console.error('Failed to load debt orders:', err);
+
           setError('Không tải được danh sách đơn công nợ.');
         })
         .finally(() => setLoadingOrders(false));
@@ -193,7 +193,7 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
         onPaymentSuccess?.();
         onClose();
       } catch (err: any) {
-        console.error('Pay debt error:', err);
+
         setError(err?.message || 'Lỗi khi thanh toán công nợ.');
       } finally {
         setIsProcessing(false);
@@ -238,7 +238,7 @@ export const PayDebtModal: React.FC<PayDebtModalProps> = ({
         succeeded.push(t.shortId);
       } catch (err: any) {
         const reason = err?.message || 'lỗi không xác định';
-        console.error(`Pay debt failed for ${t.shortId}:`, err);
+
         failed.push({ shortId: t.shortId, reason });
       }
     }

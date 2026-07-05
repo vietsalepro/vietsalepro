@@ -115,17 +115,16 @@ const BarcodeScannerFix: React.FC<BarcodeScannerFixProps> = ({ onScanSuccess, on
         const isNotFound = errStr.includes('NotFoundError') || errStr.includes('Requested device not found');
 
         if (isNotFound) {
-          console.log('No camera hardware found, barcode scan unavailable on this device');
+
         } else {
-          console.error('html5-qrcode error:', err);
+
         }
 
         if (isNotFound) {
           // iOS Safari: thử fallback - enumerate cameras và dùng deviceId
           try {
             const cameras = await Html5Qrcode.getCameras().catch(() => []);
-            console.log('Available cameras:', cameras);
-            
+
             if (cameras.length === 0) {
               setErrorMessage(
                 '⚠️ Không tìm thấy camera.\n\n' +
@@ -141,8 +140,7 @@ const BarcodeScannerFix: React.FC<BarcodeScannerFixProps> = ({ onScanSuccess, on
                 c.label?.toLowerCase().includes('môi trường')
               ) || cameras[cameras.length - 1]; // Fallback: camera cuối cùng thường là camera sau
 
-              console.log('Retrying with camera:', rearCam?.id);
-              
+
               // Thử lại với deviceId cụ thể
               const html5QrCodeRetry = new Html5Qrcode(SCANNER_ELEMENT_ID);
               html5QrCodeRef.current = html5QrCodeRetry;

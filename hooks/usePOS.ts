@@ -49,7 +49,7 @@ export function usePOS({
           setCustomerCache(prev => new Map(prev).set(activeCustomerId, customer));
         }
       })
-      .catch(err => console.error('Error fetching active customer:', err));
+      .catch(() => {});
   }, [activeCustomerId, customerCache, tenantId]);
 
   // Prefetch products in cart so lot picker works without global products[]
@@ -66,7 +66,7 @@ export function usePOS({
           return next;
         });
       })
-      .catch(err => console.error('Error prefetching cart products:', err));
+      .catch(() => {});
   }, [activeCart, productCache, tenantId]);
 
   // Search States
@@ -102,7 +102,7 @@ export function usePOS({
         }
       })
       .catch((err) => {
-        console.error('Product search error:', err);
+
         if (requestId === productSearchRequestId.current) {
           setProductSearchResults([]);
           setIsSearchingProduct(false);
@@ -137,7 +137,7 @@ export function usePOS({
         }
       })
       .catch((err) => {
-        console.error('Customer search error:', err);
+
         if (requestId === customerSearchRequestId.current) {
           setFilteredCustomers([]);
           setIsSearchingCustomer(false);
@@ -188,12 +188,12 @@ export function usePOS({
 
   // Cart Total
   const cartTotal = useMemo(() => {
-    return activeCart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
+    return activeCart.reduce((sum, item) => sum + (item.price ?? 0) * (item.cartQuantity ?? 0), 0);
   }, [activeCart]);
 
   // Total Quantity
   const totalQuantity = useMemo(() => {
-    return activeCart.reduce((sum, item) => sum + item.cartQuantity, 0);
+    return activeCart.reduce((sum, item) => sum + (item.cartQuantity ?? 0), 0);
   }, [activeCart]);
 
   // Phase 9 — Promotion Discount: áp đúng thứ tự ưu tiên + không cộng dồn sai
@@ -247,7 +247,7 @@ export function usePOS({
     }
 
     const existing = inv.cart.find(item => item.id === product.id);
-    const currentQtyInCart = existing ? existing.cartQuantity : 0;
+    const currentQtyInCart = existing?.cartQuantity ?? 0;
     const nextQtyInCart = currentQtyInCart + 1;
 
     if (typeof product.quantity === 'number' && nextQtyInCart > product.quantity) {
@@ -270,7 +270,7 @@ export function usePOS({
       updateInvoice({
         ...inv,
         cart: inv.cart.map(item =>
-          item.id === product.id ? { ...item, cartQuantity: item.cartQuantity + 1 } : item
+          item.id === product.id ? { ...item, cartQuantity: (item.cartQuantity ?? 0) + 1 } : item
         )
       });
     } else {

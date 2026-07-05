@@ -214,12 +214,12 @@ const css3 = `/* ═════════════════════
 
 try {
   fs.writeFileSync(path.join(baseDir, 'components', 'TextInput.css'), css1, 'utf8');
-  console.log('✓ TextInput.css created');
+
   fs.writeFileSync(path.join(baseDir, 'components', 'SelectInput.css'), css2, 'utf8');
-  console.log('✓ SelectInput.css created');
+
   fs.writeFileSync(path.join(baseDir, 'components', 'FormField.css'), css3, 'utf8');
-  console.log('✓ FormField.css created');
-  console.log('\n✅ ALL CSS FILES CREATED SUCCESSFULLY');
+
+
 } catch (err) {
-  console.error('ERROR:', err);
+
 }

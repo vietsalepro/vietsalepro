@@ -7,7 +7,7 @@ const supabaseUrl = env?.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = env?.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase URL or Anon Key. Please check your .env file.');
+
 }
 
 let currentTenantId: string | null = null;

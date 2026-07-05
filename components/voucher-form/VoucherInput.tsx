@@ -31,8 +31,8 @@ export const VoucherInput: React.FC<VoucherInputProps> = ({
         fullWidth && 'voucher-input-wrapper--full-width',
         hasError && 'voucher-input-wrapper--error',
         disabled && 'voucher-input-wrapper--disabled',
-        prefixIcon && 'voucher-input-wrapper--has-prefix',
-        suffixIcon && 'voucher-input-wrapper--has-suffix',
+        prefixIcon ? 'voucher-input-wrapper--has-prefix' : null,
+        suffixIcon ? 'voucher-input-wrapper--has-suffix' : null,
         className
       )}
     >

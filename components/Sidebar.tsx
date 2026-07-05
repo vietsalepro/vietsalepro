@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isLocked })
       setIsUserMenuOpen(false);
       await signOut();
     } catch (error) {
-      console.error('Error signing out:', error);
+
     }
   };
 

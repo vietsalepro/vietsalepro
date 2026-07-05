@@ -113,7 +113,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
           inventoryValue: stats.inventoryValue || 0,
         });
       })
-      .catch(err => console.error('CategoryManagement: fetch stats error', err))
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setIsLoadingStats(false);
       });
@@ -138,7 +138,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
         setCategoryProductCounts(countsMap);
         setUnsyncedCategories(unsyncedMap);
       })
-      .catch(err => console.error('CategoryManagement: refresh counts error', err));
+      .catch(() => {});
   }, []);
 
   const dataGridBoxRef = useRef<HTMLDivElement>(null);
@@ -354,7 +354,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       refreshCounts();
       closeModal();
     } catch (err) {
-      console.error('Error saving category:', err);
+
       alert('Có lỗi xảy ra khi lưu danh mục.');
     }
   };
@@ -366,7 +366,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       await onDeleteCategory(id);
       refreshCounts();
     } catch (err) {
-      console.error('Error deleting category:', err);
+
       alert('Có lỗi xảy ra khi xóa danh mục.');
     }
   };
@@ -376,13 +376,13 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       await onAddCategory(categoryName);
       refreshCounts();
     }
-    catch (err) { console.error('Error syncing category:', err); alert('Có lỗi xảy ra khi đồng bộ danh mục.'); }
+    catch (err) {  alert('Có lỗi xảy ra khi đồng bộ danh mục.'); }
   };
 
   const handleSyncAll = async () => {
     for (const [categoryName] of unsyncedCategories) {
       try { await onAddCategory(categoryName); }
-      catch (err) { console.warn(`Không thể thêm danh mục "${categoryName}":`, err); }
+      catch (err) {  }
     }
     refreshCounts();
   };

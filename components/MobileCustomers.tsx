@@ -86,7 +86,7 @@ const MobileCustomers: React.FC<MobileCustomersProps> = ({
       setLocalCustomers(result.customers as Customer[]);
       setTotalCount(result.totalCount);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +145,7 @@ const MobileCustomers: React.FC<MobileCustomersProps> = ({
         return;
       }
     } catch (error) {
-      console.error('Error checking phone:', error);
+
     }
 
     let finalCode = formData.code;
@@ -684,7 +684,7 @@ const MobileCustomers: React.FC<MobileCustomersProps> = ({
                 if (fresh) setEditingCustomer(fresh);
                 setCustomerOrders(orders);
               } catch (err) {
-                console.error('Refresh customer detail failed:', err);
+
               }
             }
           }}
@@ -704,7 +704,7 @@ const MobileCustomers: React.FC<MobileCustomersProps> = ({
               const fresh = await supabaseService.getCustomerById(ledgerCustomerId);
               if (fresh) setEditingCustomer(fresh as Customer);
             } catch (err) {
-              console.error('Refresh customer after adjust failed:', err);
+
             }
             await fetchCustomers(currentPage, searchTerm);
           }}

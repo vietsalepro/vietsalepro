@@ -26,6 +26,11 @@ export const resetMockData = () => {
 
 export const setCurrentUserId = (id: string | null) => { currentUserId = id; };
 export const setCurrentTenantId = (id: string | null) => { currentTenantId = id; };
+export const getCurrentTenantId = () => currentTenantId;
+export const requireTenantId = (): string => {
+  if (!currentTenantId) throw new Error('Chưa chọn tenant');
+  return currentTenantId;
+};
 export const setSystemAdmin = (value: boolean) => { isSystemAdmin = value; };
 export const getMockRows = (table: string) => store[table] ?? [];
 export const addMockRow = (table: string, row: Row) => { store[table].push(row); };
@@ -56,6 +61,8 @@ interface QueryState {
   filters: Record<string, any>;
   selectColumns: string;
   single: boolean;
+  count?: 'exact' | 'estimated' | 'planned' | null;
+  head?: boolean;
   insertValues?: any[];
   updateValues?: any;
 }
@@ -84,6 +91,9 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'select') {
+    if (state.head && state.count) {
+      return { data: null, count: rows.length, error: null };
+    }
     if (state.selectColumns && state.selectColumns.includes('(*)')) {
       const [fk] = state.selectColumns.split(' ');
       const refTable = fk === 'tenant_id' ? 'tenants' : table;
@@ -151,7 +161,14 @@ const executeQuery = (state: QueryState) => {
 const queryBuilder = (table: string): any => {
   const state: QueryState = { table, operation: 'select', filters: {}, selectColumns: '*', single: false };
   const builder = {
-    select: (cols = '*') => { state.selectColumns = cols; return builder; },
+    select: (cols: string | object = '*', options?: { count?: 'exact' | 'estimated' | 'planned'; head?: boolean }) => {
+      if (typeof cols === 'string') state.selectColumns = cols;
+      if (options) {
+        state.count = options.count ?? undefined;
+        state.head = options.head ?? false;
+      }
+      return builder;
+    },
     insert: (values: any) => {
       state.operation = 'insert';
       state.insertValues = Array.isArray(values) ? values : [values];

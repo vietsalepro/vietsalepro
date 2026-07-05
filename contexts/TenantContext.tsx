@@ -79,7 +79,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         }
 
         if (user) {
-          console.log('DEBUG TenantContext fetching membership for user', user.id, 'tenant', t.id);
+
           const { data: mRow, error: mError } = await supabase
             .from('tenant_memberships')
             .select('*')
@@ -93,7 +93,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch (err) {
-        console.error('TenantContext load failed:', err);
+
         if (!cancelled) {
           setTenant(null);
           setMembership(null);

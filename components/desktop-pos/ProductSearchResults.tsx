@@ -42,7 +42,7 @@ export const ProductSearchResults: React.FC<ProductSearchResultsProps> = ({
       {/* Results */}
       <div className="psr-list">
         {products.map((product) => {
-          const isOutOfStock = product.quantity <= 0;
+          const isOutOfStock = (product.quantity ?? 0) <= 0;
           return (
             <div
               key={product.id}
@@ -84,8 +84,8 @@ export const ProductSearchResults: React.FC<ProductSearchResultsProps> = ({
 
               {/* Price */}
               <div className="psr-price">
-                <p className="psr-price-value">{product.price.toLocaleString('vi-VN')}</p>
-                {!isOutOfStock && product.quantity <= 5 && product.quantity > 0 && (
+                <p className="psr-price-value">{(product.price ?? 0).toLocaleString('vi-VN')}</p>
+                {!isOutOfStock && (product.quantity ?? 0) <= 5 && (product.quantity ?? 0) > 0 && (
                   <p className="psr-low-stock">
                     <AlertTriangle />
                     Sắp hết

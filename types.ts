@@ -8,7 +8,7 @@ export interface Product {
   id: string;
   tenantId?: string;
   name: string;
-  code?: string;
+  code: string;
   displayName?: string;
   barcode?: string;
   
@@ -177,7 +177,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   totalPrice?: number;
-  productId?: string;
+  productId: string;
   unit?: string;
   unitName?: string;
   taxRate?: TaxRateValue;

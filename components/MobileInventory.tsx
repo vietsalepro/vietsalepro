@@ -59,7 +59,7 @@ function MobileInventory(props: MobileInventoryProps) {
         setTotalCount(count);
       } catch (err) {
         if (cancelled) return;
-        console.error('MobileInventory load error:', err);
+
         setError('Không thể tải danh sách sản phẩm');
         setDisplayedProducts([]);
         setTotalCount(0);
@@ -305,6 +305,7 @@ function ProductFormModal({ product, categories, brands, onSave, onClose }: Prod
       ...(product || { id: crypto.randomUUID() }),
       id: product?.id || crypto.randomUUID(),
       name: name.trim(),
+      code: product?.code || '',
       price: parseFloat(price) || 0,
       cost: parseFloat(cost) || 0,
       quantity: parseInt(quantity) || 0,

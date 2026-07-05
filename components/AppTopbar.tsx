@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Package, Users, Truck, ShoppingCart, ArrowDownToLine, FileText, Menu, X, LogOut, User as UserIcon, Settings as SettingsIcon, Receipt, ChevronDown, TrendingUp, Sparkles, RotateCcw, ClipboardList, Trash2, ArrowLeftRight, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Truck, ShoppingCart, ArrowDownToLine, FileText, Menu, X, LogOut, User as UserIcon, Settings as SettingsIcon, Receipt, ChevronDown, TrendingUp, Sparkles, RotateCcw, ClipboardList, Trash2, ArrowLeftRight, BookOpen, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -51,6 +51,7 @@ const desktopMenuGroups: MenuGroup[] = [
     children: [
       { path: '/reports', label: 'Báo cáo', icon: TrendingUp, requires: 'canViewReports' },
       { path: '/tax', label: 'Tính thuế', icon: Receipt, requires: 'canViewReports' },
+      { path: '/audit-log', label: 'Nhật ký hoạt động', icon: Shield, requires: 'canViewAuditLogs' },
     ],
   },
 ];
@@ -69,6 +70,7 @@ const mobileMenuItems: MenuItem[] = [
   { path: '/inventory/supplier-exchanges', label: 'Đổi trả hàng NCC', icon: ArrowLeftRight, requires: 'canManageInventory' },
   { path: '/stock-ledger', label: 'Sổ kho', icon: BookOpen, requires: 'canManageInventory' },
   { path: '/reports', label: 'Báo cáo', icon: TrendingUp, requires: 'canViewReports' },
+  { path: '/audit-log', label: 'Nhật ký hoạt động', icon: Shield, requires: 'canViewAuditLogs' },
 ];
 
 interface DropdownGroupProps {
@@ -171,7 +173,7 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
       setIsUserMenuOpen(false);
       await signOut();
     } catch (error) {
-      console.error("Error signing out:", error);
+
     }
   };
 

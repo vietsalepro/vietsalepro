@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { writeAuditLog } from '../services/auditService';
 
 interface AuthContextType {
   session: Session | null;
@@ -25,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       // IMPORTANT: Keep the same `user` object reference when the logged-in
       // user hasn't actually changed. Supabase fires this callback on events
@@ -40,6 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return nextUser;
       });
+      // Ghi audit log LOGIN khi đăng nhập thành công (bỏ qua INITIAL_SESSION khi reload).
+      if (event === 'SIGNED_IN' && newSession?.user) {
+        writeAuditLog('LOGIN', 'auth', {
+          recordId: newSession.user.id,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        }).catch(() => {});
+      }
       setLoading(false);
     });
 
@@ -48,6 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    try {
+      await writeAuditLog('LOGOUT', 'auth', {
+        recordId: user?.id ?? null,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      });
+    } catch (err) {
+
+    }
     await supabase.auth.signOut();
   };
 

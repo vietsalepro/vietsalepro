@@ -134,7 +134,7 @@ export const Settings: React.FC<SettingsProps> = ({
         const prods = await supabaseService.searchProducts('', 2000);
         if (!cancelled) setLocalProducts(prods);
       } catch (e) {
-        console.error('Settings: fetch products error', e);
+
       } finally {
         if (!cancelled) setIsFetchingProducts(false);
       }
@@ -259,7 +259,7 @@ export const Settings: React.FC<SettingsProps> = ({
       document.body.removeChild(a);
       alert('✅ Sao lưu dữ liệu thành công!');
     } catch (error) {
-      console.error('Backup error:', error);
+
       alert('❌ Sao lưu thất bại. Vui lòng thử lại.');
     } finally {
       setIsBackingUp(false);
@@ -286,13 +286,13 @@ export const Settings: React.FC<SettingsProps> = ({
           alert('✅ Khôi phục dữ liệu thành công! Vui lòng tải lại trang để cập nhật dữ liệu mới.');
           window.location.reload();
         } catch (err) {
-          console.error('Parse error:', err);
+
           alert('❌ File backup không hợp lệ hoặc bị lỗi.');
         }
       };
       reader.readAsText(file);
     } catch (error) {
-      console.error('Restore error:', error);
+
       alert('❌ Khôi phục thất bại.');
     } finally {
       setIsRestoring(false);
@@ -319,7 +319,7 @@ export const Settings: React.FC<SettingsProps> = ({
           setRankConfigs(DEFAULT_RANK_CONFIGS);
         }
       } catch (error) {
-        console.error('Error loading rank configs:', error);
+
       }
     };
     loadRankConfigs();
@@ -334,7 +334,7 @@ export const Settings: React.FC<SettingsProps> = ({
           const { orders } = await supabaseService.getOrdersPaginated(1, 5000);
           setRankOrders(orders);
         } catch (error) {
-          console.error('Error loading orders for ranking:', error);
+
         } finally {
           setIsRankLoading(false);
         }
@@ -391,7 +391,7 @@ export const Settings: React.FC<SettingsProps> = ({
       setEditingRank(null);
       alert('Đã lưu cấu hình hạng!');
     } catch (error) {
-      console.error('Error saving rank config:', error);
+
       alert('Lỗi lưu cấu hình hạng.');
     }
   };
@@ -402,7 +402,7 @@ export const Settings: React.FC<SettingsProps> = ({
       await supabaseService.deleteRankConfig(id);
       setRankConfigs(prev => prev.filter(r => r.id !== id));
     } catch (error) {
-      console.error('Error deleting rank config:', error);
+
     }
   };
 
@@ -434,7 +434,7 @@ export const Settings: React.FC<SettingsProps> = ({
       
       alert(`Đã tính lại hạng cho ${allCustomers.length} khách hàng. ${changedCount} khách hàng thay đổi hạng.`);
     } catch (error) {
-      console.error('Error recalculating ranks:', error);
+
       alert('Lỗi tính lại hạng.');
     } finally {
       setIsRankLoading(false);
@@ -526,7 +526,7 @@ export const Settings: React.FC<SettingsProps> = ({
       setEditingPromotion(null);
       alert('Đã lưu chương trình khuyến mãi!');
     } catch (error) {
-      console.error('Lỗi lưu khuyến mãi:', error);
+
       alert('Lỗi lưu khuyến mãi. Vui lòng thử lại.');
     }
   };
@@ -537,7 +537,7 @@ export const Settings: React.FC<SettingsProps> = ({
       if (onDeletePromotion) onDeletePromotion(id);
       await supabaseService.deletePromotion(id);
     } catch (error) {
-      console.error('Lỗi xóa khuyến mãi:', error);
+
       alert('Lỗi xóa khuyến mãi.');
     }
   };
@@ -613,7 +613,7 @@ export const Settings: React.FC<SettingsProps> = ({
         )}
         {selectedProduct && !showDropdown && (
           <p className="settings-help-text settings-text-success">
-            Đã chọn: {selectedProduct.name} - Tồn: {selectedProduct.quantity} - Giá: {selectedProduct.price.toLocaleString('vi-VN')}đ
+            Đã chọn: {selectedProduct.name} - Tồn: {selectedProduct.quantity ?? 0} - Giá: {(selectedProduct.price ?? 0).toLocaleString('vi-VN')}đ
           </p>
         )}
       </div>

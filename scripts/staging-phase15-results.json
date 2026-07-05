@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-07-05T08:08:42.894Z",
+  "environment": "staging",
+  "projectRef": "shbmzvfcenbybvyzclem",
+  "tests": [
+    {
+      "name": "Data isolation: store-a product not visible in store-b",
+      "status": "PASS",
+      "result": {
+        "productId": "prod-a-1783238924077",
+        "storeA": 1,
+        "storeB": 0
+      }
+    },
+    {
+      "name": "RBAC: cashier cannot delete order",
+      "status": "PASS",
+      "result": {
+        "orderId": "order-a-1783238924812",
+        "deleteStatus": 204,
+        "verifyRows": 1
+      }
+    },
+    {
+      "name": "RBAC: accountant cannot create order",
+      "status": "PASS",
+      "result": {
+        "orderId": "order-acct-1783238925537",
+        "insertStatus": 403,
+        "insertError": {
+          "code": "42501",
+          "details": null,
+          "hint": null,
+          "message": "new row violates row-level security policy for table \"orders\""
+        }
+      }
+    },
+    {
+      "name": "Suspend: store-c data access blocked after suspension",
+      "status": "PASS",
+      "result": {
+        "tenantId": "67a27715-e1b9-4480-8648-b7bc1a39d96d",
+        "status": "suspended",
+        "productVisibleAfter": 0
+      }
+    },
+    {
+      "name": "Subdomain 404: non-existent subdomain available",
+      "status": "PASS",
+      "result": {
+        "subdomain": "khongtontai",
+        "available": true
+      }
+    },
+    {
+      "name": "Storage RLS: tenant B cannot read tenant A file",
+      "status": "PASS",
+      "result": {
+        "pathA": "8766c3f7-321f-4d35-8995-93f7dcec9242/test/test-1783238927100.txt",
+        "downloadStatus": 400
+      }
+    },
+    {
+      "name": "Subscription limits: free tenant max users",
+      "status": "PASS",
+      "result": {
+        "freeTenantId": "622cd2d4-d8d6-4e9b-b8b0-994e9f6801be",
+        "inviteStatus": 403,
+        "inviteError": "Đã đạt giới hạn số user của gói dịch vụ"
+      }
+    },
+    {
+      "name": "Password reset: redirectTo uses correct subdomain",
+      "status": "PASS",
+      "result": {
+        "redirectTo": "https://store-a.vietsalepro.com/reset-password"
+      }
+    },
+    {
+      "name": "Rate limiting: check-subdomain spam returns 429",
+      "status": "PASS",
+      "result": {
+        "blocked": true
+      }
+    },
+    {
+      "name": "Audit log: records exist for store-a operations",
+      "status": "PASS",
+      "result": {
+        "count": 1,
+        "sample": {
+          "id": "9ee513be-0aa1-4497-bf53-a625df54138e",
+          "tenant_id": "8766c3f7-321f-4d35-8995-93f7dcec9242",
+          "user_id": "8cbcf8ed-f7dc-4003-980d-d5221ad7ac9a",
+          "table_name": "products",
+          "record_id": "prod-a-1783238852923",
+          "action": "INSERT",
+          "old_data": null,
+          "new_data": {
+            "id": "prod-a-1783238852923",
+            "sku": null,
+            "cost": 0,
+            "name": "Store A Product",
+            "unit": null,
+            "brand": null,
+            "image": null,
+            "price": 0,
+            "barcode": null,
+            "brand_id": null,
+            "category": null,
+            "has_lots": false,
+            "location": null,
+            "quantity": 0,
+            "max_stock": null,
+            "min_stock": null,
+            "tenant_id": "8766c3f7-321f-4d35-8995-93f7dcec9242",
+            "created_at": "2026-07-05T08:07:22.42179+00:00",
+            "category_id": null,
+            "display_name": null,
+            "safety_stock": null,
+            "conversion_units": [],
+            "is_point_accumulation_enabled": false
+          },
+          "ip_address": null,
+          "user_agent": null,
+          "created_at": "2026-07-05T08:07:22.42179+00:00"
+        }
+      }
+    }
+  ]
+}

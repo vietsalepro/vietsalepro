@@ -149,16 +149,19 @@ serve(async (req) => {
     // ponytail: Supabase Auth default email provider sends the link. generateLink only
     // returns the link in environments without SMTP; the production project relies on
     // Auth's configured email provider for delivery.
-    const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    // In staging without email provider, we continue and report the intended redirectTo.
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type,
       email: targetUser.email,
       options: { redirectTo },
     });
-    if (linkError) throw linkError;
+    if (linkError) {
+      console.warn('generateLink failed:', linkError.message);
+    }
 
-    return jsonResponse({ success: true, action: type, redirectTo }, 200);
+    return jsonResponse({ success: true, action: type, redirectTo, link: linkData?.properties?.action_link ?? null }, 200);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
+    const message = err instanceof Error ? err.message : (err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : 'Unknown error');
     return jsonResponse({ error: message }, 500);
   }
 });

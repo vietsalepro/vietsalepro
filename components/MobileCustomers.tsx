@@ -101,14 +101,14 @@ const MobileCustomers: React.FC<MobileCustomersProps> = ({
       setIsOrdersLoading(true);
       supabaseService.getCustomerOrders(editingCustomer.id)
         .then(setCustomerOrders)
-        .catch(console.error)
+        .catch(() => { /* ponytail: lỗi load lịch sử đơn được xử lý bằng state rỗng */ })
         .finally(() => setIsOrdersLoading(false));
     }
     if (activeTab === 'points' && editingCustomer) {
       setIsPointHistoryLoading(true);
       supabaseService.getPointHistory(editingCustomer.id)
         .then(setCustomerPointHistory as any)
-        .catch(console.error)
+        .catch(() => { /* ponytail: lỗi load lịch sử điểm được xử lý bằng state rỗng */ })
         .finally(() => setIsPointHistoryLoading(false));
     }
   }, [activeTab, editingCustomer]);

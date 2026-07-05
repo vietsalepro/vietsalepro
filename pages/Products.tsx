@@ -71,7 +71,7 @@ export const Products: React.FC<InventoryProps> = ({
   useEffect(() => {
     if (!tenantId) return;
     if (!productsProp) {
-      supabaseService.getProducts().then(setProductsFallback).catch(console.error);
+      supabaseService.getProducts().then(setProductsFallback).catch(() => { /* ponytail: fallback im lặng nếu load thất bại */ });
     }
   }, [productsProp, tenantId]);
 

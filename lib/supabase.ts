@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import { createClient } from '@supabase/supabase-js';
+import { AppError } from '../utils/errors';
 
 const env = (import.meta as any).env ?? (typeof process !== 'undefined' ? process.env : {});
 const supabaseUrl = env?.VITE_SUPABASE_URL as string | undefined;
@@ -16,7 +17,7 @@ export const setCurrentTenantId = (tenantId: string | null) => { currentTenantId
 export const getCurrentTenantId = () => currentTenantId;
 export const requireTenantId = (): string => {
   const tenantId = currentTenantId;
-  if (!tenantId) throw new Error('Chưa chọn tenant');
+  if (!tenantId) throw new AppError('Chưa chọn tenant', 'TENANT_NOT_SELECTED');
   return tenantId;
 };
 

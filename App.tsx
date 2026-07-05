@@ -59,6 +59,7 @@ import { generateInvoiceNumber, generateOfflineInvoiceNumber, isDuplicateInvoice
 import { calculatePromotionDiscount } from './utils/promotionUtils';
 import { Loader2, Package, Truck, ArrowDownToLine, Settings as SettingsIcon, LogOut, X, BarChart, Users, Receipt, User as UserIcon } from 'lucide-react';
 import { useNewAppShell } from './features';
+import { AppError } from './utils/errors';
 
 function CustomersWrapper(props: any) {
   const [searchParams] = useSearchParams();
@@ -815,11 +816,11 @@ function AppContent() {
     if (rewardsRedeemed.length > 0) {
       const currentPoints = (validationCustomer as any)?.loyaltyPoints || (validationCustomer as any)?.points || 0;
       if (pointsRedeemed > currentPoints) {
-        throw new Error(`Không đủ điểm để đổi quà. Cần ${pointsRedeemed} điểm, hiện có ${currentPoints} điểm.`);
+        throw new AppError(`Không đủ điểm để đổi quà. Cần ${pointsRedeemed} điểm, hiện có ${currentPoints} điểm.`, 'INSUFFICIENT_POINTS');
       }
     } else if (pointsRedeemed > 0) {
       // fallback nếu không có customer
-      throw new Error('Không thể đổi quà: chưa chọn khách hàng.');
+      throw new AppError('Không thể đổi quà: chưa chọn khách hàng.', 'CUSTOMER_NOT_SELECTED');
     }
 
     let finalCustomerId = customerId;
@@ -956,7 +957,7 @@ function AppContent() {
           // KHÔNG cập nhật state client, KHÔNG queue → throw cho usePOS hiển thị toast đỏ.
           // DB đã tự rollback (transaction trong RPC).
 
-          throw new Error(error?.message || 'Lỗi xử lý đơn hàng');
+          throw new AppError(error?.message || 'Lỗi xử lý đơn hàng', 'ORDER_PROCESSING_ERROR', { originalError: error });
         }
       }
 

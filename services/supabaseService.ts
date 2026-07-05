@@ -2329,7 +2329,6 @@ export const supabaseService = {
         }
       };
     } catch (error) {
-
       throw error;
     }
   },
@@ -2380,7 +2379,6 @@ export const supabaseService = {
 
       return true;
     } catch (error) {
-
       throw error;
     }
   },

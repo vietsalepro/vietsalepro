@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { TenantSubscription } from '../types/tenant';
 import { getTenantSubscription } from './tenantService';
+import { AppError } from '../utils/errors';
 
 export type LimitResource = 'users' | 'products' | 'orders_per_month';
 
@@ -21,7 +22,7 @@ export async function checkLimit(
 ): Promise<LimitStatus> {
   const sub = await getTenantSubscription(tenantId);
   if (!sub) {
-    throw new Error('Không tìm thấy subscription cho tenant');
+    throw new AppError('Không tìm thấy subscription cho tenant', 'SUBSCRIPTION_NOT_FOUND');
   }
 
   let current = 0;

@@ -1,19 +1,25 @@
 ## What Was Done
 
-- Planned sub-phase 14: Dọn dẹp codebase.
+- Dropped 10 backup tables on production Supabase project `rsialbfjswnrkzcxarnj` via `apply_migration`.
+- Removed 23 dead-code files (tsx + css): NotificationSystem, Picker, FormTextarea, Tabs, BatchSelectionModal, FormField, MobileSuppliers, Sidebar, InvoiceTabs, OrderNote, OrderSummary, TopNavigation, PaymentModal, LotExpiryPopover.
+- Removed stray `login.png` from project root.
+- Replaced remaining `console.error` fallback handlers with explicit no-op comments in MobileCustomers, Products, InventoryCount.
+- Normalized error handling to `AppError` in: subscriptionService, lib/supabase, auditService, App.tsx, ImportGoods, orderExporter, orderImporter; removed redundant `catch { throw error; }` blocks in supabaseService.
 
 ## What Was Verified
 
-- Planning artifacts are complete.
+- `npm run lint` passes.
+- `npm run build` passes.
+- No remaining untracked files or stray imports from deleted components.
 
 ## Next Phase
 
-- Proceed with the implementation of this sub-phase.
+- Phase 15: Test trên staging.
 
 ## Blockers / Decisions
 
-- None at planning stage.
+- None.
 
 ## Backup Location
 
-- To be created during implementation (task 0.1).
+- `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_multi_tenancy_phase_14_20260705_182952`

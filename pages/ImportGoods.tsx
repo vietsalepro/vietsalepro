@@ -28,6 +28,7 @@ import { useNewDataGridImportGoods } from '../features';
 import { PageLayout } from '../components/shared/PageLayout';
 import { DataGridBox } from '../components/shared/DataGridBox';
 import { useDebounce } from '../hooks/useDebounce';
+import { AppError } from '../utils/errors';
 import { usePermissions } from '../hooks/usePermissions';
 import { supabaseService } from '../services/supabaseService';
 import './ImportGoods.css';
@@ -785,7 +786,7 @@ export const ImportGoods: React.FC<ImportGoodsProps> = ({
       // because App.tsx's handler catches errors internally and does not rethrow.
       const created = await supabaseService.getSupplierById(newId);
       if (!created) {
-        throw new Error('Supplier creation could not be verified');
+        throw new AppError('Supplier creation could not be verified', 'SUPPLIER_CREATION_FAILED');
       }
 
       setLocalSuppliers(prev => {

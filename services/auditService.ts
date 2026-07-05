@@ -1,4 +1,5 @@
 import { supabase, getCurrentTenantId } from '../lib/supabase';
+import { AppError } from '../utils/errors';
 
 export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'EXPORT';
 
@@ -67,8 +68,7 @@ export async function writeAuditLog(
 
   const { error } = await (supabase as any).functions.invoke('audit-log', { body });
   if (error) {
-
-    throw error;
+    throw new AppError(error.message || 'Lỗi ghi audit log', 'AUDIT_LOG_WRITE_ERROR', { originalError: error });
   }
 }
 
@@ -86,8 +86,7 @@ export async function getAuditLogs(options: { limit?: number; offset?: number } 
     .range(offset, offset + limit - 1);
 
   if (error) {
-
-    throw error;
+    throw new AppError(error.message || 'Lỗi đọc audit log', 'AUDIT_LOG_READ_ERROR', { originalError: error });
   }
 
   return {

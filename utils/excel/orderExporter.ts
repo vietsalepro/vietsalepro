@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { Order } from '../../types';
 import { capitalizeProductName } from '../stringHelper';
+import { AppError } from '../errors';
 
 /**
  * Export orders to Excel file with 2 sheets:
@@ -18,7 +19,7 @@ export async function exportOrdersToExcel(
 ): Promise<void> {
   
   if (!orders || orders.length === 0) {
-    throw new Error('Không có đơn hàng để xuất');
+    throw new AppError('Không có đơn hàng để xuất', 'NO_ORDERS_TO_EXPORT');
   }
 
   // 1. Tạo workbook mới

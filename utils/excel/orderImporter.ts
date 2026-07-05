@@ -3,6 +3,7 @@ import { Order, Customer } from '../../types';
 import { supabaseService } from '../../services/supabaseService';
 import { supabase } from '../../lib/supabase';
 import { capitalizeProductName } from '../stringHelper';
+import { AppError } from '../errors';
 
 export type ConflictAction = 'skip' | 'create_new';
 export type SourceSoftware = 'vietsale' | 'misa' | 'kiotviet' | 'fast';
@@ -123,7 +124,7 @@ export async function importOrdersFromExcel(file: File): Promise<ImportResult> {
 
   const structureValidation = validateExcelStructure(mappedOrders);
   if (!structureValidation.valid) {
-    throw new Error(`Cấu trúc file không đúng:\n${structureValidation.errors.join('\n')}`);
+    throw new AppError(`Cấu trúc file không đúng:\n${structureValidation.errors.join('\n')}`, 'IMPORT_INVALID_STRUCTURE');
   }
 
   // Cache khách hàng đã xử lý trong batch (tránh tạo trùng cùng tên trong 1 file)
@@ -261,7 +262,7 @@ export async function executeImport(
 
 function validateFile(file: File): void {
   if (file.size > 10 * 1024 * 1024) {
-    throw new Error('File quá lớn (>10MB). Vui lòng chọn file nhỏ hơn.');
+    throw new AppError('File quá lớn (>10MB). Vui lòng chọn file nhỏ hơn.', 'IMPORT_FILE_TOO_LARGE');
   }
   const validTypes = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -272,7 +273,7 @@ function validateFile(file: File): void {
     file.name.endsWith('.xlsx') ||
     file.name.endsWith('.xls');
   if (!isValidType) {
-    throw new Error('File không đúng định dạng. Chỉ chấp nhận file .xlsx hoặc .xls');
+    throw new AppError('File không đúng định dạng. Chỉ chấp nhận file .xlsx hoặc .xls', 'IMPORT_INVALID_FILE_TYPE');
   }
 }
 
@@ -284,7 +285,7 @@ async function readExcelFile(file: File): Promise<any> {
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: 'binary' });
         if (workbook.SheetNames.length === 0) {
-          throw new Error('File Excel không có sheet nào');
+          throw new AppError('File Excel không có sheet nào', 'IMPORT_EMPTY_WORKBOOK');
         }
         const ordersSheet = workbook.Sheets[workbook.SheetNames[0]];
         const orders = XLSX.utils.sheet_to_json(ordersSheet);
@@ -326,7 +327,7 @@ async function parseOrderRow(
 ): Promise<ParsedOrder> {
   const customerName = (row['Tên khách hàng'] || '').toString().trim();
   if (!customerName) {
-    throw new Error('Thiếu tên khách hàng');
+    throw new AppError('Thiếu tên khách hàng', 'IMPORT_MISSING_CUSTOMER_NAME');
   }
 
   // Resolve / auto-create khách hàng (có cache theo tên)
@@ -350,7 +351,7 @@ async function parseOrderRow(
     .map((item) => {
       const productName = item['Tên sản phẩm'];
       if (!productName) {
-        throw new Error(`Thiếu tên sản phẩm trong chi tiết đơn ${maDon}`);
+        throw new AppError(`Thiếu tên sản phẩm trong chi tiết đơn ${maDon}`, 'IMPORT_MISSING_PRODUCT_NAME');
       }
       return {
         productId: item['Mã SP'] || '',
@@ -362,7 +363,7 @@ async function parseOrderRow(
     });
 
   if (items.length === 0) {
-    throw new Error('Đơn hàng không có sản phẩm (kiểm tra Sheet 2 "Chi tiết SP")');
+    throw new AppError('Đơn hàng không có sản phẩm (kiểm tra Sheet 2 "Chi tiết SP")', 'IMPORT_NO_ORDER_ITEMS');
   }
 
   const order: Order = {
@@ -445,7 +446,7 @@ function parseExcelDate(dateStr: string | number): Date {
   }
   const parsed = new Date(str);
   if (isNaN(parsed.getTime())) {
-    throw new Error(`Không thể parse ngày tháng: "${dateStr}"`);
+    throw new AppError(`Không thể parse ngày tháng: "${dateStr}"`, 'IMPORT_INVALID_DATE');
   }
   return parsed;
 }

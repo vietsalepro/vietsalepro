@@ -1116,3 +1116,7 @@ Progress tracked in session todos.
 - **Handoff:** `HANDOFF_PHASE_9_1_SUPPLIER_EXCHANGES_CREATE_FORM.md`.
 - **Next phase:** Phase 9.2 — SupplierExchanges Wizard Integration.
 
+## Multi-tenancy Workflow Preference
+
+User explicitly instructed: only push the multi-tenancy branch to the remote/production repository once the entire multi-tenancy project is complete. Do not push per individual phase unless asked again.
+

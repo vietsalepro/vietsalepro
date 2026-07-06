@@ -27,7 +27,7 @@ export interface Invoice {
   id: string;
   tenantId: string;
   invoiceNo: string;
-  status: 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue';
+  status: 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue' | 'expired';
   issueDate: string;
   dueDate: string;
   periodStart?: string;
@@ -75,6 +75,13 @@ export interface CreateInvoiceInput {
   cycleType: 'monthly' | 'yearly';
   quantity: number;
   bonusMonths: number;
+  notes?: string;
+}
+
+export interface ConfirmPaymentInput {
+  invoiceId: string;
+  paymentMethod?: 'bank_transfer' | 'cash' | 'card' | 'other';
+  referenceCode?: string;
   notes?: string;
 }
 

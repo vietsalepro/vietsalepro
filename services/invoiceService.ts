@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Invoice, CreateInvoiceInput, InvoicePricing } from '../types/billing';
+import { Invoice, Payment, CreateInvoiceInput, ConfirmPaymentInput, InvoicePricing } from '../types/billing';
 
 const mapInvoiceFromDB = (row: any): Invoice => ({
   id: row.id,
@@ -16,6 +16,21 @@ const mapInvoiceFromDB = (row: any): Invoice => ({
   total: row.total,
   amountPaid: row.amount_paid,
   balance: row.balance,
+  notes: row.notes,
+  createdBy: row.created_by,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const mapPaymentFromDB = (row: any): Payment => ({
+  id: row.id,
+  tenantId: row.tenant_id,
+  invoiceId: row.invoice_id,
+  amount: row.amount,
+  paymentMethod: row.payment_method,
+  paymentDate: row.payment_date,
+  referenceCode: row.reference_code,
+  status: row.status,
   notes: row.notes,
   createdBy: row.created_by,
   createdAt: row.created_at,
@@ -61,4 +76,25 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<Invoice>
   });
   if (error) throw error;
   return mapInvoiceFromDB(data);
+}
+
+export async function getInvoicesByTenant(tenantId: string): Promise<Invoice[]> {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapInvoiceFromDB);
+}
+
+export async function confirmPayment(input: ConfirmPaymentInput): Promise<Payment> {
+  const { data, error } = await supabase.rpc('confirm_payment', {
+    p_invoice_id: input.invoiceId,
+    p_payment_method: input.paymentMethod ?? 'bank_transfer',
+    p_reference_code: input.referenceCode ?? null,
+    p_notes: input.notes ?? null,
+  });
+  if (error) throw error;
+  return mapPaymentFromDB(data);
 }

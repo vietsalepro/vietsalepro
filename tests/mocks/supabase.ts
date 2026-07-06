@@ -779,6 +779,57 @@ const rpc = async (name: string, params: Record<string, any>) => {
     return { data: invoice, error: null };
   }
 
+  if (name === 'confirm_payment') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xác nhận thanh toán' } };
+    }
+    const invoice = store.invoices.find(i => i.id === params.p_invoice_id);
+    if (!invoice) return { data: null, error: { code: 'PGRST116', message: 'Invoice not found' } };
+    if (['paid', 'cancelled', 'draft'].includes(invoice.status)) {
+      return { data: null, error: { code: 'P0001', message: `Hóa đơn ở trạng thái ${invoice.status}, không thể xác nhận thanh toán` } };
+    }
+    const tenant = store.tenants.find(t => t.id === invoice.tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Tenant not found' } };
+    const sub = store.tenant_subscriptions.find(s => s.tenant_id === invoice.tenant_id);
+    if (!sub) return { data: null, error: { code: 'PGRST116', message: 'Subscription not found' } };
+
+    const today = new Date().toISOString().slice(0, 10);
+    const payment = {
+      id: uuid(),
+      tenant_id: invoice.tenant_id,
+      invoice_id: invoice.id,
+      amount: invoice.total,
+      payment_method: params.p_payment_method || 'bank_transfer',
+      payment_date: today,
+      reference_code: params.p_reference_code || null,
+      status: 'confirmed',
+      notes: params.p_notes || null,
+      created_by: currentUserId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    store.payments.push(payment);
+
+    invoice.status = 'paid';
+    invoice.amount_paid = invoice.total;
+    invoice.updated_at = new Date().toISOString();
+
+    const currentExpires = sub.expires_at ? sub.expires_at.slice(0, 10) : today;
+    const newExpires = invoice.period_end && invoice.period_end.slice(0, 10) > currentExpires
+      ? invoice.period_end.slice(0, 10)
+      : currentExpires;
+    sub.billing_status = 'ok';
+    sub.expires_at = newExpires;
+    sub.updated_at = new Date().toISOString();
+
+    if (tenant.status === 'read_only') {
+      tenant.status = 'active';
+      tenant.updated_at = new Date().toISOString();
+    }
+
+    return { data: payment, error: null };
+  }
+
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };
 };
 

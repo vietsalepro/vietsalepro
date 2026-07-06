@@ -8,6 +8,7 @@
 ## Build / Verification
 - Typecheck: `npm run lint` (runs `tsc --noEmit`)
 - Production build: `npm run build`
+- Tests: `npx vitest run`
 - Dev server: `npm run dev`
 
 ## OpenSpec (2026-07-02)
@@ -17,6 +18,14 @@
 - Baseline spec: `openspec/specs/voucher-form-layout/spec.md`.
 - Usage guide: `docs/plans/voucher-form-layout-ssot/OPENSPEC_USAGE.md`.
 - To validate: `openspec validate --all --json`.
+
+## OpenSpec — Admin Dashboard (2026-07-06)
+- Store: `admin-dashboard` registered at `memory-zone/KE_HOACH/Admin_dashboard/OPENSPEC`.
+- Schema: `admin-dashboard` (copied from `multi-tenancy` and customized).
+- Source plan: `memory-zone/KE_HOACH/Admin_dashboard/KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md`.
+- 44 changes created covering all 18 phases / sub-phases.
+- Usage guide: `memory-zone/KE_HOACH/Admin_dashboard/OPENSPEC/OPENSPEC_USAGE.md`.
+- To validate: `openspec validate --changes --store admin-dashboard`.
 
 ## Baseline (2026-06-29)
 - `npm run lint`: PASS

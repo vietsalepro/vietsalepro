@@ -93,3 +93,14 @@ export interface InvoicePricing {
   periodStart: string;
   periodEnd: string;
 }
+
+export interface InvoiceWithTenant extends Invoice {
+  tenantName: string;
+  tenantSubdomain: string;
+}
+
+export interface InvoiceDetail {
+  invoice: Invoice;
+  items: InvoiceItem[];
+  payments: Payment[];
+}

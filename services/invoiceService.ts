@@ -1,5 +1,14 @@
 import { supabase } from '../lib/supabase';
-import { Invoice, Payment, CreateInvoiceInput, ConfirmPaymentInput, InvoicePricing } from '../types/billing';
+import {
+  Invoice,
+  InvoiceItem,
+  Payment,
+  CreateInvoiceInput,
+  ConfirmPaymentInput,
+  InvoicePricing,
+  InvoiceWithTenant,
+  InvoiceDetail,
+} from '../types/billing';
 
 const mapInvoiceFromDB = (row: any): Invoice => ({
   id: row.id,
@@ -35,6 +44,17 @@ const mapPaymentFromDB = (row: any): Payment => ({
   createdBy: row.created_by,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+});
+
+const mapInvoiceItemFromDB = (row: any): InvoiceItem => ({
+  id: row.id,
+  invoiceId: row.invoice_id,
+  tenantId: row.tenant_id,
+  description: row.description,
+  quantity: row.quantity,
+  unitPrice: row.unit_price,
+  amount: row.amount,
+  createdAt: row.created_at,
 });
 
 const addMonths = (dateStr: string, months: number): string => {
@@ -97,4 +117,49 @@ export async function confirmPayment(input: ConfirmPaymentInput): Promise<Paymen
   });
   if (error) throw error;
   return mapPaymentFromDB(data);
+}
+
+export async function getAllInvoices(): Promise<InvoiceWithTenant[]> {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*, tenants(name, subdomain)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    ...mapInvoiceFromDB(row),
+    tenantName: row.tenants?.name ?? '',
+    tenantSubdomain: row.tenants?.subdomain ?? '',
+  }));
+}
+
+export async function getInvoiceById(id: string): Promise<InvoiceDetail | null> {
+  const { data: invoiceRow, error: invoiceError } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (invoiceError) {
+    if (invoiceError.code === 'PGRST116') return null;
+    throw invoiceError;
+  }
+
+  const { data: items, error: itemsError } = await supabase
+    .from('invoice_items')
+    .select('*')
+    .eq('invoice_id', id)
+    .order('created_at', { ascending: true });
+  if (itemsError) throw itemsError;
+
+  const { data: payments, error: paymentsError } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('invoice_id', id)
+    .order('created_at', { ascending: true });
+  if (paymentsError) throw paymentsError;
+
+  return {
+    invoice: mapInvoiceFromDB(invoiceRow),
+    items: (items || []).map(mapInvoiceItemFromDB),
+    payments: (payments || []).map(mapPaymentFromDB),
+  };
 }

@@ -11,6 +11,7 @@ import {
   setCompanyInfo,
 } from '../services/bankAccountService';
 import InvoiceCreator from './InvoiceCreator';
+import InvoiceManager from './InvoiceManager';
 import InvoicePaymentConfirm from './InvoicePaymentConfirm';
 
 const emptyAccount: Omit<BankAccount, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -130,6 +131,8 @@ export default function BillingConfig() {
           {error}
         </div>
       )}
+
+      <InvoiceManager />
 
       {/* Company info */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

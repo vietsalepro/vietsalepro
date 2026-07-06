@@ -19,7 +19,7 @@ describe('smoke: admin dashboard P7.4 invoice UI + PDF', () => {
   });
 
   it('liệt kê tất cả hóa đơn của các tenant', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop A', subdomain: 'shop-a' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop A', subdomain: 'shop-a', plan: 'vip' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
 
     const invoices = await getAllInvoices();
@@ -32,7 +32,7 @@ describe('smoke: admin dashboard P7.4 invoice UI + PDF', () => {
   });
 
   it('xem chi tiết hóa đơn kèm dòng dịch vụ và lịch sử thanh toán', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop B', subdomain: 'shop-b' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop B', subdomain: 'shop-b', plan: 'vip' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'yearly', quantity: 1, bonusMonths: 2 });
 
     const detail = await getInvoiceById(invoice.id);

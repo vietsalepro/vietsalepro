@@ -27,6 +27,7 @@ const store: Record<string, Row[]> = {
   invoice_items: [],
   payments: [],
   invoice_number_counters: [],
+  plans: [],
 };
 
 export const resetMockData = () => {
@@ -41,6 +42,12 @@ export const resetMockData = () => {
     { key: 'default_limits_vip', value: { max_users: 999, max_products: 999999, max_orders_per_month: 999999 }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'maintenance_mode', value: { enabled: false, message: '' }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'data_retention_cron', value: { schedule: '0 3 * * *', description: 'Hàng ngày lúc 03:00' }, updated_at: new Date().toISOString(), updated_by: null }
+  );
+
+  // ponytail: seed plans giống migration P8.1 để các test subscription/invoice dùng limits từ plans.
+  store.plans.push(
+    { key: 'free', name: 'Free', description: 'Gói miễn phí', max_users: 1, max_products: 50, max_orders_per_month: 300, monthly_price: 0, yearly_price: 0, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { key: 'vip', name: 'VIP', description: 'Gói trả phí', max_users: 999, max_products: 999999, max_orders_per_month: 999999, monthly_price: 69000, yearly_price: 59000, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
   );
 };
 
@@ -66,6 +73,16 @@ const setSetting = (key: string, value: any) => {
   if (idx >= 0) store.system_settings[idx] = row;
   else store.system_settings.push(row);
   return row;
+};
+
+const getPlan = (key: string): Row | undefined => store.plans.find(p => p.key === key && p.is_active);
+
+const getPlanLimits = (key: string): { max_users: number; max_products: number; max_orders_per_month: number } => {
+  const p = getPlan(key);
+  if (p) return { max_users: p.max_users, max_products: p.max_products, max_orders_per_month: p.max_orders_per_month };
+  if (key === 'free') return { max_users: 1, max_products: 50, max_orders_per_month: 300 };
+  if (key === 'vip') return { max_users: 999, max_products: 999999, max_orders_per_month: 999999 };
+  return { max_users: 0, max_products: 0, max_orders_per_month: 0 };
 };
 
 const uuid = () => crypto.randomUUID();
@@ -273,25 +290,30 @@ const queryBuilder = (table: string): any => {
 
 const rpc = async (name: string, params: Record<string, any>) => {
   if (name === 'create_tenant_with_admin') {
+    const planKey = params.p_plan ?? 'free';
+    const plan = getPlan(planKey);
+    if (!plan) {
+      return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${planKey}` } };
+    }
     const tenant = {
       id: uuid(),
       name: params.p_name,
       subdomain: params.p_subdomain,
       status: 'active',
-      plan: params.p_plan ?? 'free',
+      plan: planKey,
       owner_id: params.p_owner_user_id ?? currentUserId,
       settings: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     store.tenants.push(tenant);
-    const limits = getSetting('default_limits_' + tenant.plan) || {};
+    const limits = getPlanLimits(planKey);
     store.tenant_subscriptions.push({
       tenant_id: tenant.id,
-      plan: tenant.plan,
-      max_users: limits.max_users ?? (tenant.plan === 'free' ? 1 : 999),
-      max_products: limits.max_products ?? (tenant.plan === 'free' ? 50 : 999999),
-      max_orders_per_month: limits.max_orders_per_month ?? (tenant.plan === 'free' ? 300 : 999999),
+      plan: planKey,
+      max_users: limits.max_users,
+      max_products: limits.max_products,
+      max_orders_per_month: limits.max_orders_per_month,
       current_month_orders: 0,
       current_month_start: new Date().toISOString().slice(0, 10),
       billing_status: 'ok',
@@ -359,7 +381,12 @@ const rpc = async (name: string, params: Record<string, any>) => {
     const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
     if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
     if (params.p_name !== null && params.p_name !== undefined) tenant.name = params.p_name.trim();
-    if (params.p_plan !== null && params.p_plan !== undefined) tenant.plan = params.p_plan;
+    if (params.p_plan !== null && params.p_plan !== undefined) {
+      if (!getPlan(params.p_plan)) {
+        return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${params.p_plan}` } };
+      }
+      tenant.plan = params.p_plan;
+    }
     if (params.p_status !== null && params.p_status !== undefined) {
       tenant.status = params.p_status;
       tenant.archived_at = params.p_status === 'archived' ? new Date().toISOString() : null;
@@ -417,15 +444,16 @@ const rpc = async (name: string, params: Record<string, any>) => {
     const sub = store.tenant_subscriptions.find(s => s.tenant_id === params.p_tenant_id);
     if (!sub) return { data: null, error: { code: 'PGRST116', message: 'Subscription not found' } };
     const newPlan = params.p_plan ?? sub.plan;
-    if (!['free', 'vip'].includes(newPlan)) {
+    if (!getPlan(newPlan)) {
       return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${newPlan}` } };
     }
+    const limits = getPlanLimits(newPlan);
     sub.plan = newPlan;
     tenant.plan = newPlan;
     // ponytail: khi đổi gói và không truyền custom limits, áp giới hạn mặc định của gói mới.
-    sub.max_users = params.p_max_users ?? (params.p_plan !== null && params.p_plan !== undefined ? (newPlan === 'free' ? 1 : 999999) : sub.max_users);
-    sub.max_products = params.p_max_products ?? (params.p_plan !== null && params.p_plan !== undefined ? (newPlan === 'free' ? 50 : 999999) : sub.max_products);
-    sub.max_orders_per_month = params.p_max_orders_per_month ?? (params.p_plan !== null && params.p_plan !== undefined ? (newPlan === 'free' ? 300 : 999999) : sub.max_orders_per_month);
+    sub.max_users = params.p_max_users ?? (params.p_plan !== null && params.p_plan !== undefined ? limits.max_users : sub.max_users);
+    sub.max_products = params.p_max_products ?? (params.p_plan !== null && params.p_plan !== undefined ? limits.max_products : sub.max_products);
+    sub.max_orders_per_month = params.p_max_orders_per_month ?? (params.p_plan !== null && params.p_plan !== undefined ? limits.max_orders_per_month : sub.max_orders_per_month);
     if (params.p_billing_status !== null && params.p_billing_status !== undefined) sub.billing_status = params.p_billing_status;
     if (params.p_expires_at !== null && params.p_expires_at !== undefined) sub.expires_at = params.p_expires_at;
     sub.updated_at = new Date().toISOString();
@@ -654,8 +682,8 @@ const rpc = async (name: string, params: Record<string, any>) => {
     }
     return {
       data: {
-        free: getSetting('default_limits_free') || { max_users: 1, max_products: 50, max_orders_per_month: 300 },
-        vip: getSetting('default_limits_vip') || { max_users: 999, max_products: 999999, max_orders_per_month: 999999 },
+        free: getPlanLimits('free'),
+        vip: getPlanLimits('vip'),
       },
       error: null,
     };
@@ -665,16 +693,20 @@ const rpc = async (name: string, params: Record<string, any>) => {
     if (!isSystemAdmin) {
       return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật giới hạn mặc định' } };
     }
-    const plan = params.p_plan;
-    if (!['free', 'vip'].includes(plan)) {
-      return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${plan}` } };
+    const plan = getPlan(params.p_plan);
+    if (!plan) {
+      return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${params.p_plan}` } };
     }
     if (params.p_max_users <= 0 || params.p_max_products <= 0 || params.p_max_orders_per_month <= 0) {
       return { data: null, error: { code: '23514', message: 'Giới hạn phải lớn hơn 0' } };
     }
-    const value = { max_users: params.p_max_users, max_products: params.p_max_products, max_orders_per_month: params.p_max_orders_per_month };
-    setSetting('default_limits_' + plan, value);
-    return { data: value, error: null };
+    plan.max_users = params.p_max_users;
+    plan.max_products = params.p_max_products;
+    plan.max_orders_per_month = params.p_max_orders_per_month;
+    plan.updated_at = new Date().toISOString();
+    // ponytail: giữ ngược compatibility với system_settings cũ.
+    setSetting('default_limits_' + params.p_plan, { max_users: params.p_max_users, max_products: params.p_max_products, max_orders_per_month: params.p_max_orders_per_month });
+    return { data: { max_users: params.p_max_users, max_products: params.p_max_products, max_orders_per_month: params.p_max_orders_per_month }, error: null };
   }
 
   if (name === 'get_maintenance_mode') {
@@ -691,6 +723,127 @@ const rpc = async (name: string, params: Record<string, any>) => {
     const value = { enabled: !!params.p_enabled, message: params.p_message ?? '' };
     setSetting('maintenance_mode', value);
     return { data: value, error: null };
+  }
+
+  if (name === 'get_plans') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem danh sách gói' } };
+    }
+    const rows = store.plans
+      .slice()
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map(p => ({
+        key: p.key,
+        name: p.name,
+        description: p.description,
+        max_users: p.max_users,
+        max_products: p.max_products,
+        max_orders_per_month: p.max_orders_per_month,
+        monthly_price: p.monthly_price,
+        yearly_price: p.yearly_price,
+        is_active: p.is_active,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'get_plan_by_key') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem chi tiết gói' } };
+    }
+    const p = store.plans.find(x => x.key === params.p_key);
+    if (!p) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    return {
+      data: {
+        key: p.key,
+        name: p.name,
+        description: p.description,
+        max_users: p.max_users,
+        max_products: p.max_products,
+        max_orders_per_month: p.max_orders_per_month,
+        monthly_price: p.monthly_price,
+        yearly_price: p.yearly_price,
+        is_active: p.is_active,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'create_plan') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo gói' } };
+    }
+    const key = String(params.p_key).trim().toLowerCase();
+    if (!key || !/^[a-z0-9_]+$/.test(key)) {
+      return { data: null, error: { code: '23514', message: 'Mã gói không hợp lệ' } };
+    }
+    if (params.p_max_users <= 0 || params.p_max_products <= 0 || params.p_max_orders_per_month <= 0) {
+      return { data: null, error: { code: '23514', message: 'Giới hạn phải lớn hơn 0' } };
+    }
+    const existing = store.plans.findIndex(p => p.key === key);
+    const row = {
+      key,
+      name: String(params.p_name).trim(),
+      description: params.p_description,
+      max_users: params.p_max_users,
+      max_products: params.p_max_products,
+      max_orders_per_month: params.p_max_orders_per_month,
+      monthly_price: params.p_monthly_price ?? 0,
+      yearly_price: params.p_yearly_price ?? 0,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    if (existing >= 0) store.plans[existing] = row;
+    else store.plans.push(row);
+    return { data: row, error: null };
+  }
+
+  if (name === 'update_plan') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật gói' } };
+    }
+    const p = store.plans.find(x => x.key === params.p_key);
+    if (!p) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_max_users !== null && params.p_max_users !== undefined && params.p_max_users <= 0) {
+      return { data: null, error: { code: '23514', message: 'Giới hạn người dùng phải lớn hơn 0' } };
+    }
+    if (params.p_max_products !== null && params.p_max_products !== undefined && params.p_max_products <= 0) {
+      return { data: null, error: { code: '23514', message: 'Giới hạn sản phẩm phải lớn hơn 0' } };
+    }
+    if (params.p_max_orders_per_month !== null && params.p_max_orders_per_month !== undefined && params.p_max_orders_per_month <= 0) {
+      return { data: null, error: { code: '23514', message: 'Giới hạn đơn hàng phải lớn hơn 0' } };
+    }
+    p.name = params.p_name ?? p.name;
+    p.description = params.p_description ?? p.description;
+    p.max_users = params.p_max_users ?? p.max_users;
+    p.max_products = params.p_max_products ?? p.max_products;
+    p.max_orders_per_month = params.p_max_orders_per_month ?? p.max_orders_per_month;
+    p.monthly_price = params.p_monthly_price ?? p.monthly_price;
+    p.yearly_price = params.p_yearly_price ?? p.yearly_price;
+    p.is_active = params.p_is_active ?? p.is_active;
+    p.updated_at = new Date().toISOString();
+    return { data: p, error: null };
+  }
+
+  if (name === 'delete_plan') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa gói' } };
+    }
+    if (['free', 'vip'].includes(params.p_key)) {
+      return { data: null, error: { code: '23514', message: `Không thể xóa gói mặc định ${params.p_key}` } };
+    }
+    const inUse = store.tenants.some(t => t.plan === params.p_key) || store.tenant_subscriptions.some(s => s.plan === params.p_key);
+    if (inUse) {
+      return { data: null, error: { code: '23514', message: 'Gói đang được sử dụng bởi tenant, không thể xóa' } };
+    }
+    const idx = store.plans.findIndex(p => p.key === params.p_key);
+    if (idx === -1) return { data: false, error: null };
+    store.plans.splice(idx, 1);
+    return { data: true, error: null };
   }
 
   if (name === 'create_invoice') {
@@ -715,8 +868,10 @@ const rpc = async (name: string, params: Record<string, any>) => {
       return { data: null, error: { code: '23514', message: 'Số tháng tặng không hợp lệ' } };
     }
 
+    const plan = getPlan(sub.plan);
+    const planName = plan?.name || 'VIP';
     const paidMonths = cycleType === 'yearly' ? quantity * 12 : quantity;
-    const unitPrice = cycleType === 'yearly' ? 59000 : 69000;
+    const unitPrice = cycleType === 'yearly' ? (plan?.yearly_price ?? 59000) : (plan?.monthly_price ?? 69000);
     const subtotal = paidMonths * unitPrice;
     const today = new Date().toISOString().slice(0, 10);
     const start = sub.expires_at && sub.expires_at.slice(0, 10) >= today ? sub.expires_at.slice(0, 10) : today;
@@ -758,7 +913,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
       id: uuid(),
       invoice_id: invoice.id,
       tenant_id: params.p_tenant_id,
-      description: cycleType === 'yearly' ? 'Gói VIP - Năm' : 'Gói VIP - Tháng',
+      description: `Gói ${planName} - ${cycleType === 'yearly' ? 'Năm' : 'Tháng'}`,
       quantity: paidMonths,
       unit_price: unitPrice,
       amount: paidMonths * unitPrice,

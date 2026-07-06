@@ -28,7 +28,7 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
   });
 
   it('tạo hóa đơn tháng với giá 69k/tháng', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop A', subdomain: 'shop-a' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop A', subdomain: 'shop-a', plan: 'vip' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
 
     expect(invoice.total).toBe(69000);
@@ -39,7 +39,7 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
   });
 
   it('tạo hóa đơn năm với giá 59k/tháng', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop B', subdomain: 'shop-b' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop B', subdomain: 'shop-b', plan: 'vip' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'yearly', quantity: 1, bonusMonths: 0 });
 
     expect(invoice.total).toBe(59000 * 12); // 708.000
@@ -47,7 +47,7 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
   });
 
   it('trả trước nhiều tháng tính đúng tổng tiền', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop C', subdomain: 'shop-c' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop C', subdomain: 'shop-c', plan: 'vip' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 3, bonusMonths: 0 });
 
     expect(invoice.total).toBe(69000 * 3); // 207.000
@@ -55,15 +55,15 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
   });
 
   it('cộng dồn tháng tặng vào hạn sử dụng', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop D', subdomain: 'shop-d' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop D', subdomain: 'shop-d', plan: 'vip' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 2 });
 
     expect(invoice.periodEnd).toBe(addMonths(today(), 3));
   });
 
   it('số hóa đơn tự động tăng không trùng', async () => {
-    const tenant1 = await createTenantWithAdmin({ name: 'Shop E', subdomain: 'shop-e' });
-    const tenant2 = await createTenantWithAdmin({ name: 'Shop F', subdomain: 'shop-f' });
+    const tenant1 = await createTenantWithAdmin({ name: 'Shop E', subdomain: 'shop-e', plan: 'vip' });
+    const tenant2 = await createTenantWithAdmin({ name: 'Shop F', subdomain: 'shop-f', plan: 'vip' });
     const invoice1 = await createInvoice({ tenantId: tenant1.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
     const invoice2 = await createInvoice({ tenantId: tenant2.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
 
@@ -72,7 +72,7 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
   });
 
   it('cộng dồn expires_at khi còn hạn', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop G', subdomain: 'shop-g' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop G', subdomain: 'shop-g', plan: 'vip' });
     const future = '2100-01-15';
     await updateTenantSubscription(tenant.id, { expiresAt: future });
 
@@ -83,7 +83,7 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
   });
 
   it('chỉ system admin mới được tạo hóa đơn', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop H', subdomain: 'shop-h' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop H', subdomain: 'shop-h', plan: 'vip' });
     setSystemAdmin(false);
     await expect(createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 })).rejects.toThrow();
   });

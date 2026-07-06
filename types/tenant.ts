@@ -3,7 +3,7 @@
 // ============================================================
 
 export type TenantStatus = 'active' | 'suspended' | 'trial' | 'pending' | 'archived' | 'read_only';
-export type TenantPlan = 'free' | 'vip';
+export type TenantPlan = string;
 
 export type TenantRole = 'admin' | 'cashier' | 'inventory_manager' | 'accountant';
 
@@ -130,6 +130,42 @@ export interface PlanLimits {
 export interface DefaultPlanLimits {
   free: PlanLimits;
   vip: PlanLimits;
+}
+
+export interface Plan {
+  key: string;
+  name: string;
+  description?: string;
+  maxUsers: number;
+  maxProducts: number;
+  maxOrdersPerMonth: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePlanInput {
+  key: string;
+  name: string;
+  description?: string;
+  maxUsers: number;
+  maxProducts: number;
+  maxOrdersPerMonth: number;
+  monthlyPrice?: number;
+  yearlyPrice?: number;
+}
+
+export interface UpdatePlanInput {
+  name?: string;
+  description?: string;
+  maxUsers?: number;
+  maxProducts?: number;
+  maxOrdersPerMonth?: number;
+  monthlyPrice?: number;
+  yearlyPrice?: number;
+  isActive?: boolean;
 }
 
 export interface MaintenanceMode {

@@ -29,7 +29,7 @@
 
 ## Blockers / Decisions
 
-- Remote deployment via `supabase db push` was not executed because the CLI reported the local migration directory is out of sync with the remote migration history. Apply the new migration SQL manually through the Supabase SQL Editor, then test `create_invoice` on the remote project.
+- Remote deployment: all P1-P7.2 migrations were applied via `supabase db query --linked` in order. The `invoices`, `invoice_items`, `payments`, `bank_accounts`, and `invoice_number_counters` tables now exist on the remote project. Manual functional test of `create_invoice` via authenticated system admin still needs to be done in the UI.
 
 ## Backup Location
 

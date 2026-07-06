@@ -15,7 +15,7 @@
 - [x] 2.1 Run `npm run lint`
 - [x] 2.2 Run `npm run build` if this sub-phase touches code
 - [x] 2.3 Manual test the acceptance criteria (smoke tests + in-memory mock)
-- [x] 2.4 Deploy and test migration on Supabase if applicable — skipped in this session: supabase db push cannot run because remote migration history does not match local directory; apply migration SQL via Supabase SQL Editor and test RPC there.
+- [x] 2.4 Deploy and test migration on Supabase if applicable — applied via `supabase db query --linked` for P1-P7.2 in order; verified `invoices`, `invoice_items`, `payments`, `bank_accounts`, `invoice_number_counters` exist on remote.
 
 ## Acceptance Criteria
 

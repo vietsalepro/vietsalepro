@@ -473,6 +473,29 @@ const rpc = async (name: string, params: Record<string, any>) => {
     return { data: sub, error: null };
   }
 
+  if (name === 'get_tenant_feature_flags') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem feature flags' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    return { data: tenant.settings?.features ?? {}, error: null };
+  }
+
+  if (name === 'update_tenant_feature_flags') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật feature flags' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    tenant.settings = {
+      ...tenant.settings,
+      features: { ...(tenant.settings?.features ?? {}), ...params.p_features },
+    };
+    tenant.updated_at = new Date().toISOString();
+    return { data: tenant.settings.features, error: null };
+  }
+
   if (name === 'get_tenant_members_with_email') {
     if (!isSystemAdmin) {
       return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem danh sách thành viên tenant' } };

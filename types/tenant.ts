@@ -181,3 +181,26 @@ export interface DataRetentionStatus {
   cronSchedule: string;
   cronJob: any;
 }
+
+// P8.2: Tenant-scoped feature flags stored in tenants.settings->features
+export interface TenantFeatureFlags {
+  pos?: boolean;
+  inventory?: boolean;
+  reports?: boolean;
+  debt?: boolean;
+  loyalty?: boolean;
+  promotions?: boolean;
+  invoicing?: boolean;
+  lotTracking?: boolean;
+}
+
+export const DEFAULT_TENANT_FEATURE_FLAGS: Required<TenantFeatureFlags> = {
+  pos: true,
+  inventory: true,
+  reports: true,
+  debt: true,
+  loyalty: true,
+  promotions: true,
+  invoicing: true,
+  lotTracking: true,
+};

@@ -26,6 +26,8 @@ import {
   DefaultPlanLimits,
   MaintenanceMode,
   DataRetentionStatus,
+  TenantFeatureFlags,
+  DEFAULT_TENANT_FEATURE_FLAGS,
 } from '../types/tenant';
 import {
   createTenantWithAdmin,
@@ -46,6 +48,8 @@ import {
   getSystemOverview,
   getTopTenants,
   getTenantGrowth,
+  getTenantFeatureFlags,
+  updateTenantFeatureFlags,
 } from '../services/tenantService';
 import {
   RateLimitLog,
@@ -93,6 +97,21 @@ const statusLabel = (status: TenantStatus) => {
 const planLabel = (plan: TenantPlan) => plan === 'free' ? 'Free' : 'VIP';
 
 const ROLES: TenantRole[] = ['admin', 'cashier', 'inventory_manager', 'accountant'];
+
+const TENANT_FEATURE_FLAG_LIST: {
+  key: keyof TenantFeatureFlags;
+  label: string;
+  description: string;
+}[] = [
+  { key: 'pos', label: 'POS - Bán hàng', description: 'Màn hình bán hàng và thanh toán.' },
+  { key: 'inventory', label: 'Kho & sản phẩm', description: 'Quản lý sản phẩm, nhập hàng, tồn kho.' },
+  { key: 'reports', label: 'Báo cáo', description: 'Báo cáo doanh thu, lợi nhuận, tồn kho.' },
+  { key: 'debt', label: 'Công nợ', description: 'Theo dõi nợ khách hàng và nhà cung cấp.' },
+  { key: 'loyalty', label: 'Tích điểm', description: 'Chương trình khách hàng thân thiết.' },
+  { key: 'promotions', label: 'Khuyến mãi', description: 'Giảm giá, voucher, khuyến mãi.' },
+  { key: 'invoicing', label: 'Hóa đơn thu phí', description: 'Tạo hóa đơn và ghi nhận thanh toán cho tenant.' },
+  { key: 'lotTracking', label: 'Quản lý lô', description: 'Theo dõi lô hàng, HSD, FIFO.' },
+];
 
 const roleLabel = (role: TenantRole) => {
   switch (role) {
@@ -228,6 +247,11 @@ export default function SystemAdminDashboard() {
     expiresAt: null,
   });
   const [subSubmitting, setSubSubmitting] = useState(false);
+
+  const [featureTenant, setFeatureTenant] = useState<Tenant | null>(null);
+  const [featureFlags, setFeatureFlags] = useState<TenantFeatureFlags>(DEFAULT_TENANT_FEATURE_FLAGS);
+  const [featureLoading, setFeatureLoading] = useState(false);
+  const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
@@ -421,6 +445,45 @@ export default function SystemAdminDashboard() {
       setError(err?.message || 'Cập nhật gói thất bại.');
     } finally {
       setSubSubmitting(false);
+    }
+  };
+
+  const openFeatureFlags = async (tenant: Tenant) => {
+    setFeatureTenant(tenant);
+    setFeatureFlags(DEFAULT_TENANT_FEATURE_FLAGS);
+    setFeatureLoading(true);
+    setError(null);
+    try {
+      const flags = await getTenantFeatureFlags(tenant.id);
+      setFeatureFlags({ ...DEFAULT_TENANT_FEATURE_FLAGS, ...flags });
+    } catch (err: any) {
+      setError(err?.message || 'Không thể tải feature flags.');
+    } finally {
+      setFeatureLoading(false);
+    }
+  };
+
+  const closeFeatureFlags = () => {
+    setFeatureTenant(null);
+    setFeatureSubmitting(false);
+  };
+
+  const handleFeatureToggle = (key: keyof TenantFeatureFlags, value: boolean) => {
+    setFeatureFlags(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleFeatureSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!featureTenant) return;
+    setFeatureSubmitting(true);
+    setError(null);
+    try {
+      await updateTenantFeatureFlags(featureTenant.id, featureFlags);
+      closeFeatureFlags();
+    } catch (err: any) {
+      setError(err?.message || 'Cập nhật feature flags thất bại.');
+    } finally {
+      setFeatureSubmitting(false);
     }
   };
 
@@ -1205,6 +1268,12 @@ export default function SystemAdminDashboard() {
                             >
                               Gói
                             </button>
+                            <button
+                              onClick={() => openFeatureFlags(t)}
+                              className="px-3 py-1.5 text-sm text-green-700 bg-green-50 hover:bg-green-100 rounded-lg"
+                            >
+                              Tính năng
+                            </button>
                             {t.status === 'archived' ? (
                               <button
                                 onClick={() => handleRestore(t)}
@@ -1863,6 +1932,63 @@ export default function SystemAdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+)}
+
+      {/* Feature flags modal */}
+      {featureTenant && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={(e) => {
+            if (e.currentTarget === e.target && !featureSubmitting) closeFeatureFlags();
+          }}
+        >
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Feature flags — {featureTenant.name}
+            </h3>
+            {featureLoading ? (
+              <p className="text-gray-600">Đang tải...</p>
+            ) : (
+              <form onSubmit={handleFeatureSubmit} className="space-y-3">
+                {TENANT_FEATURE_FLAG_LIST.map(f => (
+                  <label
+                    key={f.key}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!featureFlags[f.key]}
+                      onChange={(e) => handleFeatureToggle(f.key, e.target.checked)}
+                      disabled={featureSubmitting}
+                      className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{f.label}</p>
+                      <p className="text-xs text-gray-500">{f.description}</p>
+                    </div>
+                  </label>
+                ))}
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeFeatureFlags}
+                    disabled={featureSubmitting}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-60"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={featureSubmitting}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60"
+                  >
+                    {featureSubmitting ? 'Đang lưu...' : 'Lưu'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

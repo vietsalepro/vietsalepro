@@ -12,6 +12,8 @@ import {
   SystemOverview,
   TopTenant,
   TenantGrowthPoint,
+  TenantFeatureFlags,
+  DEFAULT_TENANT_FEATURE_FLAGS,
 } from '../types/tenant';
 
 // --- Mappers ---
@@ -356,6 +358,26 @@ export async function resetMonthlyOrderCounter(tenantId: string): Promise<Tenant
   const { data, error } = await supabase.rpc('reset_monthly_order_counter', { p_tenant_id: tenantId });
   if (error) throw error;
   return mapSubscriptionFromDB(data);
+}
+
+// --- Feature flags (P8.2) stored in tenants.settings->features ---
+
+export async function getTenantFeatureFlags(tenantId: string): Promise<TenantFeatureFlags> {
+  const { data, error } = await supabase.rpc('get_tenant_feature_flags', { p_tenant_id: tenantId });
+  if (error) throw error;
+  return { ...DEFAULT_TENANT_FEATURE_FLAGS, ...(data || {}) };
+}
+
+export async function updateTenantFeatureFlags(
+  tenantId: string,
+  flags: Partial<TenantFeatureFlags>
+): Promise<TenantFeatureFlags> {
+  const { data, error } = await supabase.rpc('update_tenant_feature_flags', {
+    p_tenant_id: tenantId,
+    p_features: flags,
+  });
+  if (error) throw error;
+  return { ...DEFAULT_TENANT_FEATURE_FLAGS, ...(data || {}) };
 }
 
 // --- Admin helpers (requires system admin privileges) ---

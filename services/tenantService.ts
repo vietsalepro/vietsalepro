@@ -4,6 +4,10 @@ import {
   TenantMembership,
   TenantRole,
   TenantSubscription,
+  TenantStatus,
+  TenantPlan,
+  UsageSummary,
+  UpdateSubscriptionInput,
 } from '../types/tenant';
 
 // --- Mappers ---
@@ -18,6 +22,7 @@ const mapTenantFromDB = (row: any): Tenant => ({
   settings: row.settings || {},
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  archivedAt: row.archived_at,
 });
 
 const mapMembershipFromDB = (row: any): TenantMembership => ({
@@ -42,6 +47,28 @@ const mapSubscriptionFromDB = (row: any): TenantSubscription => ({
   expiresAt: row.expires_at,
   updatedAt: row.updated_at,
 });
+
+export interface SearchTenantsParams {
+  searchTerm?: string;
+  status?: TenantStatus | null;
+  plan?: TenantPlan | null;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SearchTenantsResult {
+  tenants: Tenant[];
+  totalCount: number;
+  counts: {
+    active: number;
+    suspended: number;
+    trial: number;
+    pending: number;
+    archived: number;
+    free: number;
+    vip: number;
+  };
+}
 
 // --- Tenant read ---
 
@@ -105,6 +132,53 @@ export async function updateTenantStatus(tenantId: string, status: Tenant['statu
   });
   if (error) throw error;
   return mapTenantFromDB(data);
+}
+
+export async function searchTenants(params: SearchTenantsParams = {}): Promise<SearchTenantsResult> {
+  const { data, error } = await supabase.rpc('search_tenants', {
+    p_search_term: params.searchTerm || null,
+    p_status: params.status || null,
+    p_plan: params.plan || null,
+    p_page: params.page ?? 1,
+    p_page_size: params.pageSize ?? 20,
+  });
+  if (error) throw error;
+  const result = data as {
+    tenants: any[];
+    totalCount: number;
+    counts: SearchTenantsResult['counts'];
+  };
+  return {
+    tenants: (result.tenants || []).map(mapTenantFromDB),
+    totalCount: result.totalCount || 0,
+    counts: result.counts || {
+      active: 0, suspended: 0, trial: 0, pending: 0, archived: 0, free: 0, vip: 0,
+    },
+  };
+}
+
+export async function updateTenant(
+  tenantId: string,
+  input: Partial<Pick<Tenant, 'name' | 'plan' | 'status'>>
+): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('update_tenant', {
+    p_tenant_id: tenantId,
+    p_name: input.name ?? null,
+    p_plan: input.plan ?? null,
+    p_status: input.status ?? null,
+  });
+  if (error) throw error;
+  return mapTenantFromDB(data);
+}
+
+export async function softDeleteTenant(tenantId: string): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('delete_tenant_safe', { p_tenant_id: tenantId });
+  if (error) throw error;
+  return mapTenantFromDB(data);
+}
+
+export async function restoreTenant(tenantId: string): Promise<Tenant> {
+  return updateTenantStatus(tenantId, 'active');
 }
 
 // --- Membership ---
@@ -201,6 +275,45 @@ export async function getTenantSubscription(tenantId: string): Promise<TenantSub
     throw error;
   }
   return data ? mapSubscriptionFromDB(data) : null;
+}
+
+const mapUsageSummaryFromDB = (row: any): UsageSummary => ({
+  tenantId: row.tenantId,
+  plan: row.plan,
+  billingStatus: row.billingStatus,
+  expiresAt: row.expiresAt,
+  users: row.users || { current: 0, max: 0, percent: 0 },
+  products: row.products || { current: 0, max: 0, percent: 0 },
+  orders: row.orders || { current: 0, max: 0, percent: 0, monthStart: '' },
+});
+
+export async function getTenantUsageSummary(tenantId: string): Promise<UsageSummary> {
+  const { data, error } = await supabase.rpc('get_tenant_usage_summary', { p_tenant_id: tenantId });
+  if (error) throw error;
+  return mapUsageSummaryFromDB(data);
+}
+
+export async function updateTenantSubscription(
+  tenantId: string,
+  input: UpdateSubscriptionInput
+): Promise<TenantSubscription> {
+  const { data, error } = await supabase.rpc('update_tenant_subscription', {
+    p_tenant_id: tenantId,
+    p_plan: input.plan ?? null,
+    p_max_users: input.maxUsers ?? null,
+    p_max_products: input.maxProducts ?? null,
+    p_max_orders_per_month: input.maxOrdersPerMonth ?? null,
+    p_billing_status: input.billingStatus ?? null,
+    p_expires_at: input.expiresAt ?? null,
+  });
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
+}
+
+export async function resetMonthlyOrderCounter(tenantId: string): Promise<TenantSubscription> {
+  const { data, error } = await supabase.rpc('reset_monthly_order_counter', { p_tenant_id: tenantId });
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
 }
 
 // --- Admin helpers (requires system admin privileges) ---

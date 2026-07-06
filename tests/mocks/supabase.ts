@@ -232,7 +232,131 @@ const rpc = async (name: string, params: Record<string, any>) => {
     if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
     tenant.status = params.p_status;
     tenant.updated_at = new Date().toISOString();
+    tenant.archived_at = params.p_status === 'archived' ? new Date().toISOString() : null;
     return { data: tenant, error: null };
+  }
+
+  if (name === 'search_tenants') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tìm kiếm tenant' } };
+    }
+    const term = (params.p_search_term || '').toLowerCase();
+    const all = store.tenants.filter(t => {
+      if (term && !t.name.toLowerCase().includes(term) && !t.subdomain.toLowerCase().includes(term)) return false;
+      return true;
+    });
+    const rows = all.filter(t => {
+      if (params.p_status && t.status !== params.p_status) return false;
+      if (params.p_plan && t.plan !== params.p_plan) return false;
+      return true;
+    });
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const start = (page - 1) * pageSize;
+    const paged = rows.slice(start, start + pageSize);
+    const counts = {
+      active: all.filter(t => t.status === 'active').length,
+      suspended: all.filter(t => t.status === 'suspended').length,
+      trial: all.filter(t => t.status === 'trial').length,
+      pending: all.filter(t => t.status === 'pending').length,
+      archived: all.filter(t => t.status === 'archived').length,
+      free: all.filter(t => t.plan === 'free').length,
+      vip: all.filter(t => t.plan === 'vip').length,
+    };
+    return { data: { tenants: paged, totalCount: rows.length, counts }, error: null };
+  }
+
+  if (name === 'update_tenant') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật tenant' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_name !== null && params.p_name !== undefined) tenant.name = params.p_name.trim();
+    if (params.p_plan !== null && params.p_plan !== undefined) tenant.plan = params.p_plan;
+    if (params.p_status !== null && params.p_status !== undefined) {
+      tenant.status = params.p_status;
+      tenant.archived_at = params.p_status === 'archived' ? new Date().toISOString() : null;
+    }
+    tenant.updated_at = new Date().toISOString();
+    return { data: tenant, error: null };
+  }
+
+  if (name === 'delete_tenant_safe') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa tenant' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    tenant.status = 'archived';
+    tenant.archived_at = new Date().toISOString();
+    tenant.updated_at = new Date().toISOString();
+    return { data: tenant, error: null };
+  }
+
+  if (name === 'get_tenant_usage_summary') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem usage tenant' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const sub = store.tenant_subscriptions.find(s => s.tenant_id === params.p_tenant_id);
+    if (!sub) return { data: null, error: { code: 'PGRST116', message: 'Subscription not found' } };
+    const userCount = store.tenant_memberships.filter(m => m.tenant_id === params.p_tenant_id).length;
+    const productCount = store.products.filter(p => p.tenant_id === params.p_tenant_id).length;
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const subMonth = (sub.current_month_start ?? '').slice(0, 7);
+    const orderCount = subMonth === thisMonth ? sub.current_month_orders : 0;
+    const percent = (current: number, max: number) => max > 0 ? Number(((current / max) * 100).toFixed(2)) : 0;
+    return {
+      data: {
+        tenantId: sub.tenant_id,
+        plan: sub.plan,
+        billingStatus: sub.billing_status,
+        expiresAt: sub.expires_at,
+        users: { current: userCount, max: sub.max_users, percent: percent(userCount, sub.max_users) },
+        products: { current: productCount, max: sub.max_products, percent: percent(productCount, sub.max_products) },
+        orders: { current: orderCount, max: sub.max_orders_per_month, percent: percent(orderCount, sub.max_orders_per_month), monthStart: sub.current_month_start },
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'update_tenant_subscription') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật subscription' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const sub = store.tenant_subscriptions.find(s => s.tenant_id === params.p_tenant_id);
+    if (!sub) return { data: null, error: { code: 'PGRST116', message: 'Subscription not found' } };
+    const newPlan = params.p_plan ?? sub.plan;
+    if (!['free', 'vip'].includes(newPlan)) {
+      return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${newPlan}` } };
+    }
+    sub.plan = newPlan;
+    tenant.plan = newPlan;
+    // ponytail: khi đổi gói và không truyền custom limits, áp giới hạn mặc định của gói mới.
+    sub.max_users = params.p_max_users ?? (params.p_plan !== null && params.p_plan !== undefined ? (newPlan === 'free' ? 1 : 999999) : sub.max_users);
+    sub.max_products = params.p_max_products ?? (params.p_plan !== null && params.p_plan !== undefined ? (newPlan === 'free' ? 50 : 999999) : sub.max_products);
+    sub.max_orders_per_month = params.p_max_orders_per_month ?? (params.p_plan !== null && params.p_plan !== undefined ? (newPlan === 'free' ? 300 : 999999) : sub.max_orders_per_month);
+    if (params.p_billing_status !== null && params.p_billing_status !== undefined) sub.billing_status = params.p_billing_status;
+    if (params.p_expires_at !== null && params.p_expires_at !== undefined) sub.expires_at = params.p_expires_at;
+    sub.updated_at = new Date().toISOString();
+    tenant.updated_at = new Date().toISOString();
+    return { data: sub, error: null };
+  }
+
+  if (name === 'reset_monthly_order_counter') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được reset counter' } };
+    }
+    const sub = store.tenant_subscriptions.find(s => s.tenant_id === params.p_tenant_id);
+    if (!sub) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    sub.current_month_orders = 0;
+    sub.current_month_start = new Date().toISOString().slice(0, 10);
+    sub.updated_at = new Date().toISOString();
+    return { data: sub, error: null };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };

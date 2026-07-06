@@ -1,0 +1,3 @@
+schema: admin-dashboard
+created: 2026-07-06
+goal: P14.2 — Per-tenant restore + archive tenant + import workflow.

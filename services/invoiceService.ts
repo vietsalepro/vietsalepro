@@ -8,6 +8,7 @@ import {
   InvoicePricing,
   InvoiceWithTenant,
   InvoiceDetail,
+  SendBillingEmailInput,
 } from '../types/billing';
 
 const mapInvoiceFromDB = (row: any): Invoice => ({
@@ -162,4 +163,13 @@ export async function getInvoiceById(id: string): Promise<InvoiceDetail | null> 
     items: (items || []).map(mapInvoiceItemFromDB),
     payments: (payments || []).map(mapPaymentFromDB),
   };
+}
+
+export async function sendBillingEmail(input: SendBillingEmailInput): Promise<{ id: string | null; to: string }> {
+  const { data, error } = await supabase.functions.invoke('send-billing-email', {
+    body: { invoice_id: input.invoiceId, type: input.type, to: input.to },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return { id: data?.id ?? null, to: data?.to };
 }

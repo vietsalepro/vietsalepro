@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FileText, Download, Eye, X, Clock, Building2, CreditCard, Search,
+  FileText, Download, Eye, X, Clock, Building2, CreditCard, Search, Mail,
 } from 'lucide-react';
 import {
   InvoiceWithTenant,
@@ -14,6 +14,7 @@ import {
 import {
   getAllInvoices,
   getInvoiceById,
+  sendBillingEmail,
 } from '../services/invoiceService';
 import {
   getBankAccounts,
@@ -89,6 +90,8 @@ export default function InvoiceManager() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailNote, setEmailNote] = useState<string | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,6 +157,21 @@ export default function InvoiceManager() {
     setDetailId(id);
     setDetailOpen(true);
     setDetail(null);
+    setEmailNote(null);
+  };
+
+  const handleSendReminder = async () => {
+    if (!detailId) return;
+    setSendingEmail(true);
+    setEmailNote(null);
+    try {
+      await sendBillingEmail({ invoiceId: detailId, type: 'reminder' });
+      setEmailNote('Đã gửi email nhắc thanh toán.');
+    } catch (err: any) {
+      setEmailNote(`Gửi email thất bại: ${err?.message || 'lỗi không xác định'}`);
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const closeDetail = () => {
@@ -285,6 +303,16 @@ export default function InvoiceManager() {
                 Chi tiết hóa đơn {selectedInvoice.invoiceNo}
               </h3>
               <div className="flex items-center gap-2">
+                {!['paid', 'cancelled', 'draft'].includes(selectedInvoice.status) && (
+                  <button
+                    onClick={handleSendReminder}
+                    disabled={sendingEmail || detailLoading}
+                    className="px-3 py-1.5 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-60 flex items-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {sendingEmail ? 'Đang gửi...' : 'Gửi nhắc thanh toán'}
+                  </button>
+                )}
                 <button
                   onClick={handleExportPdf}
                   disabled={pdfExporting || detailLoading}
@@ -306,6 +334,12 @@ export default function InvoiceManager() {
               {detailError && (
                 <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100 mb-4">
                   {detailError}
+                </div>
+              )}
+
+              {emailNote && (
+                <div className="bg-amber-50 text-amber-800 p-3 rounded-lg border border-amber-100 mb-4 text-sm">
+                  {emailNote}
                 </div>
               )}
 

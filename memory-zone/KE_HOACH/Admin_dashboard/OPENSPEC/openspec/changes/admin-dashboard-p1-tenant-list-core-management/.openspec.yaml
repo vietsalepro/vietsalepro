@@ -1,0 +1,4 @@
+schema: admin-dashboard
+created: 2026-07-06
+goal: "P1 — Tenant list & core management: search/filter/pagination, soft
+  delete, KPI cards."

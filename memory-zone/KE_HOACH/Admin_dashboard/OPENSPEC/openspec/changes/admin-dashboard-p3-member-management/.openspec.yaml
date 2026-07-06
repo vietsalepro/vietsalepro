@@ -1,0 +1,4 @@
+schema: admin-dashboard
+created: 2026-07-06
+goal: "P3 — Member management: invite, change role, remove, reset password per
+  tenant."

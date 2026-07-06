@@ -1,0 +1,4 @@
+schema: admin-dashboard
+created: 2026-07-06
+goal: "P10.1 — Voucher/promotion schema + backend CRUD: promo_codes,
+  promotion_rules, usage tracking."

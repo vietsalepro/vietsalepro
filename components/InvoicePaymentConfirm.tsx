@@ -3,7 +3,7 @@ import { CheckCircle, CreditCard, FileText } from 'lucide-react';
 import { Tenant } from '../types/tenant';
 import { getAllTenants } from '../services/tenantService';
 import { Invoice, Payment } from '../types/billing';
-import { getInvoicesByTenant, confirmPayment } from '../services/invoiceService';
+import { getInvoicesByTenant, confirmPayment, sendBillingEmail } from '../services/invoiceService';
 
 const statusLabel = (status: Invoice['status']) => {
   switch (status) {
@@ -27,6 +27,7 @@ export default function InvoicePaymentConfirm() {
   const [confirming, setConfirming] = useState(false);
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [emailNote, setEmailNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,12 +74,20 @@ export default function InvoicePaymentConfirm() {
     setConfirming(true);
     setError(null);
     setPayment(null);
+    setEmailNote(null);
     try {
       const p = await confirmPayment({ invoiceId: selectedInvoice.id });
       setPayment(p);
       const refreshed = await getInvoicesByTenant(selectedInvoice.tenantId);
       setInvoices(refreshed);
       setSelectedInvoiceId(refreshed.find(i => i.id === selectedInvoice.id)?.id ?? '');
+      // Gửi email xác nhận (best-effort, không chặn nếu Resend/email lỗi).
+      try {
+        await sendBillingEmail({ invoiceId: selectedInvoice.id, type: 'confirmation' });
+        setEmailNote('Đã gửi email xác nhận cho cửa hàng.');
+      } catch (emailErr: any) {
+        setEmailNote(`Không gửi được email xác nhận: ${emailErr?.message || 'lỗi không xác định'}`);
+      }
     } catch (err: any) {
       setError(err?.message || 'Xác nhận thanh toán thất bại.');
     } finally {
@@ -104,6 +113,7 @@ export default function InvoicePaymentConfirm() {
           <p className="font-medium">Đã xác nhận thanh toán {payment.amount.toLocaleString('vi-VN')} VNĐ</p>
           <p className="text-sm">Phương thức: {payment.paymentMethod}</p>
           <p className="text-sm">Ngày: {new Date(payment.paymentDate).toLocaleDateString('vi-VN')}</p>
+          {emailNote && <p className="text-sm mt-1">{emailNote}</p>}
         </div>
       )}
 

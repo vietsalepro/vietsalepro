@@ -876,6 +876,21 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     return { data: { success: true, action: 'recovery', redirectTo: `https://${tenant.subdomain}.vietsalepro.com/reset-password`, link: null }, error: null };
   }
 
+  if (name === 'send-billing-email') {
+    const { invoice_id, type, to } = body;
+    if (!invoice_id) return { data: { error: 'invoice_id không hợp lệ' }, error: null };
+    if (type !== 'reminder' && type !== 'confirmation') {
+      return { data: { error: 'type phải là reminder hoặc confirmation' }, error: null };
+    }
+    const invoice = store.invoices.find(i => i.id === invoice_id);
+    if (!invoice) return { data: { error: 'Không tìm thấy hóa đơn' }, error: null };
+    const tenant = store.tenants.find(t => t.id === invoice.tenant_id);
+    const owner = tenant ? store.users.find(u => u.id === tenant.owner_id) : undefined;
+    const recipient = to || owner?.email;
+    if (!recipient) return { data: { error: 'Không tìm thấy email người nhận cho tenant này' }, error: null };
+    return { data: { success: true, id: `email-${uuid()}`, to: recipient, type }, error: null };
+  }
+
   if (name === 'check-subdomain') {
     const { subdomain } = body;
     const s = (subdomain || '').trim().toLowerCase();

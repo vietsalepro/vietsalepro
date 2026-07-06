@@ -1129,3 +1129,15 @@ Progress tracked in session todos.
 
 User explicitly instructed: only push the multi-tenancy branch to the remote/production repository once the entire multi-tenancy project is complete. Do not push per individual phase unless asked again.
 
+## Admin Dashboard P7.5 — Expiry cron + renewal cron + Resend email (2026-07-06)
+- Migration `supabase/migrations/20250706000010_phase_p7_5_expiry_renewal_cron.sql`:
+  - `expire_overdue_invoices()`: `pending` >48h → `expired`, tenant `active/trial` → `read_only`, `billing_status='overdue'`.
+  - `create_renewal_invoices(p_days_before=7)`: tạo hóa đơn gia hạn VIP tháng (69k) cho subscription hết hạn trong 7 ngày; bỏ qua nếu đã có hóa đơn còn mở.
+  - pg_cron: `invoice-expiry-daily` (03:30), `renewal-invoice-daily` (04:00).
+  - Thêm cột `invoices.discount_code TEXT` nullable (chỗ nối voucher P10).
+- Edge Function `supabase/functions/send-billing-email` (Resend): body `{ invoice_id, type: 'reminder'|'confirmation', to? }`; secrets `RESEND_API_KEY`, tùy chọn `RESEND_FROM`.
+- Service `sendBillingEmail` (`services/invoiceService.ts`); types trong `types/billing.ts`.
+- Frontend: `InvoiceManager` nút "Gửi nhắc thanh toán"; `InvoicePaymentConfirm` auto gửi email xác nhận sau confirm.
+- Deploy TODO trên Supabase: apply migration, `supabase functions deploy send-billing-email`, set secret `RESEND_API_KEY`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run` 79/79 PASS.
+

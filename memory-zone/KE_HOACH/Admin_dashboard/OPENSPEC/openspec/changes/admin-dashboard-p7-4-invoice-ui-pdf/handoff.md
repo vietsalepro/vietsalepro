@@ -14,7 +14,7 @@
 
 ## Next Phase
 
-- P7.5 — Cron hết hạn + cron tạo hóa đơn gia hạn + email SendGrid (theo KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md).
+- P7.5 — Cron hết hạn + cron tạo hóa đơn gia hạn + email Resend (theo KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md).
 
 ## Blockers / Decisions
 

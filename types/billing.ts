@@ -104,3 +104,11 @@ export interface InvoiceDetail {
   items: InvoiceItem[];
   payments: Payment[];
 }
+
+export type BillingEmailType = 'reminder' | 'confirmation';
+
+export interface SendBillingEmailInput {
+  invoiceId: string;
+  type: BillingEmailType;
+  to?: string;
+}

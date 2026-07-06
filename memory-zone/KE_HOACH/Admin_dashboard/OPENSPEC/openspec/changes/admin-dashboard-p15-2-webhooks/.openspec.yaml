@@ -1,0 +1,3 @@
+schema: admin-dashboard
+created: 2026-07-06
+goal: "P15.2 — Webhooks: tenant_webhooks + deliveries + retry idempotent (YAGNI)."

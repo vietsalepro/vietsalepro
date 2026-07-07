@@ -1,7 +1,7 @@
 # p10-3-voucher-ui-expiry Specification
 
 ## Purpose
-TBD - created by archiving change admin-dashboard-p10-3-voucher-ui-expiry. Update Purpose after archive.
+Admin dashboard P10.3 provides the UI for managing promo codes and promotion rules, highlights vouchers that are expired or expiring within 7 days, allows tenants to apply voucher codes when paying invoices, and shows a proration review panel when an admin changes a tenant's plan.
 ## Requirements
 ### Requirement: p10-3-voucher-ui-expiry
 The system MUST implement p10.3 — voucher management ui + expiry warnings + tenant voucher input..

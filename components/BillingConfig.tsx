@@ -13,6 +13,7 @@ import {
 import InvoiceCreator from './InvoiceCreator';
 import InvoiceManager from './InvoiceManager';
 import InvoicePaymentConfirm from './InvoicePaymentConfirm';
+import BillingReminderConfig from './BillingReminderConfig';
 
 const emptyAccount: Omit<BankAccount, 'id' | 'createdAt' | 'updatedAt'> = {
   accountName: '',
@@ -133,6 +134,8 @@ export default function BillingConfig() {
       )}
 
       <InvoiceManager />
+
+      <BillingReminderConfig />
 
       {/* Company info */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

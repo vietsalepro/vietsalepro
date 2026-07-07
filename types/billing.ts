@@ -112,3 +112,28 @@ export interface SendBillingEmailInput {
   type: BillingEmailType;
   to?: string;
 }
+
+export interface BillingReminderConfig {
+  enabled: boolean;
+  milestones: number[];
+  sendTime: string;
+  functionUrl: string;
+  serviceRoleKey: string;
+}
+
+export interface BillingReminderLog {
+  id: string;
+  invoiceId: string;
+  milestone: 'T-7' | 'T-3' | 'T-1';
+  dueDate: string;
+  sentAt: string;
+  status: 'pending' | 'sent' | 'failed';
+  error?: string;
+  createdAt: string;
+}
+
+export interface PendingReminder {
+  invoiceId: string;
+  milestone: 'T-7' | 'T-3' | 'T-1';
+  dueDate: string;
+}

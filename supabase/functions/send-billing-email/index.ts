@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { invoice_id, type } = body as { invoice_id?: string; type?: string };
+    const { invoice_id, type, milestone } = body as { invoice_id?: string; type?: string; milestone?: string };
     let to: string | undefined = body?.to;
 
     if (!invoice_id || typeof invoice_id !== 'string') {
@@ -163,6 +163,17 @@ serve(async (req) => {
     const resendData = await resendResp.json().catch(() => ({}));
     if (!resendResp.ok) {
       return jsonResponse({ error: 'Gửi email thất bại', detail: resendData }, 502);
+    }
+
+    // Ghi log reminder nếu scheduler gửi (P9.1).
+    if (type === 'reminder' && milestone) {
+      await supabaseAdmin
+        .from('invoice_reminder_logs')
+        .upsert(
+          { invoice_id, milestone, status: 'sent', sent_at: new Date().toISOString() },
+          { onConflict: 'invoice_id, milestone' }
+        )
+        .catch(() => { /* best-effort: không làm fail email */ });
     }
 
     return jsonResponse({ success: true, id: resendData?.id ?? null, to, type }, 200);

@@ -1141,3 +1141,18 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
 - Deploy TODO trên Supabase: apply migration, `supabase functions deploy send-billing-email`, set secret `RESEND_API_KEY`.
 - `npm run lint` PASS · `npm run build` PASS · `npx vitest run` 79/79 PASS.
 
+## Admin Dashboard P9.1 — Billing reminders T-7/T-3/T-1 (2026-07-07)
+- Migration `supabase/migrations/20250707000000_phase_p9_1_billing_reminders.sql`:
+  - Bảng `invoice_reminder_logs` (invoice_id, milestone T-7/T-3/T-1, due_date, status, sent_at, error) + RLS admin-only.
+  - RPC `get_billing_reminder_config()`, `set_billing_reminder_config(enabled, milestones, send_time, function_url, service_role_key)`.
+  - RPC `get_pending_billing_reminders()` liệt kê hóa đơn `pending` có `due_date` trùng các mốc và chưa gửi.
+  - RPC `send_billing_reminders()` gọi async qua `pg_net.http_post` đến Edge Function `send-billing-email` (tái dụng P7.5) và ghi log.
+  - pg_cron: `billing-reminders-daily` lúc 09:00 Asia/Ho_Chi_Minh.
+- Edge Function `send-billing-email` được cập nhật: nhận thêm `milestone` trong body, upsert log `invoice_reminder_logs` status `sent` sau khi gửi.
+- Frontend: component `BillingReminderConfig` trong `components/BillingConfig.tsx` để bật/tắt, chọn mốc T-7/T-3/T-1, giờ gửi, cấu hình URL/service role key, xem pending reminders, lịch sử log, và nút "Chạy ngay".
+- Service layer: `services/billingReminderService.ts`; types `BillingReminderConfig`, `BillingReminderLog`, `PendingReminder` trong `types/billing.ts`.
+- Smoke test: `tests/smoke/admin-dashboard-p9-1-billing-reminders.test.ts` (7 tests).
+- Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p9-1-billing-reminders_20260707_070139`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run tests/smoke` 84/84 PASS.
+- Deploy Supabase TODO: apply migration, set `billing_reminder_config` trong `system_settings` với `function_url` và `service_role_key`.
+

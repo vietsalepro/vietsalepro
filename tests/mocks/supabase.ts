@@ -28,6 +28,7 @@ const store: Record<string, Row[]> = {
   payments: [],
   invoice_number_counters: [],
   plans: [],
+  invoice_reminder_logs: [],
 };
 
 export const resetMockData = () => {
@@ -94,9 +95,9 @@ const addMonths = (dateStr: string, months: number): string => {
 };
 
 const addDays = (dateStr: string, days: number): string => {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return date.toISOString().slice(0, 10);
 };
 
 const tenantIdColumn = (table: string): string | null => {
@@ -149,7 +150,7 @@ const executeQuery = (state: QueryState) => {
       rows = rows.filter(r => r.user_id === currentUserId || canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
-    } else if (table === 'bank_accounts') {
+    } else if (table === 'bank_accounts' || table === 'invoice_reminder_logs') {
       if (!isSystemAdmin) rows = [];
     } else {
       const col = tenantIdColumn(table);
@@ -1006,6 +1007,105 @@ const rpc = async (name: string, params: Record<string, any>) => {
     }
 
     return { data: payment, error: null };
+  }
+
+  if (name === 'get_billing_reminder_config') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem cấu hình reminder' } };
+    }
+    const config = getSetting('billing_reminder_config') || {
+      enabled: true,
+      milestones: [7, 3, 1],
+      send_time: '09:00',
+      function_url: '',
+      service_role_key: '',
+    };
+    return { data: config, error: null };
+  }
+
+  if (name === 'set_billing_reminder_config') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật cấu hình reminder' } };
+    }
+    const inputMilestones: number[] = params.p_milestones ?? [];
+    if (inputMilestones.length === 0 || inputMilestones.some((x: number) => x <= 0)) {
+      return { data: null, error: { code: '23514', message: 'milestones phải là mảng số nguyên dương' } };
+    }
+    const milestones: number[] = [...new Set(inputMilestones)].sort((a, b) => a - b);
+    const config = {
+      enabled: params.p_enabled,
+      milestones,
+      send_time: params.p_send_time ?? '09:00',
+      function_url: params.p_function_url ?? '',
+      service_role_key: params.p_service_role_key ?? '',
+    };
+    setSetting('billing_reminder_config', config);
+    return { data: config, error: null };
+  }
+
+  if (name === 'get_pending_billing_reminders') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem danh sách reminder' } };
+    }
+    const config = getSetting('billing_reminder_config') || { enabled: true, milestones: [7, 3, 1] };
+    if (!config.enabled) return { data: [], error: null };
+    const today = new Date().toISOString().slice(0, 10);
+    const results: { invoice_id: string; milestone: string; due_date: string }[] = [];
+    for (const days of config.milestones) {
+      const target = addDays(today, days);
+      const pending = store.invoices
+        .filter((i: any) => {
+          if (i.status !== 'pending') return false;
+          if (i.due_date !== target) return false;
+          const tenant = store.tenants.find((t: any) => t.id === i.tenant_id);
+          if (!tenant || tenant.status === 'archived') return false;
+          const sent = store.invoice_reminder_logs.some((r: any) => r.invoice_id === i.id && r.milestone === `T-${days}`);
+          return !sent;
+        })
+        .map((i: any) => ({ invoice_id: i.id, milestone: `T-${days}`, due_date: i.due_date }));
+      results.push(...pending);
+    }
+    return { data: results, error: null };
+  }
+
+  if (name === 'send_billing_reminders') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được gửi reminder' } };
+    }
+    const config = getSetting('billing_reminder_config') || { enabled: true, milestones: [7, 3, 1] };
+    if (!config.enabled) {
+      return { data: { sent: 0, skipped: 0, error: 'reminder disabled' }, error: null };
+    }
+    if (!config.function_url || !config.service_role_key) {
+      return { data: { sent: 0, skipped: 0, error: 'function_url hoặc service_role_key chưa được cấu hình' }, error: null };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    let sent = 0;
+    let skipped = 0;
+    for (const days of config.milestones) {
+      const target = addDays(today, days);
+      const pending = store.invoices.filter((i: any) => {
+        if (i.status !== 'pending') return false;
+        if (i.due_date !== target) return false;
+        const tenant = store.tenants.find((t: any) => t.id === i.tenant_id);
+        if (!tenant || tenant.status === 'archived') return false;
+        const logged = store.invoice_reminder_logs.some((r: any) => r.invoice_id === i.id && r.milestone === `T-${days}`);
+        return !logged;
+      });
+      for (const invoice of pending) {
+        store.invoice_reminder_logs.push({
+          id: uuid(),
+          invoice_id: invoice.id,
+          milestone: `T-${days}`,
+          due_date: invoice.due_date,
+          sent_at: new Date().toISOString(),
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        });
+        sent += 1;
+      }
+    }
+    return { data: { sent, skipped, error: null }, error: null };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };

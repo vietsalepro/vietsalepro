@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppTopbar } from './AppTopbar';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { ImpersonationBanner } from './ImpersonationBanner';
+import AnnouncementBanner from './AnnouncementBanner';
 import './AppShell.css';
 
 export interface AppShellProps {
@@ -18,6 +19,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, isLocked, isPosVie
       <AppTopbar isOpen={isMenuOpen} setIsOpen={setIsMenuOpen} isLocked={isLocked} />
       <ReadOnlyBanner />
       <ImpersonationBanner />
+      <AnnouncementBanner />
       <main className={`app-shell__content ${isPosView ? 'app-shell__content--pos' : ''}`}>
         {children}
       </main>

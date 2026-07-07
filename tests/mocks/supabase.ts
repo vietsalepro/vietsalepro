@@ -34,6 +34,7 @@ const store: Record<string, Row[]> = {
   support_tickets: [],
   ticket_replies: [],
   ticket_reply_templates: [],
+  announcements: [],
 };
 
 export const resetMockData = () => {
@@ -156,8 +157,28 @@ const executeQuery = (state: QueryState) => {
       rows = rows.filter(r => r.user_id === currentUserId || canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
-    } else if (table === 'bank_accounts' || table === 'invoice_reminder_logs' || table === 'ticket_reply_templates') {
-      if (!isSystemAdmin) rows = [];
+    } else if (table === 'bank_accounts' || table === 'invoice_reminder_logs' || table === 'ticket_reply_templates' || table === 'announcements') {
+      if (!isSystemAdmin) {
+        // Tenant members only see active announcements matching target/time.
+        if (table === 'announcements' && currentTenantId) {
+          const now = new Date().toISOString();
+          rows = rows.filter(r => {
+            if (r.status !== 'active') return false;
+            if (r.scheduled_at && r.scheduled_at > now) return false;
+            if (r.expires_at && r.expires_at <= now) return false;
+            if (r.target_type === 'all') return true;
+            const targets = Array.isArray(r.targets) ? r.targets : [];
+            if (r.target_type === 'specific_tenants') return targets.includes(currentTenantId);
+            if (r.target_type === 'specific_plans') {
+              const tenant = store.tenants.find(t => t.id === currentTenantId);
+              return tenant && targets.includes(tenant.plan);
+            }
+            return false;
+          });
+        } else {
+          rows = [];
+        }
+      }
     } else {
       const col = tenantIdColumn(table);
       // ponytail: system admin bypass tenant filter để xem toàn bộ dữ liệu (audit log, v.v.).
@@ -222,7 +243,7 @@ const executeQuery = (state: QueryState) => {
       if (!canAccessTenant(row.tenant_id) && !isSystemAdmin) {
         return { data: null, error: rlsError() };
       }
-    } else if (table === 'bank_accounts' || table === 'ticket_reply_templates') {
+    } else if (table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') {
       if (!isSystemAdmin) return { data: null, error: rlsError() };
     } else if (table === 'support_tickets') {
       const col = tenantIdColumn(table);
@@ -275,7 +296,7 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'update') {
-    if ((table === 'bank_accounts' || table === 'ticket_reply_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
+    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') && !isSystemAdmin) return { data: null, error: rlsError() };
     rows.forEach(r => Object.assign(r, state.updateValues, { updated_at: new Date().toISOString() }));
     if (state.single) {
       return rows.length
@@ -286,7 +307,7 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'delete') {
-    if ((table === 'bank_accounts' || table === 'ticket_reply_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
+    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') && !isSystemAdmin) return { data: null, error: rlsError() };
     store[table] = store[table].filter(r => !rows.includes(r));
     return { data: null, error: null };
   }
@@ -1246,6 +1267,28 @@ const rpc = async (name: string, params: Record<string, any>) => {
         details: r.details,
         created_at: r.created_at,
       }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'get_current_announcements_for_tenant') {
+    const tenantId = params.p_tenant_id || currentTenantId;
+    if (!tenantId) {
+      return { data: [], error: null };
+    }
+    const tenant = store.tenants.find(t => t.id === tenantId);
+    const now = new Date().toISOString();
+    const rows = store.announcements
+      .filter((a: any) => {
+        if (a.status !== 'active') return false;
+        if (a.scheduled_at && a.scheduled_at > now) return false;
+        if (a.expires_at && a.expires_at <= now) return false;
+        if (a.target_type === 'all') return true;
+        const targets = Array.isArray(a.targets) ? a.targets : [];
+        if (a.target_type === 'specific_tenants') return targets.includes(tenantId);
+        if (a.target_type === 'specific_plans') return tenant && targets.includes(tenant.plan);
+        return false;
+      })
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return { data: rows, error: null };
   }
 

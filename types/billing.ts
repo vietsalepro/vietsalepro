@@ -188,3 +188,99 @@ export interface BillingAutomationStatus {
   dunningTenantCount: number;
   dunningTenants: DunningTenantItem[];
 }
+
+// ============================================================
+// P10.1 VOUCHER / PROMOTION TYPES
+// ============================================================
+
+export type PromoCodeKind = 'fixed_amount' | 'percentage';
+
+export type PromotionRuleConditionType =
+  | 'tenant_age_days'
+  | 'plan'
+  | 'specific_tenant'
+  | 'cycle_type'
+  | 'always';
+
+export type PromotionRuleBenefitType =
+  | 'bonus_months'
+  | 'discount_percentage'
+  | 'discount_fixed_amount';
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  description?: string;
+  kind: PromoCodeKind;
+  discountValue: number;
+  maxDiscountAmount?: number;
+  minInvoiceAmount: number;
+  validFrom: string;
+  validUntil?: string;
+  maxUsesTotal?: number;
+  maxUsesPerTenant?: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePromoCodeInput {
+  code: string;
+  description?: string;
+  kind: PromoCodeKind;
+  discountValue: number;
+  maxDiscountAmount?: number;
+  minInvoiceAmount?: number;
+  validFrom?: string;
+  validUntil?: string;
+  maxUsesTotal?: number;
+  maxUsesPerTenant?: number;
+  isActive?: boolean;
+}
+
+export type UpdatePromoCodeInput = Partial<CreatePromoCodeInput>;
+
+export interface PromotionRule {
+  id: string;
+  name: string;
+  description?: string;
+  conditionType: PromotionRuleConditionType;
+  conditionValue: Record<string, any>;
+  benefitType: PromotionRuleBenefitType;
+  benefitValue: number;
+  priority: number;
+  validFrom: string;
+  validUntil?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePromotionRuleInput {
+  name: string;
+  description?: string;
+  conditionType?: PromotionRuleConditionType;
+  conditionValue?: Record<string, any>;
+  benefitType?: PromotionRuleBenefitType;
+  benefitValue?: number;
+  priority?: number;
+  validFrom?: string;
+  validUntil?: string;
+  isActive?: boolean;
+}
+
+export type UpdatePromotionRuleInput = Partial<CreatePromotionRuleInput>;
+
+export interface PromoCodeUsage {
+  id: string;
+  promoCodeId: string;
+  tenantId: string;
+  invoiceId?: string;
+  usedAt: string;
+  createdAt?: string;
+}
+
+export interface PromoCodeUsageCounts {
+  total: number;
+  perTenant: Record<string, number>;
+}

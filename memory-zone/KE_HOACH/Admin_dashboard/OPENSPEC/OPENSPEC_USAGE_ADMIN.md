@@ -27,7 +27,7 @@
 | P9.1 | ✅ Done | `20250707000000_phase_p9_1_billing_reminders.sql` | Reminders T-7/T-3/T-1 + cron + Edge Function |
 | P9.1.1 | ✅ Done | (grants + mock skipped counter) | **Đã archive** (`archive/2026-07-07-...p9-1-1-billing-reminders-fix`) |
 | P9.1.2 | ✅ Done | `20250707000001_phase_p9_1_1_billing_reminders_fix.sql` (GRANT EXECUTE cho `set_billing_reminder_config` + `get_pending_billing_reminders`, reject mảng `[]` rỗng) | **Đã archive** (`archive/2026-07-07-...p9-1-2-billing-reminders-fix`); delta SQL đã deploy trên Supabase project `rsialbfjswnrkzcxarnj` |
-| P9.2 | ✅ Done | `20250707000002_phase_p9_2_billing_automation_dashboard.sql` | Dashboard trạng thái billing + job log; đã deploy trên Supabase project `rsialbfjswnrkzcxarnj` |
+| P9.2 | ✅ Done | `20250707000002_phase_p9_2_billing_automation_dashboard.sql` | Dashboard trạng thái billing + job log; đã deploy trên Supabase project `rsialbfjswnrkzcxarnj`; **đã archive** (`archive/2026-07-07-admin-dashboard-p9-2-automation-dashboard`) |
 
 **Việc còn tồn (không phải lỗi code):**
 - Task `2.4 Deploy migration on Supabase` bị bỏ trống ở nhiều change (P1/P2/P6/P7.1…) — code SSOT đã đúng, chỉ chờ phiên có CLI/credentials xác nhận đã apply.

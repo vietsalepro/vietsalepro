@@ -13,7 +13,7 @@ const DEFAULT_MAX = 10;
 const CLEANUP_AGE_MS = 24 * 60 * 60 * 1000;
 
 const RATE_LIMITED_ACTIONS = new Set(['login', 'create_tenant', 'check_subdomain', 'invite_member']);
-const AUDIT_ACTIONS = new Set(['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT']);
+const AUDIT_ACTIONS = new Set(['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'IMPERSONATE', 'IMPERSONATE_END']);
 
 const getClientIp = (req: Request): string => {
   const forwarded = req.headers.get('x-forwarded-for');

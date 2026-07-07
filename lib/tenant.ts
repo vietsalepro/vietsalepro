@@ -16,3 +16,21 @@ export const getTenantId = async () => {
   const { data } = await supabase.rpc('get_tenant_by_subdomain', { p_subdomain: subdomain });
   return data?.id || null;
 };
+
+export const getTenantUrl = (subdomain: string): string => {
+  const host = window.location.host;
+  // ponytail: localhost/dev không có subdomain riêng, redirect về origin.
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    return window.location.origin;
+  }
+  return `${window.location.protocol}//${subdomain}.vietsalepro.com/`;
+};
+
+export const getAdminUrl = (): string => {
+  const host = window.location.host;
+  // ponytail: localhost/dev giữ nguyên origin, chỉ đổi path sang /admin.
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    return `${window.location.origin}/admin`;
+  }
+  return `${window.location.protocol}//admin.vietsalepro.com/admin`;
+};

@@ -37,6 +37,9 @@ const mapMembershipFromDB = (row: any): TenantMembership => ({
   userId: row.user_id,
   role: row.role,
   invitedBy: row.invited_by,
+  impersonatedBy: row.impersonated_by,
+  impersonatedAt: row.impersonated_at,
+  impersonatedExpiresAt: row.impersonated_expires_at,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -474,4 +477,22 @@ export async function getTenantGrowth(months = 6): Promise<TenantGrowthPoint[]> 
   const { data, error } = await supabase.rpc('get_tenant_growth', { p_months: months });
   if (error) throw error;
   return (data || []).map((row: any) => ({ month: row.month, count: row.count ?? 0 }));
+}
+
+// --- Impersonation (P11.3) ---
+
+export async function startImpersonation(tenantId: string): Promise<{ success: boolean; tenant: Tenant; expiresAt: string }> {
+  const { data, error } = await (supabase as any).functions.invoke('impersonate-tenant', {
+    body: { tenant_id: tenantId },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return { success: true, tenant: mapTenantFromDB(data.tenant), expiresAt: data.expires_at };
+}
+
+export async function endImpersonation(): Promise<{ success: boolean; ended: number }> {
+  const { data, error } = await (supabase as any).functions.invoke('end-impersonation', { body: {} });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return { success: true, ended: data.ended ?? 0 };
 }

@@ -6,6 +6,7 @@ import {
   Store, Users, Package, ShoppingBag, AlertTriangle, Clock, TrendingUp, CreditCard,
 } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
+import { getTenantUrl } from '../lib/tenant';
 import { DashboardV2KPI } from './Dashboard';
 import { AuditLog } from './AuditLog';
 import BillingConfig from '../components/BillingConfig';
@@ -52,6 +53,7 @@ import {
   getTenantGrowth,
   getTenantFeatureFlags,
   updateTenantFeatureFlags,
+  startImpersonation,
 } from '../services/tenantService';
 import {
   RateLimitLog,
@@ -316,6 +318,7 @@ export default function SystemAdminDashboard() {
   const [maintenanceSubmitting, setMaintenanceSubmitting] = useState(false);
   const [subdomainCheck, setSubdomainCheck] = useState<{ checking: boolean; available?: boolean; message?: string } | null>(null);
   const [exportingCsv, setExportingCsv] = useState(false);
+  const [impersonatingTenantId, setImpersonatingTenantId] = useState<string | null>(null);
 
   const debouncedSearchTerm = useDebounce(filters.searchTerm, 300);
 
@@ -420,6 +423,19 @@ export default function SystemAdminDashboard() {
       await load(page, pageSize);
     } catch (err: any) {
       setError(err?.message || 'Khôi phục cửa hàng thất bại.');
+    }
+  };
+
+  const handleLoginAs = async (tenant: Tenant) => {
+    if (!window.confirm(`Đăng nhập với tư cách admin của cửa hàng "${tenant.name}"?\n\nBạn sẽ rời khỏi trang admin dashboard.`)) return;
+    setImpersonatingTenantId(tenant.id);
+    setError(null);
+    try {
+      const res = await startImpersonation(tenant.id);
+      window.location.href = getTenantUrl(res.tenant.subdomain);
+    } catch (err: any) {
+      setImpersonatingTenantId(null);
+      setError(err?.message || 'Impersonate thất bại.');
     }
   };
 
@@ -1295,6 +1311,14 @@ export default function SystemAdminDashboard() {
                               className="px-3 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg"
                             >
                               {isExpanded ? 'Ẩn usage' : 'Usage'}
+                            </button>
+                            <button
+                              onClick={() => handleLoginAs(t)}
+                              disabled={impersonatingTenantId === t.id || t.status !== 'active'}
+                              title={t.status !== 'active' ? 'Chỉ impersonate tenant đang hoạt động' : 'Đăng nhập với tư cách admin tenant'}
+                              className="px-3 py-1.5 text-sm text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {impersonatingTenantId === t.id ? 'Đang xử lý...' : 'Login as'}
                             </button>
                             <button
                               onClick={() => openEdit(t)}

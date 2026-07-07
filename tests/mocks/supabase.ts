@@ -1260,7 +1260,7 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     if (tenant.status !== 'active') return { data: { error: 'Tenant không hoạt động' }, error: null };
 
     const sub = store.tenant_subscriptions.find(s => s.tenant_id === tenant_id);
-    const memberCount = store.tenant_memberships.filter(m => m.tenant_id === tenant_id).length;
+    const memberCount = store.tenant_memberships.filter(m => m.tenant_id === tenant_id && m.impersonated_by == null).length;
     if (sub && memberCount >= sub.max_users) {
       return { data: { error: 'Đã đạt giới hạn số user của gói dịch vụ' }, error: null };
     }
@@ -1335,6 +1335,114 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     if (reserved.includes(s)) return { data: { available: false }, error: null };
     const existing = store.tenants.find(t => t.subdomain === s);
     return { data: { available: !existing }, error: null };
+  }
+
+  if (name === 'audit-log') {
+    const { type, tenant_id, table_name, action, record_id, user_id, old_data, new_data, ip_address, user_agent } = body;
+    if (type !== 'audit') return { data: { error: 'type must be audit' }, error: null };
+    const allowed = new Set(['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'IMPERSONATE', 'IMPERSONATE_END']);
+    if (!action || !allowed.has(action)) return { data: { error: 'action không hợp lệ' }, error: null };
+    store.app_audit_log.push({
+      id: uuid(),
+      tenant_id: tenant_id ?? null,
+      table_name: table_name ?? '',
+      action,
+      record_id: record_id ?? null,
+      user_id: user_id ?? currentUserId,
+      old_data: old_data ?? null,
+      new_data: new_data ?? null,
+      ip_address: ip_address ?? '127.0.0.1',
+      user_agent: user_agent ?? null,
+      created_at: new Date().toISOString(),
+    });
+    return { data: { success: true }, error: null };
+  }
+
+  if (name === 'impersonate-tenant') {
+    const { tenant_id } = body;
+    if (!isSystemAdmin) return { data: { error: 'Chỉ system admin được impersonate' }, error: null };
+    const tenant = store.tenants.find(t => t.id === tenant_id);
+    if (!tenant) return { data: { error: 'Tenant không tồn tại' }, error: null };
+    if (tenant.status !== 'active') return { data: { error: 'Tenant không hoạt động' }, error: null };
+
+    const realMembership = store.tenant_memberships.find(
+      m => m.tenant_id === tenant_id && m.user_id === currentUserId && m.impersonated_by == null
+    );
+    if (realMembership) return { data: { error: 'Bạn đã là thành viên của tenant này, không cần impersonate' }, error: null };
+
+    store.tenant_memberships = store.tenant_memberships.filter(
+      m => !(m.tenant_id === tenant_id && m.user_id === currentUserId && m.impersonated_by != null)
+    );
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
+    const membership = {
+      id: uuid(),
+      tenant_id,
+      user_id: currentUserId,
+      role: 'admin',
+      invited_by: currentUserId,
+      impersonated_by: currentUserId,
+      impersonated_at: now.toISOString(),
+      impersonated_expires_at: expiresAt.toISOString(),
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    };
+    store.tenant_memberships.push(membership);
+
+    store.app_audit_log.push({
+      id: uuid(),
+      tenant_id,
+      table_name: 'tenant_memberships',
+      action: 'IMPERSONATE',
+      record_id: membership.id,
+      user_id: currentUserId,
+      new_data: {
+        tenant_id,
+        tenant_name: tenant.name,
+        tenant_subdomain: tenant.subdomain,
+        impersonated_at: now.toISOString(),
+        expires_at: expiresAt.toISOString(),
+      },
+      ip_address: '127.0.0.1',
+      user_agent: 'mock',
+      created_at: now.toISOString(),
+    });
+
+    return { data: { success: true, tenant, expires_at: expiresAt.toISOString() }, error: null };
+  }
+
+  if (name === 'end-impersonation') {
+    if (!isSystemAdmin) return { data: { error: 'Chỉ system admin được kết thúc impersonate' }, error: null };
+    const sessions = store.tenant_memberships.filter(
+      m => m.user_id === currentUserId && m.impersonated_by != null
+    );
+    const now = new Date();
+    for (const session of sessions) {
+      const startedAt = new Date(session.impersonated_at || now);
+      const durationSeconds = Math.round((now.getTime() - startedAt.getTime()) / 1000);
+      store.app_audit_log.push({
+        id: uuid(),
+        tenant_id: session.tenant_id,
+        table_name: 'tenant_memberships',
+        action: 'IMPERSONATE_END',
+        record_id: session.id,
+        user_id: currentUserId,
+        old_data: {
+          tenant_id: session.tenant_id,
+          impersonated_at: session.impersonated_at,
+          impersonated_expires_at: session.impersonated_expires_at,
+          duration_seconds: durationSeconds,
+        },
+        ip_address: '127.0.0.1',
+        user_agent: 'mock',
+        created_at: now.toISOString(),
+      });
+    }
+    store.tenant_memberships = store.tenant_memberships.filter(
+      m => !(m.user_id === currentUserId && m.impersonated_by != null)
+    );
+    return { data: { success: true, ended: sessions.length }, error: null };
   }
 
   return { data: { error: 'Function not found' }, error: null };

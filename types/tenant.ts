@@ -26,6 +26,9 @@ export interface TenantMembership {
   userId: string;
   role: TenantRole;
   invitedBy?: string;
+  impersonatedBy?: string;
+  impersonatedAt?: string;
+  impersonatedExpiresAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }

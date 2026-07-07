@@ -1,7 +1,7 @@
 import { supabase, getCurrentTenantId } from '../lib/supabase';
 import { AppError } from '../utils/errors';
 
-export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'EXPORT';
+export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'EXPORT' | 'IMPERSONATE' | 'IMPERSONATE_END';
 
 export interface AuditLogEntry {
   id: string;

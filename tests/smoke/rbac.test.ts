@@ -21,6 +21,8 @@ describe('smoke: RBAC', () => {
       role: null,
       isLoading: false,
       isReadOnly: false,
+      isImpersonating: false,
+      impersonatedBy: null,
     });
   });
 
@@ -31,6 +33,8 @@ describe('smoke: RBAC', () => {
       role,
       isLoading: false,
       isReadOnly: false,
+      isImpersonating: false,
+      impersonatedBy: null,
     });
     return renderHook(() => usePermissions()).result.current;
   };

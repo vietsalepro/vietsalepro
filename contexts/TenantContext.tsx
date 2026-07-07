@@ -10,6 +10,8 @@ interface TenantContextType {
   role: TenantRole | null;
   isLoading: boolean;
   isReadOnly: boolean;
+  isImpersonating: boolean;
+  impersonatedBy: string | null;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -32,6 +34,9 @@ const mapMembershipFromDB = (row: any): TenantMembership => ({
   userId: row.user_id,
   role: row.role,
   invitedBy: row.invited_by,
+  impersonatedBy: row.impersonated_by,
+  impersonatedAt: row.impersonated_at,
+  impersonatedExpiresAt: row.impersonated_expires_at,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -109,12 +114,17 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [user]);
 
+  const isImpersonating = !!membership?.impersonatedBy &&
+    (!membership.impersonatedExpiresAt || new Date(membership.impersonatedExpiresAt) > new Date());
+
   const value: TenantContextType = {
     tenant,
     membership,
     role: membership?.role || null,
     isLoading,
     isReadOnly: tenant?.status === 'read_only',
+    isImpersonating,
+    impersonatedBy: isImpersonating ? membership?.impersonatedBy ?? null : null,
   };
 
   return (

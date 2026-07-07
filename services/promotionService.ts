@@ -8,6 +8,8 @@ import {
   CreatePromotionRuleInput,
   UpdatePromotionRuleInput,
   PromoCodeUsageCounts,
+  ApplyVoucherInput,
+  ApplyVoucherResult,
 } from '../types/billing';
 
 const mapPromoCodeFromDB = (row: any): PromoCode => ({
@@ -22,6 +24,7 @@ const mapPromoCodeFromDB = (row: any): PromoCode => ({
   validUntil: row.valid_until,
   maxUsesTotal: row.max_uses_total,
   maxUsesPerTenant: row.max_uses_per_tenant,
+  targetConditions: row.target_conditions || undefined,
   isActive: row.is_active ?? true,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -96,6 +99,7 @@ export async function createPromoCode(input: CreatePromoCodeInput): Promise<Prom
       valid_until: input.validUntil,
       max_uses_total: input.maxUsesTotal,
       max_uses_per_tenant: input.maxUsesPerTenant,
+      target_conditions: input.targetConditions,
       is_active: input.isActive,
     })
     .select()
@@ -117,6 +121,7 @@ export async function updatePromoCode(id: string, input: UpdatePromoCodeInput): 
   if (input.validUntil !== undefined) update.valid_until = input.validUntil;
   if (input.maxUsesTotal !== undefined) update.max_uses_total = input.maxUsesTotal;
   if (input.maxUsesPerTenant !== undefined) update.max_uses_per_tenant = input.maxUsesPerTenant;
+  if (input.targetConditions !== undefined) update.target_conditions = input.targetConditions;
   if (input.isActive !== undefined) update.is_active = input.isActive;
 
   const { data, error } = await supabase
@@ -259,6 +264,27 @@ export async function getPromoCodeUsageCounts(promoCodeId: string): Promise<Prom
   return {
     total: (data?.total as number) ?? 0,
     perTenant,
+  };
+}
+
+export async function applyVoucherToInvoice(input: ApplyVoucherInput): Promise<ApplyVoucherResult> {
+  const { data, error } = await supabase.rpc('apply_voucher_to_invoice', {
+    p_invoice_id: input.invoiceId,
+    p_code: input.code,
+  });
+  if (error) throw error;
+
+  return {
+    success: (data?.success as boolean) ?? false,
+    error: (data?.error as string) || undefined,
+    invoiceId: (data?.invoice_id as string) || undefined,
+    promoCodeId: (data?.promo_code_id as string) || undefined,
+    code: (data?.code as string) || undefined,
+    discount: data?.discount != null ? Number(data.discount) : undefined,
+    bonusMonths: data?.bonus_months != null ? Number(data.bonus_months) : undefined,
+    total: data?.total != null ? Number(data.total) : undefined,
+    periodEnd: (data?.period_end as string) || undefined,
+    usageId: (data?.usage_id as string) || undefined,
   };
 }
 

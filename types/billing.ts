@@ -195,6 +195,12 @@ export interface BillingAutomationStatus {
 
 export type PromoCodeKind = 'fixed_amount' | 'percentage';
 
+export interface PromoCodeTargetConditions {
+  tenantAgeDays?: number;
+  plan?: 'free' | 'vip';
+  tenantIds?: string[];
+}
+
 export type PromotionRuleConditionType =
   | 'tenant_age_days'
   | 'plan'
@@ -219,6 +225,7 @@ export interface PromoCode {
   validUntil?: string;
   maxUsesTotal?: number;
   maxUsesPerTenant?: number;
+  targetConditions?: PromoCodeTargetConditions;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -235,10 +242,29 @@ export interface CreatePromoCodeInput {
   validUntil?: string;
   maxUsesTotal?: number;
   maxUsesPerTenant?: number;
+  targetConditions?: PromoCodeTargetConditions;
   isActive?: boolean;
 }
 
 export type UpdatePromoCodeInput = Partial<CreatePromoCodeInput>;
+
+export interface ApplyVoucherInput {
+  invoiceId: string;
+  code: string;
+}
+
+export interface ApplyVoucherResult {
+  success: boolean;
+  error?: string;
+  invoiceId?: string;
+  promoCodeId?: string;
+  code?: string;
+  discount?: number;
+  bonusMonths?: number;
+  total?: number;
+  periodEnd?: string;
+  usageId?: string;
+}
 
 export interface PromotionRule {
   id: string;

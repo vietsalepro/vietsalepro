@@ -9,7 +9,10 @@
 
 - [x] `npm run lint` pass
 - [x] `npm run build` pass
-- [x] Manual acceptance criteria tested
+- [x] Migration deployed to Supabase project `rsialbfjswnrkzcxarnj`
+- [x] Confirmed tables `promo_codes`, `promotion_rules`, `promo_code_usages` exist on remote
+- [x] Confirmed RLS policies and RPCs `get_promo_code_usage_counts`, `validate_promo_code` exist on remote
+- [x] CRUD smoke test on remote: create/update/delete promo code `TEST_P10_1_CRUD` (cleaned up)
 
 ## Next Phase
 
@@ -17,7 +20,7 @@
 
 ## Blockers / Decisions
 
-- Migration `supabase/migrations/20250707000003_phase_p10_1_voucher_promotion_schema.sql` was created locally but not deployed via CLI because the local migration history does not match the remote project (`rsialbfjswnrkzcxarnj`). Deploy by running the SQL in Supabase SQL Editor (the pattern used in previous phases).
+- Migration deployed to Supabase project `rsialbfjswnrkzcxarnj` via `supabase db query --linked --file <migration>` because `supabase db push` reports a migration-history mismatch.
 
 ## Backup Location
 

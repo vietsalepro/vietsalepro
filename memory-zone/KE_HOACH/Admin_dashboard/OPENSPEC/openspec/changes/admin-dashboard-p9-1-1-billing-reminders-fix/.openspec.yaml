@@ -1,3 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-07
-goal: P9.1.1 — Fix P9.1 billing reminders bugs (RPC grants, validation, mock accuracy, type/schema mismatch).

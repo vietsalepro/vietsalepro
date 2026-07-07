@@ -35,6 +35,7 @@ const store: Record<string, Row[]> = {
   ticket_replies: [],
   ticket_reply_templates: [],
   announcements: [],
+  email_templates: [],
 };
 
 export const resetMockData = () => {
@@ -108,7 +109,7 @@ const addDays = (dateStr: string, days: number): string => {
 };
 
 const tenantIdColumn = (table: string): string | null => {
-  if (['tenants', 'tenant_memberships', 'tenant_subscriptions', 'bank_accounts', 'system_settings', 'ticket_reply_templates'].includes(table)) return null;
+  if (['tenants', 'tenant_memberships', 'tenant_subscriptions', 'bank_accounts', 'system_settings', 'ticket_reply_templates', 'email_templates'].includes(table)) return null;
   return 'tenant_id';
 };
 
@@ -127,7 +128,7 @@ const canAccessTenant = (tenantId: string) =>
 
 interface QueryState {
   table: string;
-  operation: 'select' | 'insert' | 'update' | 'delete';
+  operation: 'select' | 'insert' | 'update' | 'delete' | 'upsert';
   filters: Record<string, any>;
   ilikeFilters: Record<string, string>;
   gteFilters: Record<string, any>;
@@ -243,7 +244,7 @@ const executeQuery = (state: QueryState) => {
       if (!canAccessTenant(row.tenant_id) && !isSystemAdmin) {
         return { data: null, error: rlsError() };
       }
-    } else if (table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') {
+    } else if (table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements' || table === 'email_templates') {
       if (!isSystemAdmin) return { data: null, error: rlsError() };
     } else if (table === 'support_tickets') {
       const col = tenantIdColumn(table);
@@ -287,6 +288,10 @@ const executeQuery = (state: QueryState) => {
       if (table === 'ticket_reply_templates') {
         row.is_active = row.is_active ?? true;
       }
+      if (table === 'email_templates') {
+        row.is_default = row.is_default ?? false;
+        row.is_active = row.is_active ?? true;
+      }
       store[table].push(row);
       return row;
     });
@@ -296,7 +301,7 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'update') {
-    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') && !isSystemAdmin) return { data: null, error: rlsError() };
+    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements' || table === 'email_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
     rows.forEach(r => Object.assign(r, state.updateValues, { updated_at: new Date().toISOString() }));
     if (state.single) {
       return rows.length
@@ -307,9 +312,36 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'delete') {
-    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') && !isSystemAdmin) return { data: null, error: rlsError() };
+    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements' || table === 'email_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
     store[table] = store[table].filter(r => !rows.includes(r));
     return { data: null, error: null };
+  }
+
+  if (state.operation === 'upsert') {
+    const values = state.insertValues ?? [];
+    if (table === 'system_settings' || table === 'email_templates' || table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') {
+      if (!isSystemAdmin) return { data: null, error: rlsError() };
+    }
+    const upserted = values.map((v: any) => {
+      const pk = v.key ?? v.id;
+      const pkField = v.key !== undefined ? 'key' : 'id';
+      const existing = pk !== undefined ? store[table].find(r => r[pkField] === pk) : undefined;
+      const now = new Date().toISOString();
+      if (existing) {
+        Object.assign(existing, v, { updated_at: now });
+        return existing;
+      }
+      const row: Row = { id: uuid(), ...v, created_at: now, updated_at: now };
+      if (table === 'email_templates') {
+        row.is_default = row.is_default ?? false;
+        row.is_active = row.is_active ?? true;
+      }
+      store[table].push(row);
+      return row;
+    });
+    return state.single
+      ? { data: upserted[0], error: null }
+      : { data: upserted, error: null };
   }
 
   return { data: null, error: null };
@@ -333,6 +365,12 @@ const queryBuilder = (table: string): any => {
     },
     update: (values: any) => { state.operation = 'update'; state.updateValues = values; return builder; },
     delete: () => { state.operation = 'delete'; return builder; },
+    upsert: (values: any, options?: { onConflict?: string }) => {
+      state.operation = 'upsert';
+      state.insertValues = Array.isArray(values) ? values : [values];
+      state.updateValues = options;
+      return builder;
+    },
     eq: (field: string, value: any) => { state.filters[field] = value; return builder; },
     ilike: (field: string, pattern: string) => { state.ilikeFilters[field] = pattern; return builder; },
     gte: (field: string, value: any) => { state.gteFilters[field] = value; return builder; },
@@ -1292,6 +1330,16 @@ const rpc = async (name: string, params: Record<string, any>) => {
     return { data: rows, error: null };
   }
 
+  if (name === 'get_email_brand') {
+    const row = store.system_settings.find(s => s.key === 'email_brand');
+    return { data: row?.value ?? { logo_url: '', brand_color: '#2563eb', signature_html: 'Trân trọng,<br/>Đội ngũ VietSales Pro', from_name: 'VietSales Pro' }, error: null };
+  }
+
+  if (name === 'get_email_template_by_key') {
+    const t = store.email_templates.find(t => t.key === params.p_key);
+    return { data: t ? [t] : [], error: null };
+  }
+
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };
 };
 
@@ -1366,6 +1414,17 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     const recipient = to || owner?.email;
     if (!recipient) return { data: { error: 'Không tìm thấy email người nhận cho tenant này' }, error: null };
     return { data: { success: true, id: `email-${uuid()}`, to: recipient, type }, error: null };
+  }
+
+  if (name === 'send-template-email') {
+    const { template_key, to } = body;
+    if (!template_key) return { data: { error: 'template_key không hợp lệ' }, error: null };
+    const t = store.email_templates.find(t => t.key === template_key);
+    if (!t) return { data: { error: `Không tìm thấy template '${template_key}'` }, error: null };
+    if (!t.is_active) return { data: { error: `Template '${template_key}' đang bị tắt` }, error: null };
+    const recipients = Array.isArray(to) ? to : [to];
+    if (recipients.length === 0) return { data: { error: 'Danh sách người nhận rỗng' }, error: null };
+    return { data: { success: true, id: `email-${uuid()}`, to: recipients, template_key, subject: t.subject, test: !!body.test }, error: null };
   }
 
   if (name === 'check-subdomain') {

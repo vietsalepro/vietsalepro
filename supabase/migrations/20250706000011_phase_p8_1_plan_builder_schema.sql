@@ -732,17 +732,17 @@ BEGIN
   v_start := GREATEST(COALESCE(v_sub.expires_at::DATE, v_today), v_today);
   v_end := v_start + (v_paid_months + COALESCE(p_bonus_months, 0)) * INTERVAL '1 month';
 
-  v_invoice_no := public.generate_invoice_number(v_today);
+  v_invoice_no := public.get_next_invoice_number(EXTRACT(YEAR FROM v_today)::INT);
 
   INSERT INTO public.invoices (
     tenant_id, invoice_no, status, issue_date, due_date,
     period_start, period_end, subtotal, discount, tax, total,
-    amount_paid, balance, notes, created_by
+    amount_paid, notes, created_by
   )
   VALUES (
     p_tenant_id, v_invoice_no, 'pending', v_today, v_start + INTERVAL '2 days',
     v_start, v_end, v_subtotal, 0, 0, v_subtotal,
-    0, v_subtotal, p_notes, auth.uid()
+    0, p_notes, auth.uid()
   )
   RETURNING * INTO v_invoice;
 
@@ -801,10 +801,10 @@ BEGIN
     v_period_start := v_sub.expires_at::DATE;
     v_period_end := v_period_start + INTERVAL '1 month';
 
-    INSERT INTO public.invoices (tenant_id, invoice_no, status, issue_date, due_date, period_start, period_end, subtotal, discount, tax, total, amount_paid, balance, created_by)
+    INSERT INTO public.invoices (tenant_id, invoice_no, status, issue_date, due_date, period_start, period_end, subtotal, discount, tax, total, amount_paid, created_by)
     VALUES (
       v_sub.tenant_id,
-      public.generate_invoice_number(v_today),
+      public.get_next_invoice_number(EXTRACT(YEAR FROM v_today)::INT),
       'pending',
       v_today,
       v_period_start,
@@ -815,7 +815,6 @@ BEGIN
       0,
       v_unit_price,
       0,
-      v_unit_price,
       auth.uid()
     )
     RETURNING id INTO v_invoice_id;

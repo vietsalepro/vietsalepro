@@ -31,6 +31,9 @@ const store: Record<string, Row[]> = {
   plans: [],
   invoice_reminder_logs: [],
   billing_job_logs: [],
+  support_tickets: [],
+  ticket_replies: [],
+  ticket_reply_templates: [],
 };
 
 export const resetMockData = () => {
@@ -104,7 +107,7 @@ const addDays = (dateStr: string, days: number): string => {
 };
 
 const tenantIdColumn = (table: string): string | null => {
-  if (['tenants', 'tenant_memberships', 'tenant_subscriptions', 'bank_accounts', 'system_settings'].includes(table)) return null;
+  if (['tenants', 'tenant_memberships', 'tenant_subscriptions', 'bank_accounts', 'system_settings', 'ticket_reply_templates'].includes(table)) return null;
   return 'tenant_id';
 };
 
@@ -153,7 +156,7 @@ const executeQuery = (state: QueryState) => {
       rows = rows.filter(r => r.user_id === currentUserId || canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
-    } else if (table === 'bank_accounts' || table === 'invoice_reminder_logs') {
+    } else if (table === 'bank_accounts' || table === 'invoice_reminder_logs' || table === 'ticket_reply_templates') {
       if (!isSystemAdmin) rows = [];
     } else {
       const col = tenantIdColumn(table);
@@ -219,8 +222,28 @@ const executeQuery = (state: QueryState) => {
       if (!canAccessTenant(row.tenant_id) && !isSystemAdmin) {
         return { data: null, error: rlsError() };
       }
-    } else if (table === 'bank_accounts') {
+    } else if (table === 'bank_accounts' || table === 'ticket_reply_templates') {
       if (!isSystemAdmin) return { data: null, error: rlsError() };
+    } else if (table === 'support_tickets') {
+      const col = tenantIdColumn(table);
+      for (const row of values) {
+        if (col && row[col] !== currentTenantId && !isSystemAdmin) {
+          return { data: null, error: rlsError() };
+        }
+      }
+    } else if (table === 'ticket_replies') {
+      const col = tenantIdColumn(table);
+      if (!col) return { data: null, error: { code: '23502', message: 'ticket_replies requires tenant_id' } };
+      for (const row of values) {
+        if (!row[col]) {
+          const ticket = store.support_tickets.find(t => t.id === row.ticket_id);
+          if (!ticket) return { data: null, error: { code: '23503', message: 'Không tìm thấy ticket tương ứng' } };
+          row[col] = ticket.tenant_id;
+        }
+        if (row[col] !== currentTenantId && !isSystemAdmin) {
+          return { data: null, error: rlsError() };
+        }
+      }
     } else {
       const col = tenantIdColumn(table);
       for (const row of values) {
@@ -231,7 +254,18 @@ const executeQuery = (state: QueryState) => {
     }
 
     const inserted = values.map((v: any) => {
-      const row = { id: uuid(), ...v, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const row: Row = { id: uuid(), ...v, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      if (table === 'support_tickets') {
+        row.status = row.status ?? 'open';
+        row.category = row.category ?? 'support';
+        row.priority = row.priority ?? 'medium';
+      }
+      if (table === 'ticket_replies') {
+        row.is_internal_note = row.is_internal_note ?? false;
+      }
+      if (table === 'ticket_reply_templates') {
+        row.is_active = row.is_active ?? true;
+      }
       store[table].push(row);
       return row;
     });
@@ -241,7 +275,7 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'update') {
-    if (table === 'bank_accounts' && !isSystemAdmin) return { data: null, error: rlsError() };
+    if ((table === 'bank_accounts' || table === 'ticket_reply_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
     rows.forEach(r => Object.assign(r, state.updateValues, { updated_at: new Date().toISOString() }));
     if (state.single) {
       return rows.length
@@ -252,7 +286,7 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'delete') {
-    if (table === 'bank_accounts' && !isSystemAdmin) return { data: null, error: rlsError() };
+    if ((table === 'bank_accounts' || table === 'ticket_reply_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
     store[table] = store[table].filter(r => !rows.includes(r));
     return { data: null, error: null };
   }

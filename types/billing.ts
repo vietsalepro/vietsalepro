@@ -190,28 +190,29 @@ export interface BillingAutomationStatus {
 }
 
 // ============================================================
-// P10.1 VOUCHER / PROMOTION TYPES
+// VOUCHER / PROMOTION TYPES — P10.1/P10.2
 // ============================================================
 
-export type PromoCodeKind = 'fixed_amount' | 'percentage';
-
-export interface PromoCodeTargetConditions {
-  tenantAgeDays?: number;
-  plan?: 'free' | 'vip';
-  tenantIds?: string[];
-}
+export type PromoCodeKind = 'percentage' | 'fixed_amount';
 
 export type PromotionRuleConditionType =
+  | 'always'
   | 'tenant_age_days'
   | 'plan'
   | 'specific_tenant'
-  | 'cycle_type'
-  | 'always';
+  | 'cycle_type';
 
 export type PromotionRuleBenefitType =
   | 'bonus_months'
   | 'discount_percentage'
   | 'discount_fixed_amount';
+
+// Điều kiện đối tượng áp dụng promo code (kết hợp AND).
+export interface PromoCodeTargetConditions {
+  tenantAgeDays?: number;
+  plan?: string;
+  tenantIds?: string[];
+}
 
 export interface PromoCode {
   id: string;
@@ -221,7 +222,7 @@ export interface PromoCode {
   discountValue: number;
   maxDiscountAmount?: number;
   minInvoiceAmount: number;
-  validFrom: string;
+  validFrom?: string;
   validUntil?: string;
   maxUsesTotal?: number;
   maxUsesPerTenant?: number;
@@ -231,40 +232,12 @@ export interface PromoCode {
   updatedAt?: string;
 }
 
-export interface CreatePromoCodeInput {
-  code: string;
-  description?: string;
-  kind: PromoCodeKind;
-  discountValue: number;
-  maxDiscountAmount?: number;
-  minInvoiceAmount?: number;
-  validFrom?: string;
-  validUntil?: string;
-  maxUsesTotal?: number;
-  maxUsesPerTenant?: number;
-  targetConditions?: PromoCodeTargetConditions;
-  isActive?: boolean;
-}
+export interface CreatePromoCodeInput
+  extends Omit<PromoCode, 'id' | 'createdAt' | 'updatedAt'> {}
 
-export type UpdatePromoCodeInput = Partial<CreatePromoCodeInput>;
-
-export interface ApplyVoucherInput {
-  invoiceId: string;
-  code: string;
-}
-
-export interface ApplyVoucherResult {
-  success: boolean;
-  error?: string;
-  invoiceId?: string;
-  promoCodeId?: string;
-  code?: string;
-  discount?: number;
-  bonusMonths?: number;
-  total?: number;
-  periodEnd?: string;
-  usageId?: string;
-}
+export type UpdatePromoCodeInput = Partial<
+  Omit<PromoCode, 'id' | 'createdAt' | 'updatedAt'>
+>;
 
 export interface PromotionRule {
   id: string;
@@ -275,34 +248,26 @@ export interface PromotionRule {
   benefitType: PromotionRuleBenefitType;
   benefitValue: number;
   priority: number;
-  validFrom: string;
+  validFrom?: string;
   validUntil?: string;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface CreatePromotionRuleInput {
-  name: string;
-  description?: string;
-  conditionType?: PromotionRuleConditionType;
-  conditionValue?: Record<string, any>;
-  benefitType?: PromotionRuleBenefitType;
-  benefitValue?: number;
-  priority?: number;
-  validFrom?: string;
-  validUntil?: string;
-  isActive?: boolean;
-}
+export interface CreatePromotionRuleInput
+  extends Omit<PromotionRule, 'id' | 'createdAt' | 'updatedAt'> {}
 
-export type UpdatePromotionRuleInput = Partial<CreatePromotionRuleInput>;
+export type UpdatePromotionRuleInput = Partial<
+  Omit<PromotionRule, 'id' | 'createdAt' | 'updatedAt'>
+>;
 
 export interface PromoCodeUsage {
   id: string;
   promoCodeId: string;
   tenantId: string;
   invoiceId?: string;
-  usedAt: string;
+  usedAt?: string;
   createdAt?: string;
 }
 

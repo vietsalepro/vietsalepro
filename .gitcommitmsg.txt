@@ -1,0 +1,11 @@
+P10.2: RPC áp dụng voucher/promotion vào hóa đơn.
+
+- Migration: mở rộng promo_codes.target_conditions, cập nhật validate_promo_code,
+  thêm promotion_rule_matches và apply_voucher_to_invoice.
+- Service/types: PromoCodeTargetConditions, ApplyVoucherResult, applyVoucherToInvoice.
+- Deploy migration lên Supabase QLBH.
+- Lint + build pass; test DB pass: voucher 10% + yearly bonus 1 month = discount 70.800₫, total 637.200₫.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

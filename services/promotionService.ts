@@ -8,8 +8,6 @@ import {
   CreatePromotionRuleInput,
   UpdatePromotionRuleInput,
   PromoCodeUsageCounts,
-  ApplyVoucherInput,
-  ApplyVoucherResult,
 } from '../types/billing';
 
 const mapPromoCodeFromDB = (row: any): PromoCode => ({
@@ -24,11 +22,26 @@ const mapPromoCodeFromDB = (row: any): PromoCode => ({
   validUntil: row.valid_until,
   maxUsesTotal: row.max_uses_total,
   maxUsesPerTenant: row.max_uses_per_tenant,
-  targetConditions: row.target_conditions || undefined,
+  targetConditions: row.target_conditions && Object.keys(row.target_conditions).length
+    ? {
+        tenantAgeDays: row.target_conditions.tenant_age_days,
+        plan: row.target_conditions.plan,
+        tenantIds: row.target_conditions.tenant_ids,
+      }
+    : undefined,
   isActive: row.is_active ?? true,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
+
+const mapTargetConditionsToDB = (conditions?: PromoCode['targetConditions']) => {
+  if (!conditions) return {};
+  const out: Record<string, any> = {};
+  if (conditions.tenantAgeDays !== undefined) out.tenant_age_days = conditions.tenantAgeDays;
+  if (conditions.plan !== undefined) out.plan = conditions.plan;
+  if (conditions.tenantIds !== undefined) out.tenant_ids = conditions.tenantIds;
+  return out;
+};
 
 const mapPromotionRuleFromDB = (row: any): PromotionRule => ({
   id: row.id,
@@ -99,7 +112,7 @@ export async function createPromoCode(input: CreatePromoCodeInput): Promise<Prom
       valid_until: input.validUntil,
       max_uses_total: input.maxUsesTotal,
       max_uses_per_tenant: input.maxUsesPerTenant,
-      target_conditions: input.targetConditions,
+      target_conditions: mapTargetConditionsToDB(input.targetConditions),
       is_active: input.isActive,
     })
     .select()
@@ -121,7 +134,7 @@ export async function updatePromoCode(id: string, input: UpdatePromoCodeInput): 
   if (input.validUntil !== undefined) update.valid_until = input.validUntil;
   if (input.maxUsesTotal !== undefined) update.max_uses_total = input.maxUsesTotal;
   if (input.maxUsesPerTenant !== undefined) update.max_uses_per_tenant = input.maxUsesPerTenant;
-  if (input.targetConditions !== undefined) update.target_conditions = input.targetConditions;
+  if (input.targetConditions !== undefined) update.target_conditions = mapTargetConditionsToDB(input.targetConditions);
   if (input.isActive !== undefined) update.is_active = input.isActive;
 
   const { data, error } = await supabase
@@ -254,16 +267,6 @@ export async function createPromoCodeUsage(input: {
   return mapPromoCodeUsageFromDB(data);
 }
 
-export async function getPromoCodeUsagesByInvoiceId(invoiceId: string): Promise<PromoCodeUsage[]> {
-  const { data, error } = await supabase
-    .from('promo_code_usages')
-    .select('*')
-    .eq('invoice_id', invoiceId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data || []).map(mapPromoCodeUsageFromDB);
-}
-
 export async function getPromoCodeUsageCounts(promoCodeId: string): Promise<PromoCodeUsageCounts> {
   const { data, error } = await supabase.rpc('get_promo_code_usage_counts', {
     p_promo_code_id: promoCodeId,
@@ -277,24 +280,56 @@ export async function getPromoCodeUsageCounts(promoCodeId: string): Promise<Prom
   };
 }
 
-export async function applyVoucherToInvoice(input: ApplyVoucherInput): Promise<ApplyVoucherResult> {
+export async function getPromoCodeUsagesByInvoiceId(invoiceId: string): Promise<PromoCodeUsage[]> {
+  const { data, error } = await supabase
+    .from('promo_code_usages')
+    .select('*')
+    .eq('invoice_id', invoiceId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapPromoCodeUsageFromDB);
+}
+
+export interface ApplyVoucherToInvoiceInput {
+  invoiceId: string;
+  code: string;
+}
+
+export interface ApplyVoucherResult {
+  success: boolean;
+  error?: string;
+  invoiceId?: string;
+  promoCodeId?: string;
+  code?: string;
+  discount?: number;
+  bonusMonths?: number;
+  total?: number;
+  periodEnd?: string;
+  usageId?: string;
+}
+
+export async function applyVoucherToInvoice(
+  input: ApplyVoucherToInvoiceInput
+): Promise<ApplyVoucherResult> {
   const { data, error } = await supabase.rpc('apply_voucher_to_invoice', {
     p_invoice_id: input.invoiceId,
     p_code: input.code,
   });
   if (error) throw error;
 
+  if (!data?.success) {
+    return { success: false, error: data?.error || 'Áp dụng voucher thất bại' };
+  }
   return {
-    success: (data?.success as boolean) ?? false,
-    error: (data?.error as string) || undefined,
-    invoiceId: (data?.invoice_id as string) || undefined,
-    promoCodeId: (data?.promo_code_id as string) || undefined,
-    code: (data?.code as string) || undefined,
-    discount: data?.discount != null ? Number(data.discount) : undefined,
-    bonusMonths: data?.bonus_months != null ? Number(data.bonus_months) : undefined,
-    total: data?.total != null ? Number(data.total) : undefined,
-    periodEnd: (data?.period_end as string) || undefined,
-    usageId: (data?.usage_id as string) || undefined,
+    success: true,
+    invoiceId: data.invoice_id,
+    promoCodeId: data.promo_code_id,
+    code: data.code,
+    discount: Number(data.discount ?? 0),
+    bonusMonths: data.bonus_months ? Number(data.bonus_months) : undefined,
+    total: Number(data.total ?? 0),
+    periodEnd: data.period_end,
+    usageId: data.usage_id,
   };
 }
 

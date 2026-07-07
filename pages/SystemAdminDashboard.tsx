@@ -12,7 +12,6 @@ import { AuditLog } from './AuditLog';
 import BillingConfig from '../components/BillingConfig';
 import VoucherManager from '../components/VoucherManager';
 import TicketInbox from '../components/TicketInbox';
-import AnnouncementManager from '../components/AnnouncementManager';
 import EmailTemplateManager from '../components/EmailTemplateManager';
 import './Dashboard.css';
 import {
@@ -285,7 +284,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'announcements' | 'emailTemplates'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -949,14 +948,8 @@ export default function SystemAdminDashboard() {
             Support tickets
           </button>
           <button
-            onClick={() => setActiveTab('announcements')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'announcements' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Thông báo
-          </button>
-          <button
-            onClick={() => setActiveTab('emailTemplates')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'emailTemplates' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+            onClick={() => setActiveTab('emails')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'emails' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             Email templates
           </button>
@@ -1854,9 +1847,7 @@ export default function SystemAdminDashboard() {
 
     {activeTab === 'tickets' && <TicketInbox />}
 
-    {activeTab === 'announcements' && <AnnouncementManager />}
-
-    {activeTab === 'emailTemplates' && <EmailTemplateManager />}
+    {activeTab === 'emails' && <EmailTemplateManager />}
 
   </div>
 

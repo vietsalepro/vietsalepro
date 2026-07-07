@@ -31,11 +31,14 @@ const store: Record<string, Row[]> = {
   plans: [],
   invoice_reminder_logs: [],
   billing_job_logs: [],
+  email_templates: [],
   support_tickets: [],
   ticket_replies: [],
   ticket_reply_templates: [],
+  promo_codes: [],
+  promotion_rules: [],
+  promo_code_usages: [],
   announcements: [],
-  email_templates: [],
 };
 
 export const resetMockData = () => {
@@ -49,7 +52,8 @@ export const resetMockData = () => {
     { key: 'default_limits_free', value: { max_users: 1, max_products: 50, max_orders_per_month: 300 }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'default_limits_vip', value: { max_users: 999, max_products: 999999, max_orders_per_month: 999999 }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'maintenance_mode', value: { enabled: false, message: '' }, updated_at: new Date().toISOString(), updated_by: null },
-    { key: 'data_retention_cron', value: { schedule: '0 3 * * *', description: 'Hàng ngày lúc 03:00' }, updated_at: new Date().toISOString(), updated_by: null }
+    { key: 'data_retention_cron', value: { schedule: '0 3 * * *', description: 'Hàng ngày lúc 03:00' }, updated_at: new Date().toISOString(), updated_by: null },
+    { key: 'email_brand', value: { logo_url: '', brand_color: '#2563eb', signature_html: 'Trân trọng,<br/>Đội ngũ VietSales Pro', from_name: 'VietSales Pro' }, updated_at: new Date().toISOString(), updated_by: null }
   );
 
   // ponytail: seed plans giống migration P8.1 để các test subscription/invoice dùng limits từ plans.
@@ -108,8 +112,11 @@ const addDays = (dateStr: string, days: number): string => {
   return date.toISOString().slice(0, 10);
 };
 
+// ponytail: tables managed by system admin globally (no tenant_id column; no tenant filter).
+const adminOnlyTables = ['bank_accounts', 'email_templates', 'ticket_reply_templates', 'promo_codes', 'promotion_rules', 'announcements'];
+
 const tenantIdColumn = (table: string): string | null => {
-  if (['tenants', 'tenant_memberships', 'tenant_subscriptions', 'bank_accounts', 'system_settings', 'ticket_reply_templates', 'email_templates'].includes(table)) return null;
+  if (['tenants', 'tenant_memberships', 'tenant_subscriptions', 'system_settings', ...adminOnlyTables].includes(table)) return null;
   return 'tenant_id';
 };
 
@@ -139,6 +146,7 @@ interface QueryState {
   head?: boolean;
   insertValues?: any[];
   updateValues?: any;
+  upsertValues?: any[];
   rangeStart?: number;
   rangeEnd?: number;
   orderBy?: string;
@@ -158,28 +166,10 @@ const executeQuery = (state: QueryState) => {
       rows = rows.filter(r => r.user_id === currentUserId || canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
-    } else if (table === 'bank_accounts' || table === 'invoice_reminder_logs' || table === 'ticket_reply_templates' || table === 'announcements') {
-      if (!isSystemAdmin) {
-        // Tenant members only see active announcements matching target/time.
-        if (table === 'announcements' && currentTenantId) {
-          const now = new Date().toISOString();
-          rows = rows.filter(r => {
-            if (r.status !== 'active') return false;
-            if (r.scheduled_at && r.scheduled_at > now) return false;
-            if (r.expires_at && r.expires_at <= now) return false;
-            if (r.target_type === 'all') return true;
-            const targets = Array.isArray(r.targets) ? r.targets : [];
-            if (r.target_type === 'specific_tenants') return targets.includes(currentTenantId);
-            if (r.target_type === 'specific_plans') {
-              const tenant = store.tenants.find(t => t.id === currentTenantId);
-              return tenant && targets.includes(tenant.plan);
-            }
-            return false;
-          });
-        } else {
-          rows = [];
-        }
-      }
+    } else if (adminOnlyTables.includes(table)) {
+      if (!isSystemAdmin) rows = [];
+    } else if (table === 'invoice_reminder_logs') {
+      if (!isSystemAdmin) rows = [];
     } else {
       const col = tenantIdColumn(table);
       // ponytail: system admin bypass tenant filter để xem toàn bộ dữ liệu (audit log, v.v.).
@@ -231,7 +221,17 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'insert') {
-    const values = state.insertValues ?? [];
+    let values = state.insertValues ?? [];
+    // ponytail: replicate DB trigger — derive tenant_id for ticket_replies from parent ticket.
+    if (table === 'ticket_replies') {
+      values = values.map((v: any) => {
+        if (!v.tenant_id && v.ticket_id) {
+          const ticket = store.support_tickets?.find((t: any) => t.id === v.ticket_id);
+          if (ticket) return { ...v, tenant_id: ticket.tenant_id };
+        }
+        return v;
+      });
+    }
     if (table === 'tenant_memberships') {
       const row = values[0];
       if (row.tenant_id !== currentTenantId && !isSystemAdmin) {
@@ -244,28 +244,8 @@ const executeQuery = (state: QueryState) => {
       if (!canAccessTenant(row.tenant_id) && !isSystemAdmin) {
         return { data: null, error: rlsError() };
       }
-    } else if (table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements' || table === 'email_templates') {
+    } else if (adminOnlyTables.includes(table)) {
       if (!isSystemAdmin) return { data: null, error: rlsError() };
-    } else if (table === 'support_tickets') {
-      const col = tenantIdColumn(table);
-      for (const row of values) {
-        if (col && row[col] !== currentTenantId && !isSystemAdmin) {
-          return { data: null, error: rlsError() };
-        }
-      }
-    } else if (table === 'ticket_replies') {
-      const col = tenantIdColumn(table);
-      if (!col) return { data: null, error: { code: '23502', message: 'ticket_replies requires tenant_id' } };
-      for (const row of values) {
-        if (!row[col]) {
-          const ticket = store.support_tickets.find(t => t.id === row.ticket_id);
-          if (!ticket) return { data: null, error: { code: '23503', message: 'Không tìm thấy ticket tương ứng' } };
-          row[col] = ticket.tenant_id;
-        }
-        if (row[col] !== currentTenantId && !isSystemAdmin) {
-          return { data: null, error: rlsError() };
-        }
-      }
     } else {
       const col = tenantIdColumn(table);
       for (const row of values) {
@@ -276,22 +256,17 @@ const executeQuery = (state: QueryState) => {
     }
 
     const inserted = values.map((v: any) => {
-      const row: Row = { id: uuid(), ...v, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const enriched = { ...v };
       if (table === 'support_tickets') {
-        row.status = row.status ?? 'open';
-        row.category = row.category ?? 'support';
-        row.priority = row.priority ?? 'medium';
+        if (!enriched.status) enriched.status = 'open';
+        if (!enriched.priority) enriched.priority = 'medium';
+        if (!enriched.category) enriched.category = 'support';
       }
-      if (table === 'ticket_replies') {
-        row.is_internal_note = row.is_internal_note ?? false;
+      if (table === 'ticket_replies' && !enriched.tenant_id && enriched.ticket_id) {
+        const ticket = store.support_tickets?.find((t: any) => t.id === enriched.ticket_id);
+        if (ticket) enriched.tenant_id = ticket.tenant_id;
       }
-      if (table === 'ticket_reply_templates') {
-        row.is_active = row.is_active ?? true;
-      }
-      if (table === 'email_templates') {
-        row.is_default = row.is_default ?? false;
-        row.is_active = row.is_active ?? true;
-      }
+      const row = { id: uuid(), ...enriched, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       store[table].push(row);
       return row;
     });
@@ -301,7 +276,7 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'update') {
-    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements' || table === 'email_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
+    if (adminOnlyTables.includes(table) && !isSystemAdmin) return { data: null, error: rlsError() };
     rows.forEach(r => Object.assign(r, state.updateValues, { updated_at: new Date().toISOString() }));
     if (state.single) {
       return rows.length
@@ -312,36 +287,29 @@ const executeQuery = (state: QueryState) => {
   }
 
   if (state.operation === 'delete') {
-    if ((table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements' || table === 'email_templates') && !isSystemAdmin) return { data: null, error: rlsError() };
+    if (adminOnlyTables.includes(table) && !isSystemAdmin) return { data: null, error: rlsError() };
     store[table] = store[table].filter(r => !rows.includes(r));
     return { data: null, error: null };
   }
 
   if (state.operation === 'upsert') {
-    const values = state.insertValues ?? [];
-    if (table === 'system_settings' || table === 'email_templates' || table === 'bank_accounts' || table === 'ticket_reply_templates' || table === 'announcements') {
-      if (!isSystemAdmin) return { data: null, error: rlsError() };
-    }
+    const values = state.upsertValues ?? [];
+    if (adminOnlyTables.includes(table) && !isSystemAdmin) return { data: null, error: rlsError() };
     const upserted = values.map((v: any) => {
-      const pk = v.key ?? v.id;
-      const pkField = v.key !== undefined ? 'key' : 'id';
-      const existing = pk !== undefined ? store[table].find(r => r[pkField] === pk) : undefined;
-      const now = new Date().toISOString();
-      if (existing) {
-        Object.assign(existing, v, { updated_at: now });
-        return existing;
+      if (table === 'system_settings') {
+        const existing = store[table].find(r => r.key === v.key);
+        if (existing) {
+          Object.assign(existing, { value: v.value, updated_at: new Date().toISOString(), updated_by: currentUserId });
+          return existing;
+        }
+        const row = { ...v, updated_at: new Date().toISOString(), updated_by: currentUserId };
+        store[table].push(row);
+        return row;
       }
-      const row: Row = { id: uuid(), ...v, created_at: now, updated_at: now };
-      if (table === 'email_templates') {
-        row.is_default = row.is_default ?? false;
-        row.is_active = row.is_active ?? true;
-      }
-      store[table].push(row);
-      return row;
+      // ponytail: generic upsert only supports system_settings; extend if needed.
+      return v;
     });
-    return state.single
-      ? { data: upserted[0], error: null }
-      : { data: upserted, error: null };
+    return state.single ? { data: upserted[0], error: null } : { data: upserted, error: null };
   }
 
   return { data: null, error: null };
@@ -365,12 +333,7 @@ const queryBuilder = (table: string): any => {
     },
     update: (values: any) => { state.operation = 'update'; state.updateValues = values; return builder; },
     delete: () => { state.operation = 'delete'; return builder; },
-    upsert: (values: any, options?: { onConflict?: string }) => {
-      state.operation = 'upsert';
-      state.insertValues = Array.isArray(values) ? values : [values];
-      state.updateValues = options;
-      return builder;
-    },
+    upsert: (values: any) => { state.operation = 'upsert'; state.upsertValues = Array.isArray(values) ? values : [values]; return builder; },
     eq: (field: string, value: any) => { state.filters[field] = value; return builder; },
     ilike: (field: string, pattern: string) => { state.ilikeFilters[field] = pattern; return builder; },
     gte: (field: string, value: any) => { state.gteFilters[field] = value; return builder; },
@@ -392,14 +355,13 @@ const rpc = async (name: string, params: Record<string, any>) => {
     if (!plan) {
       return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${planKey}` } };
     }
-    const ownerId = params.p_owner_user_id === undefined ? currentUserId : params.p_owner_user_id;
     const tenant = {
       id: uuid(),
       name: params.p_name,
       subdomain: params.p_subdomain,
       status: 'active',
       plan: planKey,
-      owner_id: ownerId,
+      owner_id: params.p_owner_user_id ?? currentUserId,
       settings: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -417,10 +379,8 @@ const rpc = async (name: string, params: Record<string, any>) => {
       billing_status: 'ok',
       updated_at: new Date().toISOString(),
     });
+    const ownerId = params.p_owner_user_id ?? currentUserId;
     if (ownerId) {
-      if (!store.users.find(u => u.id === ownerId)) {
-        store.users.push({ id: ownerId, email: `owner-${ownerId}@test.com` });
-      }
       store.tenant_memberships.push({
         id: uuid(),
         tenant_id: tenant.id,
@@ -1309,35 +1269,22 @@ const rpc = async (name: string, params: Record<string, any>) => {
   }
 
   if (name === 'get_current_announcements_for_tenant') {
-    const tenantId = params.p_tenant_id || currentTenantId;
-    if (!tenantId) {
-      return { data: [], error: null };
-    }
+    const tenantId = params.p_tenant_id;
     const tenant = store.tenants.find(t => t.id === tenantId);
-    const now = new Date().toISOString();
+    const now = new Date();
     const rows = store.announcements
       .filter((a: any) => {
         if (a.status !== 'active') return false;
-        if (a.scheduled_at && a.scheduled_at > now) return false;
-        if (a.expires_at && a.expires_at <= now) return false;
+        if (a.scheduled_at && new Date(a.scheduled_at) > now) return false;
+        if (a.expires_at && new Date(a.expires_at) < now) return false;
         if (a.target_type === 'all') return true;
-        const targets = Array.isArray(a.targets) ? a.targets : [];
-        if (a.target_type === 'specific_tenants') return targets.includes(tenantId);
-        if (a.target_type === 'specific_plans') return tenant && targets.includes(tenant.plan);
+        if (!tenant) return false;
+        if (a.target_type === 'specific_tenants') return (a.targets || []).includes(tenantId);
+        if (a.target_type === 'specific_plans') return (a.targets || []).includes(tenant.plan);
         return false;
       })
       .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return { data: rows, error: null };
-  }
-
-  if (name === 'get_email_brand') {
-    const row = store.system_settings.find(s => s.key === 'email_brand');
-    return { data: row?.value ?? { logo_url: '', brand_color: '#2563eb', signature_html: 'Trân trọng,<br/>Đội ngũ VietSales Pro', from_name: 'VietSales Pro' }, error: null };
-  }
-
-  if (name === 'get_email_template_by_key') {
-    const t = store.email_templates.find(t => t.key === params.p_key);
-    return { data: t ? [t] : [], error: null };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };
@@ -1351,7 +1298,7 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     if (tenant.status !== 'active') return { data: { error: 'Tenant không hoạt động' }, error: null };
 
     const sub = store.tenant_subscriptions.find(s => s.tenant_id === tenant_id);
-    const memberCount = store.tenant_memberships.filter(m => m.tenant_id === tenant_id && m.impersonated_by == null).length;
+    const memberCount = store.tenant_memberships.filter(m => m.tenant_id === tenant_id).length;
     if (sub && memberCount >= sub.max_users) {
       return { data: { error: 'Đã đạt giới hạn số user của gói dịch vụ' }, error: null };
     }
@@ -1377,103 +1324,22 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     return { data: { success: true }, error: null };
   }
 
-  if (name === 'reset-password') {
-    const { tenant_id, user_id } = body;
-    const tenant = store.tenants.find(t => t.id === tenant_id);
-    if (!tenant) return { data: { error: 'Tenant không tồn tại' }, error: null };
-    const membership = store.tenant_memberships.find(m => m.tenant_id === tenant_id && m.user_id === user_id);
-    if (!membership) return { data: { error: 'User không thuộc tenant này' }, error: null };
-    return { data: { success: true, action: 'recovery', redirectTo: `https://${tenant.subdomain}.vietsalepro.com/reset-password`, link: null }, error: null };
-  }
-
-  if (name === 'send-ticket-email') {
-    const { ticket_id, event, to } = body;
-    if (!ticket_id) return { data: { error: 'ticket_id không hợp lệ' }, error: null };
-    if (!event || !['reply', 'assigned', 'status'].includes(event)) {
-      return { data: { error: 'event phải là reply, assigned hoặc status' }, error: null };
-    }
-    const ticket = store.support_tickets.find(t => t.id === ticket_id);
-    if (!ticket) return { data: { error: 'Không tìm thấy ticket' }, error: null };
-    const tenant = store.tenants.find(t => t.id === ticket.tenant_id);
-    const owner = tenant ? store.users.find(u => u.id === tenant.owner_id) : undefined;
-    const recipient = to || owner?.email;
-    if (!recipient) return { data: { error: 'Không tìm thấy email người nhận cho ticket này' }, error: null };
-    return { data: { success: true, id: `email-${uuid()}`, to: recipient, event }, error: null };
-  }
-
-  if (name === 'send-billing-email') {
-    const { invoice_id, type, to } = body;
-    if (!invoice_id) return { data: { error: 'invoice_id không hợp lệ' }, error: null };
-    if (type !== 'reminder' && type !== 'confirmation') {
-      return { data: { error: 'type phải là reminder hoặc confirmation' }, error: null };
-    }
-    const invoice = store.invoices.find(i => i.id === invoice_id);
-    if (!invoice) return { data: { error: 'Không tìm thấy hóa đơn' }, error: null };
-    const tenant = store.tenants.find(t => t.id === invoice.tenant_id);
-    const owner = tenant ? store.users.find(u => u.id === tenant.owner_id) : undefined;
-    const recipient = to || owner?.email;
-    if (!recipient) return { data: { error: 'Không tìm thấy email người nhận cho tenant này' }, error: null };
-    return { data: { success: true, id: `email-${uuid()}`, to: recipient, type }, error: null };
-  }
-
-  if (name === 'send-template-email') {
-    const { template_key, to } = body;
-    if (!template_key) return { data: { error: 'template_key không hợp lệ' }, error: null };
-    const t = store.email_templates.find(t => t.key === template_key);
-    if (!t) return { data: { error: `Không tìm thấy template '${template_key}'` }, error: null };
-    if (!t.is_active) return { data: { error: `Template '${template_key}' đang bị tắt` }, error: null };
-    const recipients = Array.isArray(to) ? to : [to];
-    if (recipients.length === 0) return { data: { error: 'Danh sách người nhận rỗng' }, error: null };
-    return { data: { success: true, id: `email-${uuid()}`, to: recipients, template_key, subject: t.subject, test: !!body.test }, error: null };
-  }
-
-  if (name === 'check-subdomain') {
-    const { subdomain } = body;
-    const s = (subdomain || '').trim().toLowerCase();
-    const reserved = ['admin', 'www', 'api', 'app'];
-    if (!s) return { data: { available: false, error: 'Subdomain không được để trống' }, error: null };
-    if (s.length < 3 || s.length > 63) return { data: { available: false, error: 'Subdomain phải dài 3-63 ký tự' }, error: null };
-    if (!/^[a-z0-9-]+$/.test(s) || s.startsWith('-') || s.endsWith('-')) return { data: { available: false, error: 'Subdomain không hợp lệ' }, error: null };
-    if (reserved.includes(s)) return { data: { available: false }, error: null };
-    const existing = store.tenants.find(t => t.subdomain === s);
-    return { data: { available: !existing }, error: null };
-  }
-
-  if (name === 'audit-log') {
-    const { type, tenant_id, table_name, action, record_id, user_id, old_data, new_data, ip_address, user_agent } = body;
-    if (type !== 'audit') return { data: { error: 'type must be audit' }, error: null };
-    const allowed = new Set(['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'IMPERSONATE', 'IMPERSONATE_END']);
-    if (!action || !allowed.has(action)) return { data: { error: 'action không hợp lệ' }, error: null };
-    store.app_audit_log.push({
-      id: uuid(),
-      tenant_id: tenant_id ?? null,
-      table_name: table_name ?? '',
-      action,
-      record_id: record_id ?? null,
-      user_id: user_id ?? currentUserId,
-      old_data: old_data ?? null,
-      new_data: new_data ?? null,
-      ip_address: ip_address ?? '127.0.0.1',
-      user_agent: user_agent ?? null,
-      created_at: new Date().toISOString(),
-    });
-    return { data: { success: true }, error: null };
-  }
-
   if (name === 'impersonate-tenant') {
-    const { tenant_id } = body;
     if (!isSystemAdmin) return { data: { error: 'Chỉ system admin được impersonate' }, error: null };
+    const { tenant_id } = body;
     const tenant = store.tenants.find(t => t.id === tenant_id);
     if (!tenant) return { data: { error: 'Tenant không tồn tại' }, error: null };
     if (tenant.status !== 'active') return { data: { error: 'Tenant không hoạt động' }, error: null };
 
     const realMembership = store.tenant_memberships.find(
-      m => m.tenant_id === tenant_id && m.user_id === currentUserId && m.impersonated_by == null
+      m => m.tenant_id === tenant_id && m.user_id === currentUserId && !m.impersonated_by
     );
-    if (realMembership) return { data: { error: 'Bạn đã là thành viên của tenant này, không cần impersonate' }, error: null };
+    if (realMembership) {
+      return { data: { error: 'Bạn đã là thành viên của tenant này, không cần impersonate' }, error: null };
+    }
 
     store.tenant_memberships = store.tenant_memberships.filter(
-      m => !(m.tenant_id === tenant_id && m.user_id === currentUserId && m.impersonated_by != null)
+      m => !(m.tenant_id === tenant_id && m.user_id === currentUserId && m.impersonated_by)
     );
 
     const now = new Date();
@@ -1506,22 +1372,27 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
         impersonated_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),
       },
-      ip_address: '127.0.0.1',
-      user_agent: 'mock',
       created_at: now.toISOString(),
     });
 
-    return { data: { success: true, tenant, expires_at: expiresAt.toISOString() }, error: null };
+    return {
+      data: {
+        success: true,
+        tenant: { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain },
+        expires_at: expiresAt.toISOString(),
+      },
+      error: null,
+    };
   }
 
   if (name === 'end-impersonation') {
     if (!isSystemAdmin) return { data: { error: 'Chỉ system admin được kết thúc impersonate' }, error: null };
     const sessions = store.tenant_memberships.filter(
-      m => m.user_id === currentUserId && m.impersonated_by != null
+      m => m.user_id === currentUserId && m.impersonated_by
     );
     const now = new Date();
     for (const session of sessions) {
-      const startedAt = new Date(session.impersonated_at || now);
+      const startedAt = new Date(session.impersonated_at || now.toISOString());
       const durationSeconds = Math.round((now.getTime() - startedAt.getTime()) / 1000);
       store.app_audit_log.push({
         id: uuid(),
@@ -1536,15 +1407,90 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
           impersonated_expires_at: session.impersonated_expires_at,
           duration_seconds: durationSeconds,
         },
-        ip_address: '127.0.0.1',
-        user_agent: 'mock',
         created_at: now.toISOString(),
       });
     }
     store.tenant_memberships = store.tenant_memberships.filter(
-      m => !(m.user_id === currentUserId && m.impersonated_by != null)
+      m => !(m.user_id === currentUserId && m.impersonated_by)
     );
     return { data: { success: true, ended: sessions.length }, error: null };
+  }
+
+  if (name === 'reset-password') {
+    const { tenant_id, user_id } = body;
+    const tenant = store.tenants.find(t => t.id === tenant_id);
+    if (!tenant) return { data: { error: 'Tenant không tồn tại' }, error: null };
+    const membership = store.tenant_memberships.find(m => m.tenant_id === tenant_id && m.user_id === user_id);
+    if (!membership) return { data: { error: 'User không thuộc tenant này' }, error: null };
+    return { data: { success: true, action: 'recovery', redirectTo: `https://${tenant.subdomain}.vietsalepro.com/reset-password`, link: null }, error: null };
+  }
+
+  if (name === 'send-billing-email') {
+    const { invoice_id, type, to } = body;
+    if (!invoice_id) return { data: { error: 'invoice_id không hợp lệ' }, error: null };
+    if (type !== 'reminder' && type !== 'confirmation') {
+      return { data: { error: 'type phải là reminder hoặc confirmation' }, error: null };
+    }
+    const invoice = store.invoices.find(i => i.id === invoice_id);
+    if (!invoice) return { data: { error: 'Không tìm thấy hóa đơn' }, error: null };
+    const tenant = store.tenants.find(t => t.id === invoice.tenant_id);
+    const owner = tenant ? store.users.find(u => u.id === tenant.owner_id) : undefined;
+    const recipient = to || owner?.email;
+    if (!recipient) return { data: { error: 'Không tìm thấy email người nhận cho tenant này' }, error: null };
+    return { data: { success: true, id: `email-${uuid()}`, to: recipient, type }, error: null };
+  }
+
+  if (name === 'check-subdomain') {
+    const { subdomain } = body;
+    const s = (subdomain || '').trim().toLowerCase();
+    const reserved = ['admin', 'www', 'api', 'app'];
+    if (!s) return { data: { available: false, error: 'Subdomain không được để trống' }, error: null };
+    if (s.length < 3 || s.length > 63) return { data: { available: false, error: 'Subdomain phải dài 3-63 ký tự' }, error: null };
+    if (!/^[a-z0-9-]+$/.test(s) || s.startsWith('-') || s.endsWith('-')) return { data: { available: false, error: 'Subdomain không hợp lệ' }, error: null };
+    if (reserved.includes(s)) return { data: { available: false }, error: null };
+    const existing = store.tenants.find(t => t.subdomain === s);
+    return { data: { available: !existing }, error: null };
+  }
+
+  if (name === 'send-template-email') {
+    const { template_key, to, variables, test } = body;
+    if (!template_key || typeof template_key !== 'string') {
+      return { data: { error: 'template_key không hợp lệ' }, error: null };
+    }
+    const template = store.email_templates.find(t => t.key === template_key);
+    if (!template) {
+      return { data: { error: `Không tìm thấy template '${template_key}'` }, error: null };
+    }
+    if (!template.is_active) {
+      return { data: { error: `Template '${template_key}' đang bị tắt` }, error: null };
+    }
+    const recipients = Array.isArray(to) ? to : [to];
+    const brandRow = store.system_settings.find(s => s.key === 'email_brand');
+    const brandName = brandRow?.value?.from_name || 'VietSales Pro';
+    return {
+      data: {
+        success: true,
+        id: `email-${uuid()}`,
+        to: recipients,
+        template_key,
+        subject: template.subject.replace(/\{\{\s*brand_name\s*\}\}/g, brandName),
+        test: !!test,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'send-ticket-email') {
+    const { ticket_id, event, to, reply_id } = body;
+    const ticket = store.support_tickets?.find(t => t.id === ticket_id);
+    if (!ticket) return { data: { error: 'Không tìm thấy ticket' }, error: null };
+    const tenant = store.tenants.find(t => t.id === ticket.tenant_id);
+    const owner = tenant ? store.users.find(u => u.id === tenant.owner_id) : undefined;
+    const recipient = to || owner?.email || `owner-${ticket.tenant_id}@example.com`;
+    return {
+      data: { success: true, id: `email-${uuid()}`, to: recipient, event, reply_id },
+      error: null,
+    };
   }
 
   return { data: { error: 'Function not found' }, error: null };

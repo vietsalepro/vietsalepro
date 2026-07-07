@@ -1,0 +1,11 @@
+P11.3: Impersonation "Login as tenant admin".
+
+- Add tenant_memberships impersonation columns and update user-limit trigger.
+- Add IMPERSONATE/IMPERSONATE_END audit actions.
+- New Edge Functions: impersonate-tenant, end-impersonation.
+- Frontend: "Login as" button, impersonation banner, tenant/admin URL helpers.
+- Service layer + TenantContext + mock/test updates.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

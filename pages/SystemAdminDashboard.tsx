@@ -10,6 +10,7 @@ import { DashboardV2KPI } from './Dashboard';
 import { AuditLog } from './AuditLog';
 import BillingConfig from '../components/BillingConfig';
 import VoucherManager from '../components/VoucherManager';
+import TicketInbox from '../components/TicketInbox';
 import './Dashboard.css';
 import {
   Tenant,
@@ -280,7 +281,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -922,6 +923,12 @@ export default function SystemAdminDashboard() {
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'vouchers' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             Voucher
+          </button>
+          <button
+            onClick={() => setActiveTab('tickets')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'tickets' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Support tickets
           </button>
         </div>
 
@@ -1806,6 +1813,8 @@ export default function SystemAdminDashboard() {
     {activeTab === 'billing' && <BillingConfig />}
 
     {activeTab === 'vouchers' && <VoucherManager />}
+
+    {activeTab === 'tickets' && <TicketInbox />}
 
   </div>
 

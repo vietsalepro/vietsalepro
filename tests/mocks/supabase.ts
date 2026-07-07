@@ -333,13 +333,14 @@ const rpc = async (name: string, params: Record<string, any>) => {
     if (!plan) {
       return { data: null, error: { code: '23514', message: `Gói dịch vụ không hợp lệ: ${planKey}` } };
     }
+    const ownerId = params.p_owner_user_id === undefined ? currentUserId : params.p_owner_user_id;
     const tenant = {
       id: uuid(),
       name: params.p_name,
       subdomain: params.p_subdomain,
       status: 'active',
       plan: planKey,
-      owner_id: params.p_owner_user_id ?? currentUserId,
+      owner_id: ownerId,
       settings: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -357,8 +358,10 @@ const rpc = async (name: string, params: Record<string, any>) => {
       billing_status: 'ok',
       updated_at: new Date().toISOString(),
     });
-    const ownerId = params.p_owner_user_id ?? currentUserId;
     if (ownerId) {
+      if (!store.users.find(u => u.id === ownerId)) {
+        store.users.push({ id: ownerId, email: `owner-${ownerId}@test.com` });
+      }
       store.tenant_memberships.push({
         id: uuid(),
         tenant_id: tenant.id,
@@ -1290,6 +1293,21 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     const membership = store.tenant_memberships.find(m => m.tenant_id === tenant_id && m.user_id === user_id);
     if (!membership) return { data: { error: 'User không thuộc tenant này' }, error: null };
     return { data: { success: true, action: 'recovery', redirectTo: `https://${tenant.subdomain}.vietsalepro.com/reset-password`, link: null }, error: null };
+  }
+
+  if (name === 'send-ticket-email') {
+    const { ticket_id, event, to } = body;
+    if (!ticket_id) return { data: { error: 'ticket_id không hợp lệ' }, error: null };
+    if (!event || !['reply', 'assigned', 'status'].includes(event)) {
+      return { data: { error: 'event phải là reply, assigned hoặc status' }, error: null };
+    }
+    const ticket = store.support_tickets.find(t => t.id === ticket_id);
+    if (!ticket) return { data: { error: 'Không tìm thấy ticket' }, error: null };
+    const tenant = store.tenants.find(t => t.id === ticket.tenant_id);
+    const owner = tenant ? store.users.find(u => u.id === tenant.owner_id) : undefined;
+    const recipient = to || owner?.email;
+    if (!recipient) return { data: { error: 'Không tìm thấy email người nhận cho ticket này' }, error: null };
+    return { data: { success: true, id: `email-${uuid()}`, to: recipient, event }, error: null };
   }
 
   if (name === 'send-billing-email') {

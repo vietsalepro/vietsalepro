@@ -105,3 +105,10 @@ export interface SupportTicketListFilters {
   assignedTo?: string;
   searchTerm?: string;
 }
+
+export interface SendTicketUpdateEmailInput {
+  ticketId: string;
+  event: 'reply' | 'assigned' | 'status';
+  to?: string;
+  replyId?: string;
+}

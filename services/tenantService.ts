@@ -119,13 +119,13 @@ export async function createTenantWithAdmin(input: {
   name: string;
   subdomain: string;
   plan?: Tenant['plan'];
-  ownerId?: string;
+  ownerId?: string | null;
 }): Promise<Tenant> {
   const { data, error } = await supabase.rpc('create_tenant_with_admin', {
     p_name: input.name,
     p_subdomain: input.subdomain,
     p_plan: input.plan ?? 'free',
-    p_owner_user_id: input.ownerId ?? null,
+    p_owner_user_id: input.ownerId,
   });
   if (error) throw error;
   return mapTenantFromDB(data);

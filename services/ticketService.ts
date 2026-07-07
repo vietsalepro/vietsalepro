@@ -10,6 +10,7 @@ import {
   CreateTicketReplyTemplateInput,
   UpdateTicketReplyTemplateInput,
   SupportTicketListFilters,
+  SendTicketUpdateEmailInput,
 } from '../types/support';
 
 const mapSupportTicketFromDB = (row: any): SupportTicket => ({
@@ -282,4 +283,20 @@ export async function updateTicketReplyTemplate(
 export async function deleteTicketReplyTemplate(id: string): Promise<void> {
   const { error } = await supabase.from('ticket_reply_templates').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function sendTicketUpdateEmail(
+  input: SendTicketUpdateEmailInput
+): Promise<{ id: string | null; to: string; event: string }> {
+  const { data, error } = await supabase.functions.invoke('send-ticket-email', {
+    body: {
+      ticket_id: input.ticketId,
+      event: input.event,
+      to: input.to,
+      reply_id: input.replyId,
+    },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return { id: data?.id ?? null, to: data?.to, event: data?.event };
 }

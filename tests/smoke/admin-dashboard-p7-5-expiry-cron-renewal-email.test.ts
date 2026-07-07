@@ -37,7 +37,7 @@ describe('smoke: admin dashboard P7.5 expiry cron + renewal + Resend email', () 
   });
 
   it('báo lỗi khi không tìm được email người nhận', async () => {
-    const tenant = await createTenantWithAdmin({ name: 'Shop C', subdomain: 'shop-c' });
+    const tenant = await createTenantWithAdmin({ name: 'Shop C', subdomain: 'shop-c', ownerId: null as any });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
 
     await expect(sendBillingEmail({ invoiceId: invoice.id, type: 'reminder' }))

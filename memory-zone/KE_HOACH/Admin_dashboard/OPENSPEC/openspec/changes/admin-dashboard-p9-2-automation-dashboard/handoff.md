@@ -1,12 +1,17 @@
 ## What Was Done
 
-- Completed P9 2 Automation Dashboard.
+- Added `billing_job_logs` table with RLS + indexes.
+- Instrumented `expire_overdue_invoices`, `create_renewal_invoices`, and `send_billing_reminders` to log every run.
+- Added RPCs `get_billing_automation_status()` and `get_billing_job_logs(p_limit)`.
+- Added frontend types, service layer, and `BillingAutomationDashboard` component showing KPIs, expiring/overdue/dunning lists, and job logs.
+- Wired the dashboard into the existing "Thanh toán" tab in `BillingConfig`.
 
 ## What Was Verified
 
-- [ ] `npm run lint` pass
-- [ ] `npm run build` pass
-- [ ] Manual acceptance criteria tested
+- [x] `npm run lint` pass
+- [x] `npm run build` pass
+- [x] Smoke test `tests/smoke/admin-dashboard-p9-2-billing-automation-dashboard.test.ts` pass
+- [x] Migration deployed and tested on Supabase project `rsialbfjswnrkzcxarnj` via `supabase db query`
 
 ## Next Phase
 
@@ -18,4 +23,4 @@
 
 ## Backup Location
 
-- `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p9-2-automation-dashboard_<YYYYMMDD_HHMMSS>`
+- `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p9-2-automation-dashboard_20260707_110125`

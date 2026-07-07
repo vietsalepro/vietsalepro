@@ -2,6 +2,8 @@
 // BILLING TYPES — P7.1 billing schema + bank/company config
 // ============================================================
 
+import type { TenantStatus } from './tenant';
+
 export interface BankAccount {
   id: string;
   accountName: string;
@@ -136,4 +138,53 @@ export interface PendingReminder {
   invoiceId: string;
   milestone: 'T-7' | 'T-3' | 'T-1';
   dueDate: string;
+}
+
+export interface BillingJobLog {
+  id: string;
+  jobName: string;
+  status: 'running' | 'success' | 'failed';
+  runAt: string;
+  durationMs?: number;
+  recordsAffected: number;
+  message?: string;
+  details?: Record<string, any>;
+  createdAt: string;
+}
+
+export interface ExpiringTenantItem {
+  id: string;
+  name: string;
+  subdomain: string;
+  expiresAt: string;
+  daysRemaining: number;
+}
+
+export interface OverdueInvoiceItem {
+  id: string;
+  invoiceNo: string;
+  tenantId: string;
+  tenantName: string;
+  tenantSubdomain: string;
+  dueDate: string;
+  status: Invoice['status'];
+  balance: number;
+}
+
+export interface DunningTenantItem {
+  id: string;
+  name: string;
+  subdomain: string;
+  status: TenantStatus;
+  billingStatus?: string;
+}
+
+export interface BillingAutomationStatus {
+  expiringSoonCount: number;
+  expiringSoon: ExpiringTenantItem[];
+  pendingInvoiceCount: number;
+  overdueInvoiceCount: number;
+  overdueInvoices: OverdueInvoiceItem[];
+  dunningTenantCount: number;
+  dunningTenants: DunningTenantItem[];
 }

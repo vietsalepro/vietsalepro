@@ -30,6 +30,7 @@ const store: Record<string, Row[]> = {
   invoice_number_counters: [],
   plans: [],
   invoice_reminder_logs: [],
+  billing_job_logs: [],
 };
 
 export const resetMockData = () => {
@@ -1115,6 +1116,100 @@ const rpc = async (name: string, params: Record<string, any>) => {
       }
     }
     return { data: { sent, skipped, error: null }, error: null };
+  }
+
+  if (name === 'get_billing_automation_status') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem dashboard automation' } };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const addDays = (dateStr: string, days: number): string => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const date = new Date(Date.UTC(y, m - 1, d + days));
+      return date.toISOString().slice(0, 10);
+    };
+    const expiringSoon = store.tenant_subscriptions
+      .filter((s: any) => {
+        if (!s.expires_at) return false;
+        const expiresDate = s.expires_at.slice(0, 10);
+        return expiresDate >= today && expiresDate <= addDays(today, 7);
+      })
+      .map((s: any) => {
+        const tenant = store.tenants.find((t: any) => t.id === s.tenant_id);
+        return {
+          id: s.tenant_id,
+          name: tenant?.name || '',
+          subdomain: tenant?.subdomain || '',
+          expires_at: s.expires_at,
+          days_remaining: Math.max(0, Math.ceil((new Date(s.expires_at).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24))),
+        };
+      });
+    const overdueInvoices = store.invoices
+      .filter((i: any) => ['overdue', 'expired'].includes(i.status))
+      .map((i: any) => {
+        const tenant = store.tenants.find((t: any) => t.id === i.tenant_id);
+        return {
+          id: i.id,
+          invoice_no: i.invoice_no,
+          tenant_id: i.tenant_id,
+          tenant_name: tenant?.name || '',
+          tenant_subdomain: tenant?.subdomain || '',
+          due_date: i.due_date,
+          status: i.status,
+          balance: i.balance,
+        };
+      });
+    const dunningTenants = store.tenants
+      .filter((t: any) => {
+        const sub = store.tenant_subscriptions.find((s: any) => s.tenant_id === t.id);
+        return t.status === 'read_only' || sub?.billing_status === 'overdue';
+      })
+      .map((t: any) => {
+        const sub = store.tenant_subscriptions.find((s: any) => s.tenant_id === t.id);
+        return {
+          id: t.id,
+          name: t.name,
+          subdomain: t.subdomain,
+          status: t.status,
+          billing_status: sub?.billing_status || '',
+        };
+      });
+    const pendingInvoiceCount = store.invoices.filter((i: any) => ['pending', 'overdue', 'expired'].includes(i.status)).length;
+    return {
+      data: {
+        expiring_soon_count: expiringSoon.length,
+        expiring_soon: expiringSoon,
+        pending_invoice_count: pendingInvoiceCount,
+        overdue_invoice_count: overdueInvoices.length,
+        overdue_invoices: overdueInvoices,
+        dunning_tenant_count: dunningTenants.length,
+        dunning_tenants: dunningTenants,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'get_billing_job_logs') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem job log' } };
+    }
+    const limit = params.p_limit ?? 100;
+    const rows = store.billing_job_logs
+      .slice()
+      .sort((a: any, b: any) => new Date(b.run_at).getTime() - new Date(a.run_at).getTime())
+      .slice(0, limit)
+      .map((r: any) => ({
+        id: r.id,
+        job_name: r.job_name,
+        status: r.status,
+        run_at: r.run_at,
+        duration_ms: r.duration_ms,
+        records_affected: r.records_affected,
+        message: r.message,
+        details: r.details,
+        created_at: r.created_at,
+      }));
+    return { data: rows, error: null };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };

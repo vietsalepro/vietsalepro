@@ -1,8 +1,8 @@
 ## 0. Pre-Flight
 
-- [ ] 0.1 Create project backup to `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p13-4-bulk-maintenance_<YYYYMMDD_HHMMSS>`
-- [ ] 0.2 Confirm `npm run lint` passes (baseline)
-- [ ] 0.3 Read the sub-phase section in `memory-zone/KE_HOACH/Admin_dashboard/KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md`
+- [x] 0.1 Create project backup to `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p13-4-bulk-maintenance_20260708_090833`
+- [x] 0.2 Confirm `npm run lint` passes (baseline)
+- [x] 0.3 Read the sub-phase section in `memory-zone/KE_HOACH/Admin_dashboard/KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md`
 
 ## 1. P13 4 Bulk Maintenance
 

@@ -14,6 +14,7 @@ import {
   TenantGrowthPoint,
   TenantFeatureFlags,
   DEFAULT_TENANT_FEATURE_FLAGS,
+  StorageUsage,
 } from '../types/tenant';
 
 // --- Mappers ---
@@ -477,6 +478,30 @@ export async function getTenantGrowth(months = 6): Promise<TenantGrowthPoint[]> 
   const { data, error } = await supabase.rpc('get_tenant_growth', { p_months: months });
   if (error) throw error;
   return (data || []).map((row: any) => ({ month: row.month, count: row.count ?? 0 }));
+}
+
+// --- Storage usage per tenant (P13.3) ---
+
+const mapStorageUsageFromDB = (row: any): StorageUsage => ({
+  checkedAt: row.checkedAt ?? new Date().toISOString(),
+  totalDatabaseBytes: row.totalDatabaseBytes ?? 0,
+  tenants: (row.tenants || []).map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    subdomain: t.subdomain,
+    bytes: t.bytes ?? 0,
+    tables: (t.tables || []).map((tbl: any) => ({
+      name: tbl.name,
+      rowCount: tbl.rowCount ?? 0,
+      bytes: tbl.bytes ?? 0,
+    })),
+  })),
+});
+
+export async function getTenantStorageUsage(): Promise<StorageUsage> {
+  const { data, error } = await supabase.rpc('get_tenant_storage_usage');
+  if (error) throw error;
+  return mapStorageUsageFromDB(data);
 }
 
 // --- Impersonation (P11.3) ---

@@ -274,3 +274,32 @@ export interface ErrorPerformance {
   errors: ErrorLogSummary;
   performance: QueryPerformanceMetrics;
 }
+
+// P13.3: Storage usage per tenant + backup status
+export interface StorageTable {
+  name: string;
+  rowCount: number;
+  bytes: number;
+}
+
+export interface TenantStorageUsage {
+  id: string;
+  name: string;
+  subdomain: string;
+  bytes: number;
+  tables: StorageTable[];
+}
+
+export interface StorageUsage {
+  checkedAt: string;
+  totalDatabaseBytes: number;
+  tenants: TenantStorageUsage[];
+}
+
+export interface BackupStatus {
+  pitrEnabled: boolean | null;
+  pitrEarliestRecoveryPoint: string | null;
+  lastBackupAt: string | null;
+  cliAvailable: boolean;
+  status: 'healthy' | 'degraded' | 'unknown';
+}

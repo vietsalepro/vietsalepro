@@ -1295,6 +1295,27 @@ const rpc = async (name: string, params: Record<string, any>) => {
     return { data: rows, error: null };
   }
 
+  if (name === 'get_tenant_storage_usage') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem storage usage' } };
+    }
+    const tenants = store.tenants.map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      subdomain: t.subdomain,
+      bytes: 1024 * 1024,
+      tables: [{ name: 'orders', rowCount: 10, bytes: 512 * 1024 }],
+    }));
+    return {
+      data: {
+        checkedAt: new Date().toISOString(),
+        totalDatabaseBytes: tenants.length * 1024 * 1024 * 2,
+        tenants,
+      },
+      error: null,
+    };
+  }
+
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };
 };
 
@@ -1548,6 +1569,22 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
             { query: 'SELECT * FROM orders WHERE tenant_id = $1', calls: 1200, mean_ms: 2.1, p95_ms: 8.4, p99_ms: 14.2, total_ms: 2520 },
             { query: 'UPDATE tenants SET ...', calls: 45, mean_ms: 12.5, p95_ms: 35.0, p99_ms: 67.0, total_ms: 562.5 },
           ],
+        },
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'system-backup') {
+    return {
+      data: {
+        checkedAt: new Date().toISOString(),
+        backupStatus: {
+          pitrEnabled: true,
+          pitrEarliestRecoveryPoint: new Date().toISOString(),
+          lastBackupAt: new Date().toISOString(),
+          cliAvailable: true,
+          status: 'healthy',
         },
       },
       error: null,

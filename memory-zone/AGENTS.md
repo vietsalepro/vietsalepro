@@ -1241,3 +1241,24 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
 - Deployed to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) via `npx supabase db push --include-all`.
   - Verified `get_churn_cohort_metrics()` exists and rejects anon callers with `insufficient_privilege`.
 
+## Phase P18.3 — Read replica + connection pooling + queue system (YAGNI) (2026-07-08)
+- Backend:
+  - Migration `supabase/migrations/20260708000002_phase_p18_3_read_replica_queue.sql`:
+    - Added `read_replica_url` and `connection_pool_config` to `public.tenants`.
+    - Created `public.heavy_ops_jobs` queue table with RLS.
+    - Queue RPCs: `enqueue_heavy_op_job`, `claim_heavy_op_job`, `complete_heavy_op_job`, `get_heavy_op_jobs`, `retry_heavy_op_job`.
+    - Infrastructure RPCs: `get_connection_pool_stats`, `get_read_replica_status`.
+    - Extended `update_tenant` to accept `p_read_replica_url` and `p_connection_pool_config`.
+- Frontend:
+  - `lib/supabaseReadReplica.ts`: optional read-replica client from `VITE_SUPABASE_READ_REPLICA_URL` with per-tenant override support.
+  - `services/heavyOpsQueueService.ts`: service wrappers for all queue/stats RPCs.
+  - `components/ReadReplicaQueueManager.tsx`: status cards, connection-pool stats, heavy-ops job list/filter/retry/enqueue/claim demo.
+  - Wired into `pages/SystemAdminDashboard.tsx` as tab "Replica / Queue".
+- Types: added `HeavyOpJob`, `HeavyOpJobStatus`, `ConnectionPoolStats`, `ReadReplicaStatus`, plus `readReplicaUrl`/`connectionPoolConfig` to `Tenant`.
+- Tests: `tests/smoke/admin-dashboard-p18-3-read-replica-queue.test.ts` (6/6 PASS).
+- Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p18-3-read-replica-queue_20260708_135745`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run` 180/180 PASS.
+- Deployed to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) via Supabase MCP `apply_migration` in 5 idempotent chunks.
+  - Verified `read_replica_url`, `connection_pool_config` columns and all 7 new RPCs exist.
+  - Verified `get_connection_pool_stats()` and `get_read_replica_status()` return expected JSON.
+

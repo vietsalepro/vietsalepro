@@ -24,6 +24,7 @@ import IntegrationMarketplace from '../components/IntegrationMarketplace';
 import TwoFactorManager from '../components/TwoFactorManager';
 import ComplianceManager from '../components/ComplianceManager';
 import WhiteLabelManager from '../components/WhiteLabelManager';
+import ReadReplicaQueueManager from '../components/ReadReplicaQueueManager';
 import './Dashboard.css';
 import {
   Tenant,
@@ -325,7 +326,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor' | 'compliance' | 'whiteLabel'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor' | 'compliance' | 'whiteLabel' | 'readReplicaQueue'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -1201,6 +1202,12 @@ export default function SystemAdminDashboard() {
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'whiteLabel' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             White-label
+          </button>
+          <button
+            onClick={() => setActiveTab('readReplicaQueue')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'readReplicaQueue' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Replica / Queue
           </button>
         </div>
 
@@ -2259,6 +2266,8 @@ export default function SystemAdminDashboard() {
     {activeTab === 'compliance' && <ComplianceManager />}
 
     {activeTab === 'whiteLabel' && <WhiteLabelManager />}
+
+    {activeTab === 'readReplicaQueue' && <ReadReplicaQueueManager />}
 
   </div>
 

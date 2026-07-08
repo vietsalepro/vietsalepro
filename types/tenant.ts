@@ -29,6 +29,8 @@ export interface Tenant {
   isolationProjectRef?: string;
   customDomain?: string;
   whiteLabel?: TenantWhiteLabel;
+  readReplicaUrl?: string;
+  connectionPoolConfig?: Record<string, any>;
   createdAt?: string;
   updatedAt?: string;
   archivedAt?: string;
@@ -528,6 +530,39 @@ export interface DataRetentionConfig {
   retentionDaysFraudQueue: number;
   retentionDaysRegistrationEvents: number;
   cronSchedule: string;
+}
+
+// P18.3: Read replica + connection pooling + heavy ops queue
+export type HeavyOpJobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+export interface HeavyOpJob {
+  id: string;
+  tenantId: string;
+  jobType: string;
+  payload?: any;
+  status: HeavyOpJobStatus;
+  attempts: number;
+  maxAttempts: number;
+  errorMessage?: string;
+  result?: any;
+  scheduledAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ConnectionPoolStats {
+  active: number;
+  idle: number;
+  total: number;
+  max: number;
+  status: 'healthy' | 'warning' | 'critical' | 'unknown';
+  message?: string;
+}
+
+export interface ReadReplicaStatus {
+  enabled: boolean;
+  configuredTenants: number;
+  message?: string;
 }
 
 export interface DataRetentionRunResult {

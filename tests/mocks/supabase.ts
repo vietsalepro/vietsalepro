@@ -44,6 +44,7 @@ const store: Record<string, Row[]> = {
   fraud_queue: [],
   tenant_registration_events: [],
   processed_operations: [],
+  heavy_ops_jobs: [],
 };
 
 export const resetMockData = () => {
@@ -382,6 +383,8 @@ const rpc = async (name: string, params: Record<string, any>) => {
       isolation_project_ref: null,
       custom_domain: null,
       white_label: {},
+      read_replica_url: null,
+      connection_pool_config: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -515,6 +518,14 @@ const rpc = async (name: string, params: Record<string, any>) => {
 
     if (params.p_white_label !== null && params.p_white_label !== undefined) {
       tenant.white_label = params.p_white_label;
+    }
+
+    // P18.3: read replica / connection pool config
+    if (params.p_read_replica_url !== null && params.p_read_replica_url !== undefined) {
+      tenant.read_replica_url = params.p_read_replica_url.trim() || null;
+    }
+    if (params.p_connection_pool_config !== null && params.p_connection_pool_config !== undefined) {
+      tenant.connection_pool_config = params.p_connection_pool_config;
     }
 
     tenant.updated_at = new Date().toISOString();
@@ -1709,6 +1720,107 @@ const rpc = async (name: string, params: Record<string, any>) => {
       },
       error: null,
     };
+  }
+
+  // P18.3: Read replica + connection pooling + heavy ops queue
+  if (name === 'get_connection_pool_stats') {
+    return {
+      data: {
+        active: 2,
+        idle: 8,
+        total: 10,
+        max: 100,
+        status: 'healthy',
+        message: null,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'get_read_replica_status') {
+    const configured = store.tenants.filter((t: any) => t.read_replica_url).length;
+    return {
+      data: {
+        enabled: configured > 0,
+        configured_tenants: configured,
+        message: 'Read replica URL được cấu hình trên cột tenants.read_replica_url. Frontend dùng VITE_SUPABASE_READ_REPLICA_URL.',
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'enqueue_heavy_op_job') {
+    const tenant = store.tenants.find((t: any) => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (!isSystemAdmin && !isTenantMember(params.p_tenant_id)) {
+      return { data: null, error: { code: '42501', message: 'Không có quyền tạo job' } };
+    }
+    const job = {
+      id: uuid(),
+      tenant_id: params.p_tenant_id,
+      job_type: params.p_job_type,
+      payload: params.p_payload ?? {},
+      status: 'pending',
+      attempts: 0,
+      max_attempts: params.p_max_attempts ?? 3,
+      error_message: null,
+      result: null,
+      scheduled_at: params.p_scheduled_at ?? new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    store.heavy_ops_jobs.push(job);
+    return { data: job, error: null };
+  }
+
+  if (name === 'get_heavy_op_jobs') {
+    let rows = store.heavy_ops_jobs as any[];
+    if (params.p_tenant_id) rows = rows.filter((j) => j.tenant_id === params.p_tenant_id);
+    if (params.p_status) rows = rows.filter((j) => j.status === params.p_status);
+    rows = rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    return { data: rows.slice(offset, offset + limit), error: null };
+  }
+
+  if (name === 'claim_heavy_op_job') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Không có quyền claim job' } };
+    }
+    const job = store.heavy_ops_jobs.find((j: any) => j.status === 'pending');
+    if (!job) return { data: null, error: null };
+    job.status = 'processing';
+    job.attempts += 1;
+    job.updated_at = new Date().toISOString();
+    return { data: job, error: null };
+  }
+
+  if (name === 'complete_heavy_op_job') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Không có quyền cập nhật job' } };
+    }
+    const job = store.heavy_ops_jobs.find((j: any) => j.id === params.p_job_id);
+    if (!job) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    job.status = params.p_status;
+    job.result = params.p_result ?? null;
+    job.error_message = params.p_error_message ?? null;
+    job.updated_at = new Date().toISOString();
+    return { data: job, error: null };
+  }
+
+  if (name === 'retry_heavy_op_job') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Không có quyền retry job' } };
+    }
+    const job = store.heavy_ops_jobs.find((j: any) => j.id === params.p_job_id);
+    if (!job || !['failed', 'cancelled'].includes(job.status)) {
+      return { data: null, error: { code: '23514', message: 'Chỉ được retry job failed/cancelled' } };
+    }
+    job.status = 'pending';
+    job.attempts = 0;
+    job.error_message = null;
+    job.updated_at = new Date().toISOString();
+    return { data: job, error: null };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };

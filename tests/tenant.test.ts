@@ -4,6 +4,8 @@ import {
   setCurrentUserId,
   setCurrentTenantId,
   setSystemAdmin,
+  addMockRow,
+  getMockRows,
   mockSupabase,
 } from './mocks/supabase';
 
@@ -25,6 +27,7 @@ import {
   restoreTenant,
 } from '../services/tenantService';
 import { restoreTenantBackup, previewBackupTables } from '../services/tenantRestoreService';
+import { resetDemoData, migrateTenantData } from '../services/tenantMigrationService';
 
 describe('tenant/auth/membership', () => {
   beforeEach(() => {
@@ -202,5 +205,54 @@ describe('tenant restore service', () => {
     setCurrentUserId('admin-005');
     const file = new File(['{"tenant":{"id":"x"}}'], 'bad.json', { type: 'application/json' });
     await expect(restoreTenantBackup('x', file)).rejects.toThrow('thiếu phần tables');
+  });
+});
+
+describe('tenant migration service', () => {
+  beforeEach(() => {
+    resetMockData();
+    setSystemAdmin(true);
+  });
+
+  it('resetDemoData xóa dữ liệu business nhưng giữ tenant/subscription/membership', async () => {
+    setCurrentUserId('admin-006');
+    const tenant = await createTenantWithAdmin({ name: 'Cửa hàng Demo', subdomain: 'store-demo', plan: 'free' });
+    addMockRow('products', { id: 'p-demo-1', tenant_id: tenant.id, name: 'SP mẫu', code: 'DEMO01', quantity: 10, cost: 1000, price: 1500, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+    addMockRow('orders', { id: 'o-demo-1', tenant_id: tenant.id, code: 'ORDER01', total: 1500, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+
+    const subBefore = getMockRows('tenant_subscriptions').find(s => s.tenant_id === tenant.id)!;
+    subBefore.current_month_orders = 5;
+
+    const res = await resetDemoData(tenant.id);
+    expect(res.tenantId).toBe(tenant.id);
+    expect(res.totalRows).toBeGreaterThan(0);
+    expect(res.cleared.some(c => c.table === 'products')).toBe(true);
+    expect(res.cleared.some(c => c.table === 'orders')).toBe(true);
+
+    const productsAfter = getMockRows('products').filter((p: any) => p.tenant_id === tenant.id);
+    const ordersAfter = getMockRows('orders').filter((o: any) => o.tenant_id === tenant.id);
+    expect(productsAfter).toHaveLength(0);
+    expect(ordersAfter).toHaveLength(0);
+
+    const membershipsAfter = getMockRows('tenant_memberships').filter((m: any) => m.tenant_id === tenant.id);
+    expect(membershipsAfter.length).toBeGreaterThan(0);
+
+    const subAfter = getMockRows('tenant_subscriptions').find(s => s.tenant_id === tenant.id)!;
+    expect(subAfter.current_month_orders).toBe(0);
+  });
+
+  it('migrateTenantData copy dữ liệu từ source sang target tenant', async () => {
+    setCurrentUserId('admin-007');
+    const source = await createTenantWithAdmin({ name: 'Source', subdomain: 'source', plan: 'free' });
+    const target = await createTenantWithAdmin({ name: 'Target', subdomain: 'target', plan: 'free' });
+    addMockRow('products', { id: 'p-mig-1', tenant_id: source.id, name: 'SP source', code: 'SRC01', quantity: 5, cost: 1000, price: 1500, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+
+    const res = await migrateTenantData(source.id, target.id);
+    expect(res.sourceTenantId).toBe(source.id);
+    expect(res.targetTenantId).toBe(target.id);
+
+    const targetProducts = getMockRows('products').filter((p: any) => p.tenant_id === target.id);
+    expect(targetProducts.length).toBe(1);
+    expect(targetProducts[0].name).toBe('SP source');
   });
 });

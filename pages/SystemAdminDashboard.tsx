@@ -71,6 +71,7 @@ import {
 } from '../services/systemAdminService';
 import { downloadTenantBackup } from '../services/tenantBackupService';
 import { restoreTenantBackup, previewBackupTables } from '../services/tenantRestoreService';
+import { resetDemoData } from '../services/tenantMigrationService';
 import {
   getDataRetentionStatus,
   getDefaultPlanLimits,
@@ -280,6 +281,7 @@ export default function SystemAdminDashboard() {
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [restorePreview, setRestorePreview] = useState<{ name: string; rows: number }[] | null>(null);
   const [restoreSubmitting, setRestoreSubmitting] = useState(false);
+  const [resettingTenantId, setResettingTenantId] = useState<string | null>(null);
 
   const [subTenant, setSubTenant] = useState<Tenant | null>(null);
   const [subForm, setSubForm] = useState<UpdateSubscriptionInput & { plan: TenantPlan }>({
@@ -516,6 +518,21 @@ export default function SystemAdminDashboard() {
       setError(err?.message || 'Restore tenant thất bại.');
     } finally {
       setRestoreSubmitting(false);
+    }
+  };
+
+  const handleResetDemo = async (tenant: Tenant) => {
+    if (!window.confirm(`Reset dữ liệu demo cho "${tenant.name}"? Dữ liệu business sẽ bị xóa nhưng tài khoản tenant và thành viên được giữ lại.`)) return;
+    setResettingTenantId(tenant.id);
+    setError(null);
+    try {
+      const res = await resetDemoData(tenant.id);
+      const clearedTables = res.cleared.map((c) => `${c.table} (${c.rows})`).join(', ');
+      setError(`Reset demo thành công: ${res.totalRows} dòng đã xóa (${clearedTables}).`);
+    } catch (err: any) {
+      setError(err?.message || 'Reset demo thất bại.');
+    } finally {
+      setResettingTenantId(null);
     }
   };
 
@@ -1441,6 +1458,13 @@ export default function SystemAdminDashboard() {
                               className="px-3 py-1.5 text-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg disabled:opacity-60"
                             >
                               Restore
+                            </button>
+                            <button
+                              onClick={() => handleResetDemo(t)}
+                              disabled={resettingTenantId === t.id}
+                              className="px-3 py-1.5 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg disabled:opacity-60"
+                            >
+                              {resettingTenantId === t.id ? 'Đang reset...' : 'Reset demo'}
                             </button>
                             <button
                               onClick={() => handleLoginAs(t)}

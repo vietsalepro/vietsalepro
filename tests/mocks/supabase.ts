@@ -1410,6 +1410,87 @@ const rpc = async (name: string, params: Record<string, any>) => {
     return { data: { id: params.p_id, deleted: true }, error: null };
   }
 
+  if (name === 'reset_demo_data') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được reset demo data' } };
+    }
+    const tenantId = params.p_tenant_id;
+    const tenant = store.tenants.find(t => t.id === tenantId);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+
+    const protectedTables = ['tenants', 'tenant_memberships', 'tenant_subscriptions', 'system_settings', 'app_audit_log', 'plans', 'system_admins'];
+    const cleared: { table: string; rows: number }[] = [];
+
+    for (const [table, rows] of Object.entries(store)) {
+      if (protectedTables.includes(table)) continue;
+      if (!Array.isArray(rows) || rows.length === 0 || !('tenant_id' in rows[0])) continue;
+      const before = rows.length;
+      (store as any)[table] = rows.filter((r: any) => r.tenant_id !== tenantId);
+      const deleted = before - (store as any)[table].length;
+      if (deleted > 0) cleared.push({ table, rows: deleted });
+    }
+
+    const sub = store.tenant_subscriptions.find(s => s.tenant_id === tenantId);
+    if (sub) {
+      sub.current_month_orders = 0;
+      sub.current_month_start = new Date().toISOString().slice(0, 10);
+      sub.updated_at = new Date().toISOString();
+    }
+
+    return {
+      data: { tenant_id: tenantId, cleared, total_rows: cleared.reduce((sum, c) => sum + c.rows, 0) },
+      error: null,
+    };
+  }
+
+  if (name === 'migrate_tenant_data') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được migrate tenant' } };
+    }
+    const source = params.p_source_tenant_id;
+    const target = params.p_target_tenant_id;
+    const sourceTenant = store.tenants.find(t => t.id === source);
+    if (!sourceTenant) return { data: null, error: { code: 'PGRST116', message: 'Source tenant not found' } };
+    const targetTenant = store.tenants.find(t => t.id === target);
+    if (!targetTenant) return { data: null, error: { code: 'PGRST116', message: 'Target tenant not found' } };
+    if (source === target) {
+      return { data: null, error: { code: '23514', message: 'Source và target tenant phải khác nhau' } };
+    }
+
+    const adminOnlyTables = ['bank_accounts', 'email_templates', 'ticket_reply_templates', 'promo_codes', 'promotion_rules', 'announcements'];
+    const excluded = ['tenants', 'system_settings', 'app_audit_log', 'plans', 'system_admins', ...adminOnlyTables];
+
+    // Xóa dữ liệu cũ của target tenant.
+    for (const [table, rows] of Object.entries(store)) {
+      if (excluded.includes(table)) continue;
+      if (!Array.isArray(rows) || rows.length === 0 || !('tenant_id' in rows[0])) continue;
+      (store as any)[table] = rows.filter((r: any) => r.tenant_id !== target);
+    }
+
+    // Copy dữ liệu từ source sang target.
+    const restored: { table: string; rows: number }[] = [];
+    let totalRows = 0;
+    for (const [table, rows] of Object.entries(store)) {
+      if (excluded.includes(table)) continue;
+      if (!Array.isArray(rows) || rows.length === 0 || !('tenant_id' in rows[0])) continue;
+      const sourceRows = rows.filter((r: any) => r.tenant_id === source);
+      if (sourceRows.length === 0) continue;
+      const copies = sourceRows.map((r: any) => ({ ...r, tenant_id: target }));
+      (store as any)[table].push(...copies);
+      restored.push({ table, rows: copies.length });
+      totalRows += copies.length;
+    }
+
+    return {
+      data: {
+        source_tenant_id: source,
+        target_tenant_id: target,
+        result: { tenant_id: target, restored, errors: [], total_rows: totalRows },
+      },
+      error: null,
+    };
+  }
+
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };
 };
 

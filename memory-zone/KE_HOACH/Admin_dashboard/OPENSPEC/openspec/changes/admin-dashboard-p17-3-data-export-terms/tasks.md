@@ -1,27 +1,27 @@
 ## 0. Pre-Flight
 
-- [ ] 0.1 Create project backup to `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p17-3-data-export-terms_<YYYYMMDD_HHMMSS>`
-- [ ] 0.2 Confirm `npm run lint` passes (baseline)
-- [ ] 0.3 Read the sub-phase section in `memory-zone/KE_HOACH/Admin_dashboard/KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md`
+- [x] 0.1 Create project backup to `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p17-3-data-export-terms_20260708_123851`
+- [x] 0.2 Confirm `npm run lint` passes (baseline)
+- [x] 0.3 Read the sub-phase section in `memory-zone/KE_HOACH/Admin_dashboard/KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md`
 
 ## 1. P17 3 Data Export Terms
 
-- [ ] 1.1 Implement backend changes (RPC/migration/Edge Function) for P17 3 Data Export Terms
-- [ ] 1.2 Implement frontend changes for P17 3 Data Export Terms
-- [ ] 1.3 Wire up service layer and types if needed
+- [x] 1.1 Implement backend changes (RPC/migration/Edge Function) for P17 3 Data Export Terms
+- [x] 1.2 Implement frontend changes for P17 3 Data Export Terms
+- [x] 1.3 Wire up service layer and types if needed
 
 ## 2. Verification
 
-- [ ] 2.1 Run `npm run lint`
-- [ ] 2.2 Run `npm run build` if this sub-phase touches code
-- [ ] 2.3 Manual test the acceptance criteria
-- [ ] 2.4 Deploy and test migration on Supabase if applicable
+- [x] 2.1 Run `npm run lint`
+- [x] 2.2 Run `npm run build` if this sub-phase touches code
+- [x] 2.3 Manual test the acceptance criteria
+- [x] 2.4 Deploy and test migration on Supabase if applicable
 
 ## Acceptance Criteria
 
-- [ ] P17.3 — Data export per tenant + terms acceptance (GDPR/Nghi dinh 13/2023).
-- [ ] `npm run lint` pass
-- [ ] `npm run build` pass
+- [x] P17.3 — Data export per tenant + terms acceptance (GDPR/Nghi dinh 13/2023).
+- [x] `npm run lint` pass
+- [x] `npm run build` pass
 
 ## Rollback Plan
 

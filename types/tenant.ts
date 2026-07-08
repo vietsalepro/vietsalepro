@@ -421,3 +421,47 @@ export interface Integration {
   createdAt: string;
   updatedAt: string;
 }
+
+// P17.3: Terms acceptance + tenant data export
+export type TermsType = 'tos' | 'privacy' | 'gdpr' | 'cookie' | 'custom';
+
+export const TERMS_TYPE_LABELS: Record<TermsType, string> = {
+  tos: 'Điều khoản sử dụng',
+  privacy: 'Chính sách bảo mật',
+  gdpr: 'GDPR / Dữ liệu cá nhân',
+  cookie: 'Cookie',
+  custom: 'Tùy chỉnh',
+};
+
+export interface TermsAcceptance {
+  id: string;
+  userId: string;
+  tenantId?: string;
+  termsVersion: string;
+  termsType: TermsType;
+  acceptedAt: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: any;
+  createdAt: string;
+}
+
+export interface TermsAcceptanceList {
+  data: TermsAcceptance[];
+  count: number;
+}
+
+export interface TenantExportTable {
+  table_name: string;
+  row_count: number;
+  rows: any[];
+  error?: string;
+}
+
+export interface TenantExportData {
+  tenant: any;
+  subscription: any;
+  members: any[];
+  tables: TenantExportTable[];
+  exported_at: string;
+}

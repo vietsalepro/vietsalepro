@@ -22,6 +22,7 @@ import ApiKeyManager from '../components/ApiKeyManager';
 import WebhookManager from '../components/WebhookManager';
 import IntegrationMarketplace from '../components/IntegrationMarketplace';
 import TwoFactorManager from '../components/TwoFactorManager';
+import ComplianceManager from '../components/ComplianceManager';
 import './Dashboard.css';
 import {
   Tenant,
@@ -309,7 +310,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor' | 'compliance'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -1163,6 +1164,12 @@ export default function SystemAdminDashboard() {
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'twoFactor' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             2FA
+          </button>
+          <button
+            onClick={() => setActiveTab('compliance')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'compliance' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Tuân thủ
           </button>
         </div>
 
@@ -2208,6 +2215,8 @@ export default function SystemAdminDashboard() {
     {activeTab === 'integrations' && <IntegrationMarketplace />}
 
     {activeTab === 'twoFactor' && <TwoFactorManager />}
+
+    {activeTab === 'compliance' && <ComplianceManager />}
 
   </div>
 

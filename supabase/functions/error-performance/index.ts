@@ -45,6 +45,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -69,6 +70,12 @@ serve(async (req) => {
       return jsonResponse({ error: 'Chỉ system admin được xem error/performance metrics' }, 403);
     }
 
+    // ponytail: call admin RPCs with the user's token so auth.uid() resolves inside SECURITY INVOKER functions.
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
     const hours = 24;
     let errors: ErrorSummary = { total: 0, since: new Date().toISOString(), bySource: [], recent: [] };
     let performance: PerformanceMetrics = {
@@ -83,7 +90,7 @@ serve(async (req) => {
     };
 
     try {
-      const { data, error } = await supabaseAdmin.rpc('get_error_log_summary', { p_hours: hours, p_limit: 50 });
+      const { data, error } = await supabaseUser.rpc('get_error_log_summary', { p_hours: hours, p_limit: 50 });
       if (error) throw error;
       if (data) {
         errors = {
@@ -94,11 +101,12 @@ serve(async (req) => {
         };
       }
     } catch (err) {
+      console.error('get_error_log_summary failed:', err);
       errors = { total: 0, since: new Date().toISOString(), bySource: [], recent: [] };
     }
 
     try {
-      const { data, error } = await supabaseAdmin.rpc('get_query_performance_metrics');
+      const { data, error } = await supabaseUser.rpc('get_query_performance_metrics');
       if (error) throw error;
       if (data) {
         performance = {
@@ -113,6 +121,7 @@ serve(async (req) => {
         };
       }
     } catch (err) {
+      console.error('get_query_performance_metrics failed:', err);
       performance = {
         totalQueries: 0,
         totalCalls: 0,

@@ -69,6 +69,7 @@ import {
   addSystemAdmin,
   removeSystemAdmin,
 } from '../services/systemAdminService';
+import { downloadTenantBackup } from '../services/tenantBackupService';
 import {
   getDataRetentionStatus,
   getDefaultPlanLimits,
@@ -272,6 +273,7 @@ export default function SystemAdminDashboard() {
   const [expandedTenantId, setExpandedTenantId] = useState<string | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, UsageSummary>>({});
   const [usageLoading, setUsageLoading] = useState(false);
+  const [backingUpTenantId, setBackingUpTenantId] = useState<string | null>(null);
 
   const [subTenant, setSubTenant] = useState<Tenant | null>(null);
   const [subForm, setSubForm] = useState<UpdateSubscriptionInput & { plan: TenantPlan }>({
@@ -442,6 +444,18 @@ export default function SystemAdminDashboard() {
     } catch (err: any) {
       setImpersonatingTenantId(null);
       setError(err?.message || 'Impersonate thất bại.');
+    }
+  };
+
+  const handleBackup = async (tenant: Tenant) => {
+    setBackingUpTenantId(tenant.id);
+    setError(null);
+    try {
+      await downloadTenantBackup(tenant.id);
+    } catch (err: any) {
+      setError(err?.message || 'Backup tenant thất bại.');
+    } finally {
+      setBackingUpTenantId(null);
     }
   };
 
@@ -1353,6 +1367,13 @@ export default function SystemAdminDashboard() {
                               className="px-3 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg"
                             >
                               {isExpanded ? 'Ẩn usage' : 'Usage'}
+                            </button>
+                            <button
+                              onClick={() => handleBackup(t)}
+                              disabled={backingUpTenantId === t.id}
+                              className="px-3 py-1.5 text-sm text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg disabled:opacity-60"
+                            >
+                              {backingUpTenantId === t.id ? 'Đang backup...' : 'Backup'}
                             </button>
                             <button
                               onClick={() => handleLoginAs(t)}

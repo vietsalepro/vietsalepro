@@ -189,6 +189,23 @@ export interface BillingAutomationStatus {
   dunningTenants: DunningTenantItem[];
 }
 
+// P16.1: Revenue metrics
+export interface RevenueByPlanItem {
+  plan: string;
+  planName: string;
+  revenue: number;
+  paymentCount: number;
+}
+
+export interface RevenueMetrics {
+  mrr: number;
+  arr: number;
+  totalRevenue: number;
+  revenueByPlan: RevenueByPlanItem[];
+  periodStart: string;
+  periodEnd: string;
+}
+
 // ============================================================
 // VOUCHER / PROMOTION TYPES — P10.1/P10.2
 // ============================================================

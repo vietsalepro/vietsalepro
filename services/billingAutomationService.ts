@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabase';
 import {
   BillingAutomationStatus,
   BillingJobLog,
+  RevenueMetrics,
+  RevenueByPlanItem,
 } from '../types/billing';
 
 const mapJobLogFromDB = (row: any): BillingJobLog => ({
@@ -56,4 +58,33 @@ export async function getBillingJobLogs(limit = 100): Promise<BillingJobLog[]> {
   const { data, error } = await supabase.rpc('get_billing_job_logs', { p_limit: limit });
   if (error) throw error;
   return (data || []).map(mapJobLogFromDB);
+}
+
+const mapRevenueByPlanFromDB = (row: any): RevenueByPlanItem => ({
+  plan: row.plan,
+  planName: row.plan_name,
+  revenue: row.revenue ?? 0,
+  paymentCount: row.payment_count ?? 0,
+});
+
+export async function getRevenueMetrics(options?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<RevenueMetrics> {
+  const params: Record<string, any> = {};
+  if (options?.startDate) params.p_start_date = options.startDate;
+  if (options?.endDate) params.p_end_date = options.endDate;
+
+  const { data, error } = await supabase.rpc('get_revenue_metrics', params);
+  if (error) throw error;
+
+  const d = data || {};
+  return {
+    mrr: d.mrr ?? 0,
+    arr: d.arr ?? 0,
+    totalRevenue: d.total_revenue ?? 0,
+    revenueByPlan: (d.revenue_by_plan || []).map(mapRevenueByPlanFromDB),
+    periodStart: d.period_start ?? '',
+    periodEnd: d.period_end ?? '',
+  };
 }

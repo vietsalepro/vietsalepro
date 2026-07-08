@@ -15,6 +15,7 @@ import InvoiceManager from './InvoiceManager';
 import InvoicePaymentConfirm from './InvoicePaymentConfirm';
 import BillingReminderConfig from './BillingReminderConfig';
 import BillingAutomationDashboard from './BillingAutomationDashboard';
+import RevenueMetrics from './RevenueMetrics';
 
 const emptyAccount: Omit<BankAccount, 'id' | 'createdAt' | 'updatedAt'> = {
   accountName: '',
@@ -133,6 +134,8 @@ export default function BillingConfig() {
           {error}
         </div>
       )}
+
+      <RevenueMetrics />
 
       <BillingAutomationDashboard />
 

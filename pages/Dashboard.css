@@ -93,6 +93,11 @@
   color: var(--color-warning-600);
 }
 
+.dashboard-v2__kpi--danger .dashboard-v2__kpi-icon {
+  background: var(--color-danger-50);
+  color: var(--color-danger-600);
+}
+
 .dashboard-v2__kpi-label {
   font-family: var(--font-family-primary);
   font-size: var(--text-xs);

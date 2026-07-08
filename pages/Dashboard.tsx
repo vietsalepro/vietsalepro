@@ -36,7 +36,7 @@ interface DashboardV2KPIProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  variant: 'primary' | 'success' | 'warning';
+  variant: 'primary' | 'success' | 'warning' | 'danger';
   subtitle?: string;
   trend?: { value: string; direction: 'up' | 'down' | 'neutral' };
 }

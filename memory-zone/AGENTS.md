@@ -1167,3 +1167,15 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
 - End-to-end test (2026-07-07): `send_billing_reminders()` gửi T-7 thành công, `invoice_reminder_logs` ghi `status = 'sent'`.
 - Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_p9_1_1_mail_domain_setup_20260707_093000`.
 
+## P13.1 — System health dashboard (2026-07-08)
+
+- Edge Function `system-health` (`supabase/functions/system-health/index.ts`) checks Database, Storage, and Edge Functions health with latency; requires system admin auth.
+- Service `services/systemHealthService.ts` invokes the Edge Function.
+- Types `SystemHealth`, `HealthCheck`, `HealthStatus` added to `types/tenant.ts`.
+- Frontend component `components/SystemHealthPanel.tsx` renders overall status + DB/Storage/Edge Functions cards with refresh button; uses `DashboardV2KPI` (added `danger` variant + CSS).
+- New `health` tab wired into `pages/SystemAdminDashboard.tsx`.
+- Smoke test: `tests/smoke/admin-dashboard-p13-1-system-health.test.ts` (1 test).
+- Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p13-1-system-health_20260708_074242`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run tests/smoke` 116/116 PASS.
+- Edge Function deployed to linked Supabase project `shbmzvfcenbybvyzclem` (QLBH Staging Multi-Tenant); verified `401 Missing authorization header` on unauthenticated request.
+

@@ -1452,6 +1452,21 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     return { data: { available: !existing }, error: null };
   }
 
+  if (name === 'system-health') {
+    return {
+      data: {
+        checkedAt: new Date().toISOString(),
+        overall: 'healthy',
+        checks: [
+          { name: 'Database', status: 'healthy', latencyMs: 12, detail: 'Truy vấn thành công' },
+          { name: 'Storage', status: 'healthy', latencyMs: 34, detail: '1 buckets' },
+          { name: 'Edge Functions', status: 'healthy', latencyMs: 156, detail: 'Phản hồi OK' },
+        ],
+      },
+      error: null,
+    };
+  }
+
   if (name === 'send-template-email') {
     const { template_key, to, variables, test } = body;
     if (!template_key || typeof template_key !== 'string') {

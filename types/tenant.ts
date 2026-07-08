@@ -207,3 +207,20 @@ export const DEFAULT_TENANT_FEATURE_FLAGS: Required<TenantFeatureFlags> = {
   invoicing: true,
   lotTracking: true,
 };
+
+// P13.1: System health dashboard
+export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'unknown';
+
+export interface HealthCheck {
+  name: string;
+  status: HealthStatus;
+  latencyMs?: number;
+  message?: string;
+  detail?: string;
+}
+
+export interface SystemHealth {
+  checkedAt: string;
+  overall: HealthStatus;
+  checks: HealthCheck[];
+}

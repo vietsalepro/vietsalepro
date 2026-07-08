@@ -73,6 +73,12 @@ import {
   addSystemAdmin,
   removeSystemAdmin,
 } from '../services/systemAdminService';
+import {
+  AdminLoginHistoryEntry,
+  AdminLoginAlert,
+  getAdminLoginHistory,
+  getAdminLoginAlerts,
+} from '../services/loginHistoryService';
 import { downloadTenantBackup } from '../services/tenantBackupService';
 import { restoreTenantBackup, previewBackupTables } from '../services/tenantRestoreService';
 import { resetDemoData } from '../services/tenantMigrationService';
@@ -303,7 +309,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -327,6 +333,14 @@ export default function SystemAdminDashboard() {
   const [systemAdminsLoading, setSystemAdminsLoading] = useState(false);
   const [newAdminUserId, setNewAdminUserId] = useState('');
   const [systemAdminSubmitting, setSystemAdminSubmitting] = useState(false);
+
+  const [loginHistory, setLoginHistory] = useState<AdminLoginHistoryEntry[]>([]);
+  const [loginHistoryCount, setLoginHistoryCount] = useState(0);
+  const [loginHistoryPage, setLoginHistoryPage] = useState(1);
+  const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
+  const [loginHistoryStatus, setLoginHistoryStatus] = useState<'success' | 'failed' | ''>('');
+  const [loginAlerts, setLoginAlerts] = useState<AdminLoginAlert[]>([]);
+  const [loginAlertsLoading, setLoginAlertsLoading] = useState(false);
 
   const [retentionStatus, setRetentionStatus] = useState<DataRetentionStatus | null>(null);
   const [retentionLoading, setRetentionLoading] = useState(false);
@@ -705,6 +719,36 @@ export default function SystemAdminDashboard() {
     }
   };
 
+  const loadLoginHistory = async (p: number, status: 'success' | 'failed' | '') => {
+    setLoginHistoryLoading(true);
+    setError(null);
+    try {
+      const res = await getAdminLoginHistory({
+        limit: 50,
+        offset: (p - 1) * 50,
+        status: status || null,
+      });
+      setLoginHistory(res.data);
+      setLoginHistoryCount(res.count);
+    } catch (err: any) {
+      setError(err?.message || 'Không thể tải login history.');
+    } finally {
+      setLoginHistoryLoading(false);
+    }
+  };
+
+  const loadLoginAlerts = async () => {
+    setLoginAlertsLoading(true);
+    try {
+      const list = await getAdminLoginAlerts(24);
+      setLoginAlerts(list);
+    } catch (err: any) {
+      setError(err?.message || 'Không thể tải login alerts.');
+    } finally {
+      setLoginAlertsLoading(false);
+    }
+  };
+
   // --- Operations tab ---
 
   const loadOperations = async () => {
@@ -852,6 +896,13 @@ export default function SystemAdminDashboard() {
       loadSystemAdmins();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'loginHistory') {
+      loadLoginHistory(loginHistoryPage, loginHistoryStatus);
+      loadLoginAlerts();
+    }
+  }, [activeTab, loginHistoryPage, loginHistoryStatus]);
 
   useEffect(() => {
     if (activeTab === 'operations') {
@@ -1022,6 +1073,12 @@ export default function SystemAdminDashboard() {
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'systemAdmins' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             System admins
+          </button>
+          <button
+            onClick={() => setActiveTab('loginHistory')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'loginHistory' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Login history
           </button>
           <button
             onClick={() => setActiveTab('operations')}
@@ -1849,6 +1906,116 @@ export default function SystemAdminDashboard() {
               </table>
             </div>
           )}
+        </div>
+      </div>
+    )}
+
+    {activeTab === 'loginHistory' && (
+      <div className="space-y-6">
+        {/* Alerts panel */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Cảnh báo bất thường (24 giờ qua)</h2>
+          {loginAlertsLoading && loginAlerts.length === 0 ? (
+            <p className="text-gray-600">Đang tải...</p>
+          ) : loginAlerts.length === 0 ? (
+            <p className="text-gray-500">Không phát hiện hoạt động bất thường.</p>
+          ) : (
+            <div className="space-y-3">
+              {loginAlerts.map((alert, idx) => {
+                const baseClass = 'p-4 rounded-lg border';
+                if (alert.type === 'failed_burst') {
+                  return (
+                    <div key={idx} className={`${baseClass} border-red-200 bg-red-50`}>
+                      <p className="font-medium text-red-800">Nhiều lần đăng nhập thất bại</p>
+                      <p className="text-sm text-red-700">
+                        {alert.email || alert.userId}: {alert.failedCount} lần thất bại từ IP {alert.ipAddress || '-'}
+                        {' '}({new Date(alert.windowStart).toLocaleString('vi-VN')} - {new Date(alert.windowEnd).toLocaleString('vi-VN')})
+                      </p>
+                    </div>
+                  );
+                }
+                if (alert.type === 'new_device') {
+                  return (
+                    <div key={idx} className={`${baseClass} border-amber-200 bg-amber-50`}>
+                      <p className="font-medium text-amber-800">Thiết bị / trình duyệt mới</p>
+                      <p className="text-sm text-amber-700">
+                        {alert.email || alert.userId} đăng nhập từ {alert.userAgent || 'thiết bị không xác định'}
+                        {' '}lúc {new Date(alert.createdAt).toLocaleString('vi-VN')}
+                        {alert.ipAddress ? ` (IP: ${alert.ipAddress})` : ''}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={idx} className={`${baseClass} border-blue-200 bg-blue-50`}>
+                    <p className="font-medium text-blue-800">Đăng nhập liên tục</p>
+                    <p className="text-sm text-blue-700">
+                      {alert.email || alert.userId}: {alert.successCount} lần thành công trong 15 phút
+                      {' '}({new Date(alert.windowStart).toLocaleString('vi-VN')} - {new Date(alert.windowEnd).toLocaleString('vi-VN')})
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Login history table */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Lịch sử đăng nhập admin</h2>
+            <select
+              value={loginHistoryStatus}
+              onChange={(e) => { setLoginHistoryStatus(e.target.value as 'success' | 'failed' | ''); setLoginHistoryPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="success">Thành công</option>
+              <option value="failed">Thất bại</option>
+            </select>
+          </div>
+          {loginHistoryLoading && loginHistory.length === 0 ? (
+            <p className="text-gray-600">Đang tải...</p>
+          ) : loginHistory.length === 0 ? (
+            <p className="text-gray-500">Chưa có bản ghi đăng nhập nào.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 font-medium text-gray-600">Thời gian</th>
+                    <th className="px-6 py-3 font-medium text-gray-600">Email</th>
+                    <th className="px-6 py-3 font-medium text-gray-600">IP</th>
+                    <th className="px-6 py-3 font-medium text-gray-600">Trình duyệt</th>
+                    <th className="px-6 py-3 font-medium text-gray-600">Trạng thái</th>
+                    <th className="px-6 py-3 font-medium text-gray-600">Lý do thất bại</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loginHistory.map(entry => (
+                    <tr key={entry.id}>
+                      <td className="px-6 py-4 text-gray-700">{new Date(entry.createdAt).toLocaleString('vi-VN')}</td>
+                      <td className="px-6 py-4 text-gray-700">{entry.email || '-'}</td>
+                      <td className="px-6 py-4 text-gray-700 font-mono text-xs">{entry.ipAddress || '-'}</td>
+                      <td className="px-6 py-4 text-gray-700 max-w-xs truncate" title={entry.userAgent || undefined}>{entry.userAgent || '-'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${entry.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {entry.status === 'success' ? 'Thành công' : 'Thất bại'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">{entry.failureReason || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <Pagination
+            page={loginHistoryPage}
+            pageSize={50}
+            total={loginHistoryCount}
+            onPageChange={setLoginHistoryPage}
+          />
         </div>
       </div>
     )}

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { writeAuditLog } from '../services/auditService';
+import { recordAdminLogin } from '../services/loginHistoryService';
 import { isMfaRequired } from '../services/twoFactorService';
 
 interface AuthContextType {
@@ -71,6 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         writeAuditLog('LOGIN', 'auth', {
           recordId: newSession.user.id,
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        }).catch(() => {});
+        recordAdminLogin({
+          userId: newSession.user.id,
+          email: newSession.user.email,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+          status: 'success',
         }).catch(() => {});
       }
       setLoading(false);

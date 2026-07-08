@@ -2,8 +2,16 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader2, Lock, Mail, Store, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { recordAdminLogin } from '../services/loginHistoryService';
 import { isMfaRequired } from '../services/twoFactorService';
 import './Login.css';
+
+const isAdminLoginRoute = () => {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.host.toLowerCase();
+  const pathname = window.location.pathname.toLowerCase();
+  return host.startsWith('admin.') || pathname.startsWith('/admin');
+};
 
 export const Login = () => {
   const { setMfaPending } = useAuth();
@@ -33,6 +41,14 @@ export const Login = () => {
       }
     } catch (err: any) {
       setError(err.message || 'Đăng nhập thất bại');
+      if (isAdminLoginRoute()) {
+        recordAdminLogin({
+          email,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+          status: 'failed',
+          failureReason: err.message || 'Đăng nhập thất bại',
+        }).catch(() => {});
+      }
     } finally {
       setLoading(false);
     }

@@ -206,6 +206,61 @@ export interface RevenueMetrics {
   periodEnd: string;
 }
 
+// P16.2: Churn + cohort + LTV + sales funnel
+export interface ChurnMetric {
+  activeStart: number;
+  activeEnd: number;
+  churnedCount: number;
+  churnRate: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface CohortRetentionPoint {
+  month: string;
+  conversionRate: number;
+}
+
+export interface CohortRow {
+  month: string;
+  total: number;
+  retention: CohortRetentionPoint[];
+}
+
+export interface CohortMetrics {
+  months: string[];
+  cohorts: CohortRow[];
+}
+
+export interface LtvByPlanItem {
+  plan: string;
+  planName: string;
+  revenue: number;
+  tenants: number;
+  ltv: number;
+}
+
+export interface LtvMetrics {
+  averageLtv: number;
+  totalRevenue: number;
+  payingTenants: number;
+  byPlan: LtvByPlanItem[];
+}
+
+export interface FunnelMetrics {
+  trial: number;
+  activeFree: number;
+  paying: number;
+  churned: number;
+}
+
+export interface ChurnCohortMetrics {
+  churn: ChurnMetric;
+  cohort: CohortMetrics;
+  ltv: LtvMetrics;
+  funnel: FunnelMetrics;
+}
+
 // ============================================================
 // VOUCHER / PROMOTION TYPES — P10.1/P10.2
 // ============================================================

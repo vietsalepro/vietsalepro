@@ -4,6 +4,11 @@ import {
   BillingJobLog,
   RevenueMetrics,
   RevenueByPlanItem,
+  ChurnCohortMetrics,
+  ChurnMetric,
+  CohortMetrics,
+  LtvMetrics,
+  FunnelMetrics,
 } from '../types/billing';
 
 const mapJobLogFromDB = (row: any): BillingJobLog => ({
@@ -86,5 +91,70 @@ export async function getRevenueMetrics(options?: {
     revenueByPlan: (d.revenue_by_plan || []).map(mapRevenueByPlanFromDB),
     periodStart: d.period_start ?? '',
     periodEnd: d.period_end ?? '',
+  };
+}
+
+const mapChurnMetric = (row: any): ChurnMetric => ({
+  activeStart: row.active_start ?? 0,
+  activeEnd: row.active_end ?? 0,
+  churnedCount: row.churned_count ?? 0,
+  churnRate: row.churn_rate ?? 0,
+  periodStart: row.period_start ?? '',
+  periodEnd: row.period_end ?? '',
+});
+
+const mapCohortMetrics = (row: any): CohortMetrics => ({
+  months: row.months || [],
+  cohorts: (row.cohorts || []).map((c: any) => ({
+    month: c.month,
+    total: c.total ?? 0,
+    retention: (c.retention || []).map((r: any) => ({
+      month: r.month,
+      conversionRate: r.conversion_rate ?? 0,
+    })),
+  })),
+});
+
+const mapLtvByPlan = (row: any) => ({
+  plan: row.plan,
+  planName: row.plan_name,
+  revenue: row.revenue ?? 0,
+  tenants: row.tenants ?? 0,
+  ltv: row.ltv ?? 0,
+});
+
+const mapLtvMetrics = (row: any): LtvMetrics => ({
+  averageLtv: row.average_ltv ?? 0,
+  totalRevenue: row.total_revenue ?? 0,
+  payingTenants: row.paying_tenants ?? 0,
+  byPlan: (row.by_plan || []).map(mapLtvByPlan),
+});
+
+const mapFunnelMetrics = (row: any): FunnelMetrics => ({
+  trial: row.trial ?? 0,
+  activeFree: row.active_free ?? 0,
+  paying: row.paying ?? 0,
+  churned: row.churned ?? 0,
+});
+
+export async function getChurnCohortMetrics(options?: {
+  startDate?: string;
+  endDate?: string;
+  cohortMonths?: number;
+}): Promise<ChurnCohortMetrics> {
+  const params: Record<string, any> = {};
+  if (options?.startDate) params.p_start_date = options.startDate;
+  if (options?.endDate) params.p_end_date = options.endDate;
+  if (options?.cohortMonths) params.p_cohort_months = options.cohortMonths;
+
+  const { data, error } = await supabase.rpc('get_churn_cohort_metrics', params);
+  if (error) throw error;
+
+  const d = data || {};
+  return {
+    churn: mapChurnMetric(d.churn || {}),
+    cohort: mapCohortMetrics(d.cohort || {}),
+    ltv: mapLtvMetrics(d.ltv || {}),
+    funnel: mapFunnelMetrics(d.funnel || {}),
   };
 }

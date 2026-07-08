@@ -1222,3 +1222,22 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
   - Edge Function `tenant-restore` deployed and `ACTIVE` (verify_jwt enabled).
 - ponytail: practical restore size ceiling is the Edge Function payload limit (~6MB); larger tenants need offline/table-by-table restore.
 
+## P16.2 — Churn + cohort + tenant LTV + sales funnel + charts (YAGNI) (2026-07-08)
+
+- Migration `supabase/migrations/20250708000011_phase_p16_2_churn_cohort.sql`:
+  - `public.get_churn_cohort_metrics(p_start_date, p_end_date, p_cohort_months)` returns churn snapshot, conversion-to-paid cohort, lifetime value, and sales funnel.
+  - Requires `is_system_admin()`.
+  - ponytail: churn uses end-of-period snapshot because historical status changes are not stored; cohort uses first confirmed payment date for exact conversion rates.
+- Frontend:
+  - `components/ChurnCohortMetrics.tsx`: KPI cards (churn rate, LTV, paying tenants, lifetime revenue), sales funnel horizontal bar chart, cohort conversion line chart, LTV-by-plan cards.
+  - Wired into `components/BillingConfig.tsx` after `RevenueMetrics`.
+- Service/types:
+  - Added `ChurnMetric`, `CohortMetrics`, `LtvMetrics`, `FunnelMetrics`, `ChurnCohortMetrics` to `types/billing.ts`.
+  - Added `getChurnCohortMetrics()` mapper in `services/billingAutomationService.ts`.
+- Tests:
+  - `tests/smoke/admin-dashboard-p16-2-churn-cohort.test.ts` verifies RPC call and field mapping.
+- Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p16-2-churn-cohort_20250708_000000`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run tests/smoke/admin-dashboard-p16-2-churn-cohort.test.ts` 2/2 PASS.
+- Deployed to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) via `npx supabase db push --include-all`.
+  - Verified `get_churn_cohort_metrics()` exists and rejects anon callers with `insufficient_privilege`.
+

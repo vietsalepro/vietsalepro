@@ -15,6 +15,17 @@ export interface SystemAdmin {
   createdAt?: string;
 }
 
+export interface CreateSystemAdminRequest {
+  email: string;
+  password: string;
+}
+
+export interface CreateSystemAdminResponse {
+  success: boolean;
+  userId: string;
+  email: string;
+}
+
 const mapRateLimitLog = (row: any): RateLimitLog => ({
   id: row.id,
   ipAddress: row.ip_address,
@@ -60,4 +71,23 @@ export async function addSystemAdmin(userId: string): Promise<SystemAdmin> {
 export async function removeSystemAdmin(userId: string): Promise<void> {
   const { error } = await supabase.rpc('remove_system_admin', { p_user_id: userId });
   if (error) throw error;
+}
+
+export async function createSystemAdmin(email: string, password: string): Promise<SystemAdmin> {
+  const { data, error } = await supabase.functions.invoke<CreateSystemAdminResponse>('create-system-admin', {
+    body: { email, password },
+  });
+
+  if (error) {
+    throw new Error(`Failed to create system admin: ${error.message}`);
+  }
+
+  if (!data?.success) {
+    throw new Error('Failed to create system admin: Invalid response');
+  }
+
+  return {
+    userId: data.userId,
+    email: data.email,
+  };
 }

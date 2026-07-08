@@ -1196,5 +1196,10 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
 - Deployed to linked Supabase staging project `shbmzvfcenbybvyzclem`:
   - Migration applied successfully (`pg_stat_statements` already enabled).
   - Edge Function `error-performance` deployed and returns `401` when called unauthenticated.
+- Deployed to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) via Supabase MCP:
+  - Migration `phase_p13_2_error_performance` applied successfully.
+  - `get_query_performance_metrics()` verified returning real DB metrics (e.g. totalQueries 3592, totalCalls 521457, p95Ms 77.653, p99Ms 108.309).
+  - `get_error_log_summary()` correctly rejected non-system-admin calls.
+  - Edge Function `error-performance` deployed via CLI (`supabase functions deploy --project-ref rsialbfjswnrkzcxarnj`) and returns `401` when called unauthenticated.
 - Note: P95/P99 are normal-distribution approximations from `pg_stat_statements` mean/stddev; exact percentiles would require a separate histogram collector.
 

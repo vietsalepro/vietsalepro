@@ -377,6 +377,11 @@ const rpc = async (name: string, params: Record<string, any>) => {
       plan: planKey,
       owner_id: params.p_owner_user_id ?? currentUserId,
       settings: {},
+      isolation_mode: 'shared',
+      isolation_schema: null,
+      isolation_project_ref: null,
+      custom_domain: null,
+      white_label: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -465,8 +470,61 @@ const rpc = async (name: string, params: Record<string, any>) => {
       tenant.status = params.p_status;
       tenant.archived_at = params.p_status === 'archived' ? new Date().toISOString() : null;
     }
+
+    // P18.2: isolation metadata
+    const isolationMode = params.p_isolation_mode ?? tenant.isolation_mode;
+    if (isolationMode && !['shared', 'schema', 'project'].includes(isolationMode)) {
+      return { data: null, error: { code: '23514', message: `Chế độ cô lập không hợp lệ: ${isolationMode}` } };
+    }
+    if (isolationMode === 'schema' && !(params.p_isolation_schema ?? tenant.isolation_schema)) {
+      return { data: null, error: { code: '23502', message: 'Chế độ schema cô lập yêu cầu tên schema (isolation_schema).' } };
+    }
+    if (isolationMode === 'project' && !(params.p_isolation_project_ref ?? tenant.isolation_project_ref)) {
+      return { data: null, error: { code: '23502', message: 'Chế độ project cô lập yêu cầu project ref (isolation_project_ref).' } };
+    }
+    if (isolationMode !== 'shared' && tenant.plan === 'free') {
+      return { data: null, error: { code: '23514', message: 'Tenant gói Free không được phép cô lập schema/project. Hãy chuyển sang VIP hoặc để shared.' } };
+    }
+    tenant.isolation_mode = isolationMode;
+    if (params.p_isolation_mode === 'shared') {
+      tenant.isolation_schema = null;
+      tenant.isolation_project_ref = null;
+    } else {
+      if (params.p_isolation_schema !== null && params.p_isolation_schema !== undefined) tenant.isolation_schema = params.p_isolation_schema;
+      if (params.p_isolation_project_ref !== null && params.p_isolation_project_ref !== undefined) tenant.isolation_project_ref = params.p_isolation_project_ref;
+    }
+
+    // P18.2: custom domain + white-label
+    const domain = params.p_custom_domain !== null && params.p_custom_domain !== undefined
+      ? params.p_custom_domain.trim() || null
+      : null;
+    if (domain !== null) {
+      if (tenant.plan === 'free') {
+        return { data: null, error: { code: '23514', message: 'Custom domain chỉ khả dụng cho tenant VIP.' } };
+      }
+      if (!/^[a-z0-9][-a-z0-9]*(\.[-a-z0-9]+)+$/i.test(domain)) {
+        return { data: null, error: { code: '23514', message: `Tên miền không hợp lệ: ${domain}` } };
+      }
+      if (store.tenants.some(t => t.id !== tenant.id && t.custom_domain?.toLowerCase() === domain.toLowerCase())) {
+        return { data: null, error: { code: '23505', message: `Tên miền đã được sử dụng bởi tenant khác: ${domain}` } };
+      }
+      tenant.custom_domain = domain;
+    } else if (params.p_custom_domain !== undefined) {
+      tenant.custom_domain = null;
+    }
+
+    if (params.p_white_label !== null && params.p_white_label !== undefined) {
+      tenant.white_label = params.p_white_label;
+    }
+
     tenant.updated_at = new Date().toISOString();
     return { data: tenant, error: null };
+  }
+
+  if (name === 'get_tenant_by_domain') {
+    const domain = params.p_domain?.toLowerCase();
+    const tenant = store.tenants.find(t => t.custom_domain?.toLowerCase() === domain);
+    return { data: tenant ?? null, error: null };
   }
 
   if (name === 'delete_tenant_safe') {

@@ -9,6 +9,13 @@ export type TenantRole = 'admin' | 'cashier' | 'inventory_manager' | 'accountant
 
 export type TenantIsolationMode = 'shared' | 'schema' | 'project';
 
+export interface TenantWhiteLabel {
+  brandName?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
+  primaryColor?: string;
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -20,6 +27,8 @@ export interface Tenant {
   isolationMode?: TenantIsolationMode;
   isolationSchema?: string;
   isolationProjectRef?: string;
+  customDomain?: string;
+  whiteLabel?: TenantWhiteLabel;
   createdAt?: string;
   updatedAt?: string;
   archivedAt?: string;

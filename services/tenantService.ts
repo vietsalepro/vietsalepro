@@ -30,6 +30,8 @@ const mapTenantFromDB = (row: any): Tenant => ({
   isolationMode: row.isolation_mode || 'shared',
   isolationSchema: row.isolation_schema,
   isolationProjectRef: row.isolation_project_ref,
+  customDomain: row.custom_domain,
+  whiteLabel: row.white_label || {},
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   archivedAt: row.archived_at,
@@ -172,7 +174,7 @@ export async function searchTenants(params: SearchTenantsParams = {}): Promise<S
 
 export async function updateTenant(
   tenantId: string,
-  input: Partial<Pick<Tenant, 'name' | 'plan' | 'status' | 'isolationMode' | 'isolationSchema' | 'isolationProjectRef'>>
+  input: Partial<Pick<Tenant, 'name' | 'plan' | 'status' | 'isolationMode' | 'isolationSchema' | 'isolationProjectRef' | 'customDomain' | 'whiteLabel'>>
 ): Promise<Tenant> {
   const { data, error } = await supabase.rpc('update_tenant', {
     p_tenant_id: tenantId,
@@ -182,9 +184,20 @@ export async function updateTenant(
     p_isolation_mode: input.isolationMode ?? null,
     p_isolation_schema: input.isolationSchema ?? null,
     p_isolation_project_ref: input.isolationProjectRef ?? null,
+    p_custom_domain: input.customDomain ?? null,
+    p_white_label: input.whiteLabel ?? null,
   });
   if (error) throw error;
   return mapTenantFromDB(data);
+}
+
+export async function getTenantByDomain(domain: string): Promise<Tenant | null> {
+  const { data, error } = await supabase.rpc('get_tenant_by_domain', { p_domain: domain });
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+  return data ? mapTenantFromDB(data) : null;
 }
 
 export async function softDeleteTenant(tenantId: string): Promise<Tenant> {

@@ -1180,3 +1180,21 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
 - Edge Function deployed to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) via Supabase MCP; verified `401 Missing authorization header` on unauthenticated request.
 - Note: P13.1 has no DB migration.
 
+## P13.2 — Error log aggregation + performance metrics (2026-07-08)
+
+- Migration `supabase/migrations/20250708000001_phase_p13_2_error_performance.sql`:
+  - Enables `pg_stat_statements` extension.
+  - Creates `error_logs` table with RLS (system-admin only).
+  - RPC `get_error_log_summary(p_hours, p_limit)` aggregates recent errors by source/level.
+  - RPC `get_query_performance_metrics()` reads `extensions.pg_stat_statements`, returns total calls/queries, RPS, P95/P99 approximations (mean + stddev), and top queries.
+- Edge Function `error-performance` (`supabase/functions/error-performance/index.ts`) authenticates system admin and invokes both RPCs with service role.
+- Service `services/errorPerformanceService.ts` and types `ErrorPerformance`, `ErrorLogSummary`, `QueryPerformanceMetrics`, `TopQueryMetric` in `types/tenant.ts`.
+- Frontend component `components/ErrorPerformancePanel.tsx` shows KPI cards, error-by-source bar chart, top-query table, and recent error log; new `errors` tab wired into `pages/SystemAdminDashboard.tsx`.
+- Smoke test: `tests/smoke/admin-dashboard-p13-2-error-performance.test.ts` (1 test); `tests/mocks/supabase.ts` updated.
+- Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p13-2-error-performance_20260708_075919`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run` 137/137 PASS.
+- Deployed to linked Supabase staging project `shbmzvfcenbybvyzclem`:
+  - Migration applied successfully (`pg_stat_statements` already enabled).
+  - Edge Function `error-performance` deployed and returns `401` when called unauthenticated.
+- Note: P95/P99 are normal-distribution approximations from `pg_stat_statements` mean/stddev; exact percentiles would require a separate histogram collector.
+

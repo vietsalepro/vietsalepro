@@ -39,6 +39,7 @@ const store: Record<string, Row[]> = {
   promotion_rules: [],
   promo_code_usages: [],
   announcements: [],
+  error_logs: [],
 };
 
 export const resetMockData = () => {
@@ -60,6 +61,13 @@ export const resetMockData = () => {
   store.plans.push(
     { key: 'free', name: 'Free', description: 'Gói miễn phí', max_users: 1, max_products: 50, max_orders_per_month: 300, monthly_price: 0, yearly_price: 0, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
     { key: 'vip', name: 'VIP', description: 'Gói trả phí', max_users: 999, max_products: 999999, max_orders_per_month: 999999, monthly_price: 69000, yearly_price: 59000, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+  );
+
+  // ponytail: seed error logs giống migration P13.2 để smoke test aggregation có dữ liệu.
+  store.error_logs.push(
+    { id: uuid(), source: 'checkout', level: 'error', message: 'Payment failed', detail: null, metadata: null, created_at: new Date().toISOString() },
+    { id: uuid(), source: 'checkout', level: 'error', message: 'Inventory mismatch', detail: null, metadata: null, created_at: new Date().toISOString() },
+    { id: uuid(), source: 'auth', level: 'warn', message: 'Stale session', detail: null, metadata: null, created_at: new Date().toISOString() }
   );
 };
 
@@ -1504,6 +1512,44 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     const recipient = to || owner?.email || `owner-${ticket.tenant_id}@example.com`;
     return {
       data: { success: true, id: `email-${uuid()}`, to: recipient, event, reply_id },
+      error: null,
+    };
+  }
+
+  if (name === 'error-performance') {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const recent = store.error_logs.filter(e => e.created_at >= since);
+    const bySource: Record<string, Record<string, number>> = {};
+    for (const e of recent) {
+      bySource[e.source] = bySource[e.source] || {};
+      bySource[e.source][e.level] = (bySource[e.source][e.level] || 0) + 1;
+    }
+    const bySourceArray = Object.entries(bySource).flatMap(([source, levels]) =>
+      Object.entries(levels).map(([level, count]) => ({ source, level, count }))
+    );
+    return {
+      data: {
+        checkedAt: new Date().toISOString(),
+        errors: {
+          total: recent.length,
+          since,
+          bySource: bySourceArray,
+          recent: recent.slice(0, 50),
+        },
+        performance: {
+          totalQueries: 12,
+          totalCalls: 3456,
+          averageTimeMs: 4.2,
+          p95Ms: 18.5,
+          p99Ms: 42.1,
+          rps: 14.4,
+          resetAt: new Date().toISOString(),
+          topQueries: [
+            { query: 'SELECT * FROM orders WHERE tenant_id = $1', calls: 1200, mean_ms: 2.1, p95_ms: 8.4, p99_ms: 14.2, total_ms: 2520 },
+            { query: 'UPDATE tenants SET ...', calls: 45, mean_ms: 12.5, p95_ms: 35.0, p99_ms: 67.0, total_ms: 562.5 },
+          ],
+        },
+      },
       error: null,
     };
   }

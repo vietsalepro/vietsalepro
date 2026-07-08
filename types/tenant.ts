@@ -224,3 +224,53 @@ export interface SystemHealth {
   overall: HealthStatus;
   checks: HealthCheck[];
 }
+
+// P13.2: Error log aggregation + performance metrics
+export interface ErrorLogGroup {
+  source: string;
+  level: string;
+  count: number;
+}
+
+export interface ErrorLogEntry {
+  id: string;
+  source: string;
+  level: string;
+  message: string;
+  detail?: string;
+  metadata?: any;
+  created_at: string;
+}
+
+export interface ErrorLogSummary {
+  total: number;
+  since: string;
+  bySource: ErrorLogGroup[];
+  recent: ErrorLogEntry[];
+}
+
+export interface TopQueryMetric {
+  query: string;
+  calls: number;
+  mean_ms: number;
+  p95_ms: number;
+  p99_ms: number;
+  total_ms: number;
+}
+
+export interface QueryPerformanceMetrics {
+  totalQueries: number;
+  totalCalls: number;
+  averageTimeMs: number;
+  p95Ms: number;
+  p99Ms: number;
+  rps: number;
+  resetAt: string;
+  topQueries: TopQueryMetric[];
+}
+
+export interface ErrorPerformance {
+  checkedAt: string;
+  errors: ErrorLogSummary;
+  performance: QueryPerformanceMetrics;
+}

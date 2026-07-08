@@ -341,3 +341,49 @@ export interface TenantApiKey {
   createdAt: string;
   updatedAt: string;
 }
+
+// P15.2: Webhooks
+export interface TenantWebhook {
+  id: string;
+  tenantId: string;
+  name: string;
+  url: string;
+  events: string[];
+  secret?: string;
+  status: 'active' | 'paused';
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebhookDeliveryAttempt {
+  attemptedAt: string;
+  httpStatus?: number;
+  errorMessage?: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  webhookId: string;
+  tenantId: string;
+  eventType: string;
+  payload: any;
+  idempotencyKey: string;
+  status: 'pending' | 'delivered' | 'failed' | 'exhausted';
+  httpStatus?: number;
+  responseBody?: string;
+  errorMessage?: string;
+  attemptCount: number;
+  maxAttempts: number;
+  attemptedAt?: string;
+  deliveredAt?: string;
+  nextRetryAt?: string;
+  attemptLog: WebhookDeliveryAttempt[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebhookDeliveryList {
+  data: WebhookDelivery[];
+  count: number;
+}

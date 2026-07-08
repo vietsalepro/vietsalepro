@@ -611,6 +611,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p14-3-migration-reset`.
 - Backend: RPC migration giữa môi trường; RPC reset demo data.
 - Kiểm thử: reset demo đúng; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P15.1 — API keys (YAGNI)
@@ -623,6 +624,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p15-1-api-keys`.
 - Backend: `tenant_api_keys` schema + tạo/revoke + auth middleware + versioning.
 - Kiểm thử: API key auth đúng; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P15.2 — Webhooks (YAGNI)
@@ -635,6 +637,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p15-2-webhooks`.
 - Backend: `tenant_webhooks` + `webhook_deliveries` + delivery log + retry idempotent.
 - Kiểm thử: webhook delivery + retry đúng; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P15.3 — Integrations (YAGNI)
@@ -648,6 +651,7 @@ Yêu cầu:
 - Backend: `integrations` + `partners`.
 - Frontend: marketplace + partner portal.
 - Kiểm thử: CRUD integration/partner; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P16.1 — MRR/ARR (YAGNI)
@@ -661,6 +665,7 @@ Yêu cầu:
 - Backend: RPC MRR/ARR + revenue by plan.
 - Frontend: KPI cards.
 - Kiểm thử: số liệu đúng; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P16.2 — Churn + cohort (YAGNI)
@@ -674,6 +679,7 @@ Yêu cầu:
 - Backend: RPC churn, cohort, tenant LTV, sales funnel.
 - Frontend: charts.
 - Kiểm thử: metrics chính xác; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P17.1 — 2FA TOTP
@@ -687,6 +693,7 @@ Yêu cầu:
 - Backend: dùng Supabase Auth MFA native (TOTP) — enroll → QR → verify → challenge. Bảng `admin_2fa_backup_codes` (lưu hash, mỗi code 1 lần). Edge Function manual override (unenroll factor của admin khác bằng service role + audit log).
 - Frontend: trang bật 2FA (tùy chọn), quét QR, bắt buộc hiển thị + xác nhận đã lưu backup codes trước khi bật; nhập mã 6 số khi đăng nhập.
 - Kiểm thử: bật/tắt 2FA; đăng nhập bằng mã + backup code; manual override cần ≥2 system admin; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P17.2 — Login history
@@ -700,6 +707,7 @@ Yêu cầu:
 - Backend: bảng `admin_login_history` + rule cảnh báo bất thường.
 - Frontend: xem login history + alert panel.
 - Kiểm thử: login được ghi; alert khi bất thường; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P17.3 — Data export + terms
@@ -712,6 +720,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p17-3-data-export-terms`.
 - Backend: bảng `terms_acceptance` + RPC export dữ liệu tenant (GDPR / Nghị định 13/2023).
 - Kiểm thử: export đầy đủ; terms acceptance ghi nhận; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P17.4 — Fraud + retention
@@ -724,6 +733,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p17-4-fraud-retention`.
 - Backend: heuristic phát hiện spam/tạo nhiều account + fraud queue; cron + config data retention.
 - Kiểm thử: fraud queue đúng; retention cron chạy; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P18.1 — Multi-region (YAGNI)
@@ -736,6 +746,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p18-1-multi-region`.
 - Backend: multi-schema/multi-project isolation cho tenant VIP khi ~1000 tenant.
 - Kiểm thử: tenant VIP cô lập đúng; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P18.2 — White-label (YAGNI)
@@ -749,6 +760,7 @@ Yêu cầu:
 - Backend: custom domain mapping cho tenant VIP.
 - Frontend: white-label config.
 - Kiểm thử: custom domain hoạt động; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 ### P18.3 — Read replica + queue (YAGNI)
@@ -761,6 +773,7 @@ Yêu cầu:
 - Đọc OpenSpec change `admin-dashboard-p18-3-read-replica-queue`.
 - Backend: read replica + connection pooling + queue system (QStash/Inngest) cho heavy ops.
 - Kiểm thử: heavy ops hoạt động ổn định; lint + build pass.
+tôi cấp quyền cho bạn supabase MCP để deploy migration lên DB của production thật rsialbfjswnrkzcxarnj
 ```
 
 Apply toàn bộ Admin Dashboard Milestone 1 (P1–P7 + P10 + P11 + P17.1–P17.2) lên Production

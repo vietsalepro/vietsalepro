@@ -30,7 +30,26 @@ export async function exportInvoiceToPdf(
   document.body.appendChild(container);
 
   try {
-    const canvas = await html2canvas(clone, { scale: 2, useCORS: true });
+    const canvas = await html2canvas(clone, { 
+      scale: 2, 
+      useCORS: true,
+      onclone: (clonedDoc: Document) => {
+        // ponytail: fix html2canvas không hỗ trợ oklch color function từ Tailwind v4
+        // Convert computed styles sang inline styles để browser convert oklch -> rgb
+        const convertColors = (el: HTMLElement) => {
+          const computed = (clonedDoc.defaultView || window).getComputedStyle(el);
+          const colorProps = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor'];
+          colorProps.forEach(prop => {
+            const value = computed.getPropertyValue(prop);
+            if (value && value !== 'none' && value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') {
+              (el.style as any)[prop] = value;
+            }
+          });
+          Array.from(el.children).forEach(child => convertColors(child as HTMLElement));
+        };
+        convertColors(clonedDoc.body.firstChild as HTMLElement);
+      }
+    });
     const imgData = canvas.toDataURL('image/png');
 
     const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });

@@ -387,3 +387,37 @@ export interface WebhookDeliveryList {
   data: WebhookDelivery[];
   count: number;
 }
+
+// P15.3: Integration marketplace + partner portal
+export type PartnerStatus = 'active' | 'inactive';
+
+export interface Partner {
+  id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  website?: string;
+  contactEmail?: string;
+  logoUrl?: string;
+  status: PartnerStatus;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type IntegrationStatus = 'active' | 'inactive';
+
+export interface Integration {
+  id: string;
+  partnerId?: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  category?: string;
+  status: IntegrationStatus;
+  documentationUrl?: string;
+  partnerName?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}

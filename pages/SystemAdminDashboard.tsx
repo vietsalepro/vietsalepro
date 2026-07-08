@@ -20,6 +20,7 @@ import StorageBackupPanel from '../components/StorageBackupPanel';
 import BulkMaintenancePanel from '../components/BulkMaintenancePanel';
 import ApiKeyManager from '../components/ApiKeyManager';
 import WebhookManager from '../components/WebhookManager';
+import IntegrationMarketplace from '../components/IntegrationMarketplace';
 import './Dashboard.css';
 import {
   Tenant,
@@ -301,7 +302,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -1092,6 +1093,12 @@ export default function SystemAdminDashboard() {
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'webhooks' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             Webhooks
+          </button>
+          <button
+            onClick={() => setActiveTab('integrations')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'integrations' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Integrations
           </button>
         </div>
 
@@ -2023,6 +2030,8 @@ export default function SystemAdminDashboard() {
     {activeTab === 'apiKeys' && <ApiKeyManager />}
 
     {activeTab === 'webhooks' && <WebhookManager />}
+
+    {activeTab === 'integrations' && <IntegrationMarketplace />}
 
   </div>
 

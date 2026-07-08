@@ -1216,6 +1216,9 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
   - `tests/mocks/supabase.ts` mocked `tenant-backup` and `tenant-restore` Edge Functions.
 - Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p14-2-restore-archive_20260708_094719`.
 - `npm run lint` PASS · `npm run build` PASS · `npx vitest run` 148/148 PASS.
-- Deploy to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) pending user granting Supabase MCP access.
+- Deployed to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) via Supabase MCP:
+  - Migration `phase_p14_2_restore_archive` applied successfully.
+  - Verified `get_tenant_restore_table_order()` and `restore_tenant_tables(UUID, JSONB)` exist with `SECURITY DEFINER`.
+  - Edge Function `tenant-restore` deployed and `ACTIVE` (verify_jwt enabled).
 - ponytail: practical restore size ceiling is the Edge Function payload limit (~6MB); larger tenants need offline/table-by-table restore.
 

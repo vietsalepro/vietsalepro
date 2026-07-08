@@ -15,7 +15,7 @@
 - [x] 2.1 Run `npm run lint`
 - [x] 2.2 Run `npm run build` if this sub-phase touches code
 - [x] 2.3 Manual test the acceptance criteria
-- [ ] 2.4 Deploy and test migration on Supabase if applicable
+- [x] 2.4 Deploy and test migration on Supabase if applicable
 
 ## Acceptance Criteria
 

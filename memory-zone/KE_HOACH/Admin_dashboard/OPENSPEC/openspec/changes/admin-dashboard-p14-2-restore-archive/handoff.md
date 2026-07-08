@@ -19,9 +19,16 @@
 
 - P14.3 — Data migration giữa môi trường + reset demo data (per KE_HOACH_ADMIN_DASHBOARD_SUB_PHASE.md).
 
+## Production Deployment
+
+- Migration `phase_p14_2_restore_archive` applied to production project `rsialbfjswnrkzcxarnj` (QLBH) via Supabase MCP.
+- Verified `public.get_tenant_restore_table_order()` and `public.restore_tenant_tables(UUID, JSONB)` exist in `pg_proc` with `SECURITY DEFINER`.
+- Edge Function `tenant-restore` deployed to production and status `ACTIVE` (verify_jwt enabled).
+- Edge Function `tenant-restore` returns `401 Missing Authorization header` when called unauthenticated (verified by `list_edge_functions` status ACTIVE).
+
 ## Blockers / Decisions
 
-- Deployment to production DB (`rsialbfjswnrkzcxarnj`) pending user granting Supabase MCP access.
+- None.
 
 ## Backup Location
 

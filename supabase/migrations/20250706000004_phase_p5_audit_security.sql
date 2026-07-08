@@ -3,6 +3,20 @@
 -- ponytail: migration idempotent; chỉ system admin được gọi các RPC này.
 
 -- ============================================================
+-- 0. Add created_at column to system_admins table
+-- ============================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'system_admins' AND column_name = 'created_at'
+  ) THEN
+    ALTER TABLE public.system_admins ADD COLUMN created_at TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+
+-- ============================================================
 -- 1. Indexes for audit log filtering
 -- ============================================================
 

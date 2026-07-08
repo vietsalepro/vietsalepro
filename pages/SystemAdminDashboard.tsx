@@ -44,7 +44,7 @@ import {
   SearchTenantsResult,
   updateTenant,
   softDeleteTenant,
-  restoreTenant,
+  restoreTenant as restoreTenantStatus,
   getTenantUsageSummary,
   updateTenantSubscription,
   resetMonthlyOrderCounter,
@@ -70,6 +70,7 @@ import {
   removeSystemAdmin,
 } from '../services/systemAdminService';
 import { downloadTenantBackup } from '../services/tenantBackupService';
+import { restoreTenantBackup, previewBackupTables } from '../services/tenantRestoreService';
 import {
   getDataRetentionStatus,
   getDefaultPlanLimits,
@@ -275,6 +276,11 @@ export default function SystemAdminDashboard() {
   const [usageLoading, setUsageLoading] = useState(false);
   const [backingUpTenantId, setBackingUpTenantId] = useState<string | null>(null);
 
+  const [restoreTenant, setRestoreTenant] = useState<Tenant | null>(null);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restorePreview, setRestorePreview] = useState<{ name: string; rows: number }[] | null>(null);
+  const [restoreSubmitting, setRestoreSubmitting] = useState(false);
+
   const [subTenant, setSubTenant] = useState<Tenant | null>(null);
   const [subForm, setSubForm] = useState<UpdateSubscriptionInput & { plan: TenantPlan }>({
     plan: 'free',
@@ -427,7 +433,7 @@ export default function SystemAdminDashboard() {
     if (!window.confirm(`Khôi phục cửa hàng "${tenant.name}"?`)) return;
     setError(null);
     try {
-      await restoreTenant(tenant.id);
+      await restoreTenantStatus(tenant.id);
       await load(page, pageSize);
     } catch (err: any) {
       setError(err?.message || 'Khôi phục cửa hàng thất bại.');
@@ -456,6 +462,60 @@ export default function SystemAdminDashboard() {
       setError(err?.message || 'Backup tenant thất bại.');
     } finally {
       setBackingUpTenantId(null);
+    }
+  };
+
+  const openRestore = (tenant: Tenant) => {
+    setRestoreTenant(tenant);
+    setRestoreFile(null);
+    setRestorePreview(null);
+    setError(null);
+  };
+
+  const closeRestore = () => {
+    setRestoreTenant(null);
+    setRestoreFile(null);
+    setRestorePreview(null);
+    setRestoreSubmitting(false);
+  };
+
+  const handleRestoreFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setRestoreFile(null);
+      setRestorePreview(null);
+      return;
+    }
+    setError(null);
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      if (!backup.tables || typeof backup.tables !== 'object') {
+        throw new Error('File backup thiếu phần tables');
+      }
+      setRestoreFile(file);
+      setRestorePreview(previewBackupTables({ tables: backup.tables }));
+    } catch (err: any) {
+      setError(err?.message || 'Không thể đọc file backup.');
+      setRestoreFile(null);
+      setRestorePreview(null);
+    }
+  };
+
+  const handleRestoreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoreTenant || !restoreFile) return;
+    setRestoreSubmitting(true);
+    setError(null);
+    try {
+      const res = await restoreTenantBackup(restoreTenant.id, restoreFile);
+      const restoredTables = res.result?.restored?.map((r) => `${r.table} (${r.rows})`).join(', ');
+      closeRestore();
+      setError(`Restore thành công: ${res.result?.total_rows ?? 0} dòng trong ${res.result?.restored?.length ?? 0} bảng (${restoredTables}).`);
+    } catch (err: any) {
+      setError(err?.message || 'Restore tenant thất bại.');
+    } finally {
+      setRestoreSubmitting(false);
     }
   };
 
@@ -1376,6 +1436,13 @@ export default function SystemAdminDashboard() {
                               {backingUpTenantId === t.id ? 'Đang backup...' : 'Backup'}
                             </button>
                             <button
+                              onClick={() => openRestore(t)}
+                              disabled={restoreSubmitting && restoreTenant?.id === t.id}
+                              className="px-3 py-1.5 text-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg disabled:opacity-60"
+                            >
+                              Restore
+                            </button>
+                            <button
                               onClick={() => handleLoginAs(t)}
                               disabled={impersonatingTenantId === t.id || t.status !== 'active'}
                               title={t.status !== 'active' ? 'Chỉ impersonate tenant đang hoạt động' : 'Đăng nhập với tư cách admin tenant'}
@@ -2151,6 +2218,74 @@ export default function SystemAdminDashboard() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Restore tenant modal */}
+      {restoreTenant && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={(e) => {
+            if (e.currentTarget === e.target && !restoreSubmitting) closeRestore();
+          }}
+        >
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Restore dữ liệu — {restoreTenant.name}
+            </h3>
+            <form onSubmit={handleRestoreSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">File backup JSON</label>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleRestoreFileChange}
+                  disabled={restoreSubmitting}
+                  className="w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  ponytail: restore ghi đè dữ liệu hiện có của tenant bằng backup; file lớn hơn ~6MB cần xử lý offline.
+                </p>
+              </div>
+              {restorePreview && (
+                <div className="border border-gray-100 rounded-lg overflow-hidden">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-700">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium">Bảng</th>
+                        <th className="px-3 py-2 text-right font-medium">Số dòng</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {restorePreview.map((p) => (
+                        <tr key={p.name}>
+                          <td className="px-3 py-2 text-gray-900">{p.name}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{p.rows.toLocaleString('vi-VN')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={closeRestore}
+                  disabled={restoreSubmitting}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-60"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={restoreSubmitting || !restoreFile || !restorePreview}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {restoreSubmitting ? 'Đang restore...' : 'Restore'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

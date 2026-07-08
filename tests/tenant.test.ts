@@ -24,6 +24,7 @@ import {
   softDeleteTenant,
   restoreTenant,
 } from '../services/tenantService';
+import { restoreTenantBackup, previewBackupTables } from '../services/tenantRestoreService';
 
 describe('tenant/auth/membership', () => {
   beforeEach(() => {
@@ -168,5 +169,38 @@ describe('system admin tenant management', () => {
     const restored = await restoreTenant(tenant.id);
     expect(restored.status).toBe('active');
     expect(restored.archivedAt).toBeFalsy();
+  });
+});
+
+describe('tenant restore service', () => {
+  beforeEach(() => {
+    resetMockData();
+    setSystemAdmin(true);
+  });
+
+  it('previewBackupTables liệt kê các bảng và số dòng', () => {
+    const tables = { products: [{ id: 'p1' }, { id: 'p2' }], customers: [{ id: 'c1' }] };
+    const preview = previewBackupTables({ tables });
+    expect(preview).toHaveLength(2);
+    expect(preview.find(t => t.name === 'products')?.rows).toBe(2);
+    expect(preview.find(t => t.name === 'customers')?.rows).toBe(1);
+  });
+
+  it('restoreTenantBackup gửi file JSON và trả về kết quả restore', async () => {
+    setCurrentUserId('admin-004');
+    const tenant = await createTenantWithAdmin({ name: 'Cửa hàng F', subdomain: 'store-f', plan: 'free' });
+    const backup = { tenant: { id: tenant.id, name: tenant.name }, tables: { products: [{ id: 'p1', tenant_id: tenant.id }] }, exportedAt: new Date().toISOString() };
+    const file = new File([JSON.stringify(backup)], 'tenant-backup.json', { type: 'application/json' });
+
+    const res = await restoreTenantBackup(tenant.id, file);
+    expect(res.success).toBe(true);
+    expect(res.result.total_rows).toBe(1);
+    expect(res.result.restored).toContainEqual({ table: 'products', rows: 1 });
+  });
+
+  it('restoreTenantBackup từ chối file JSON thiếu tables', async () => {
+    setCurrentUserId('admin-005');
+    const file = new File(['{"tenant":{"id":"x"}}'], 'bad.json', { type: 'application/json' });
+    await expect(restoreTenantBackup('x', file)).rejects.toThrow('thiếu phần tables');
   });
 });

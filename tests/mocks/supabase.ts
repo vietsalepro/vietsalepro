@@ -1685,6 +1685,39 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     };
   }
 
+  if (name === 'tenant-backup') {
+    const { tenant_id } = body || {};
+    const tenant = store.tenants.find(t => t.id === tenant_id);
+    if (!tenant) return { data: { error: 'Tenant không tồn tại' }, error: null };
+    return {
+      data: {
+        tenant: { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain },
+        tables: {},
+        exportedAt: new Date().toISOString(),
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'tenant-restore') {
+    const { tenant_id, backup } = body || {};
+    if (!tenant_id) return { data: { error: 'Thiếu tenant_id' }, error: null };
+    if (!backup || !backup.tables) return { data: { error: 'Backup không hợp lệ' }, error: null };
+    const restored = Object.entries(backup.tables).map(([table, rows]) => ({ table, rows: (rows as any[]).length }));
+    return {
+      data: {
+        success: true,
+        result: {
+          tenant_id,
+          restored,
+          errors: [],
+          total_rows: restored.reduce((sum, r) => sum + r.rows, 0),
+        },
+      },
+      error: null,
+    };
+  }
+
   return { data: { error: 'Function not found' }, error: null };
 };
 

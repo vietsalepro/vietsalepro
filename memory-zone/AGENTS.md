@@ -1203,3 +1203,19 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
   - Edge Function `error-performance` deployed via CLI (`supabase functions deploy --project-ref rsialbfjswnrkzcxarnj`) and returns `401` when called unauthenticated.
 - Note: P95/P99 are normal-distribution approximations from `pg_stat_statements` mean/stddev; exact percentiles would require a separate histogram collector.
 
+## P14.2 — Restore per tenant + archive tenant + import workflow (2026-07-08)
+
+- Migration `supabase/migrations/20250708000005_phase_p14_2_restore_archive.sql`:
+  - `public.get_tenant_restore_table_order()` returns tenant-scoped tables sorted by FK dependency depth (parents before children).
+  - `public.restore_tenant_tables(p_tenant_id UUID, p_tables JSONB)` checks `is_system_admin()`, verifies target tenant, deletes existing data in reverse dependency order, inserts backup rows with `tenant_id` overridden to the target tenant, skips duplicate IDs, and returns restored table row counts.
+- Edge Function `supabase/functions/tenant-restore/index.ts`: authenticates system admin, validates `tenant_id` + `backup.tables`, invokes `restore_tenant_tables` via service role.
+- Service `services/tenantRestoreService.ts`: `restoreTenantBackup(tenantId, file)` parses the uploaded JSON backup and invokes the Edge Function; `previewBackupTables(backup)` lists table row counts for the UI preview.
+- Frontend `pages/SystemAdminDashboard.tsx`: per-tenant `Restore` button opens a modal with file input, JSON validation, table/row preview, and restore confirmation; archive/unarchive continues to reuse the existing `archived` status flow from P1.
+- Tests:
+  - `tests/tenant.test.ts` added restore service tests (preview + successful restore + invalid backup rejection).
+  - `tests/mocks/supabase.ts` mocked `tenant-backup` and `tenant-restore` Edge Functions.
+- Backup: `C:\Users\SUACAUBA\Downloads\Project\vietsale-pro-v7_backup_admin_dashboard_admin-dashboard-p14-2-restore-archive_20260708_094719`.
+- `npm run lint` PASS · `npm run build` PASS · `npx vitest run` 148/148 PASS.
+- Deploy to production Supabase project `rsialbfjswnrkzcxarnj` (QLBH) pending user granting Supabase MCP access.
+- ponytail: practical restore size ceiling is the Edge Function payload limit (~6MB); larger tenants need offline/table-by-table restore.
+

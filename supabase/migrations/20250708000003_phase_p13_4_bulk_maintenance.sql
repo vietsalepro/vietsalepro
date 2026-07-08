@@ -115,8 +115,8 @@ GRANT EXECUTE ON FUNCTION public.get_maintenance_windows(TIMESTAMPTZ, TIMESTAMPT
 CREATE OR REPLACE FUNCTION public.create_maintenance_window(
   p_title TEXT,
   p_description TEXT DEFAULT NULL,
-  p_starts_at TIMESTAMPTZ,
-  p_ends_at TIMESTAMPTZ
+  p_starts_at TIMESTAMPTZ DEFAULT NULL,
+  p_ends_at TIMESTAMPTZ DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql

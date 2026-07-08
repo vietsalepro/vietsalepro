@@ -303,3 +303,24 @@ export interface BackupStatus {
   cliAvailable: boolean;
   status: 'healthy' | 'degraded' | 'unknown';
 }
+
+// P13.4: Bulk operations + maintenance scheduler
+export type MaintenanceWindowStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface MaintenanceWindow {
+  id: string;
+  title: string;
+  description?: string;
+  startsAt: string;
+  endsAt: string;
+  status: MaintenanceWindowStatus;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BulkUpdateTenantsResult {
+  updated: number;
+  updatedIds: string[];
+  skippedIds: string[];
+}

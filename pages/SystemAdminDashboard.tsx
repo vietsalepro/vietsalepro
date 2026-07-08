@@ -17,6 +17,7 @@ import NotificationManager from '../components/NotificationManager';
 import SystemHealthPanel from '../components/SystemHealthPanel';
 import ErrorPerformancePanel from '../components/ErrorPerformancePanel';
 import StorageBackupPanel from '../components/StorageBackupPanel';
+import BulkMaintenancePanel from '../components/BulkMaintenancePanel';
 import './Dashboard.css';
 import {
   Tenant,
@@ -288,7 +289,7 @@ export default function SystemAdminDashboard() {
   const [featureLoading, setFeatureLoading] = useState(false);
   const [featureSubmitting, setFeatureSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
   const [members, setMembers] = useState<MemberWithEmail[]>([]);
@@ -980,6 +981,12 @@ export default function SystemAdminDashboard() {
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'storage' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
           >
             Lưu trữ
+          </button>
+          <button
+            onClick={() => setActiveTab('bulkMaintenance')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'bulkMaintenance' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Bulk & Bảo trì
           </button>
         </div>
 
@@ -1884,6 +1891,8 @@ export default function SystemAdminDashboard() {
     {activeTab === 'errors' && <ErrorPerformancePanel />}
 
     {activeTab === 'storage' && <StorageBackupPanel />}
+
+    {activeTab === 'bulkMaintenance' && <BulkMaintenancePanel />}
 
   </div>
 

@@ -6,22 +6,22 @@
 
 ## 1. P13 4 Bulk Maintenance
 
-- [ ] 1.1 Implement backend changes (RPC/migration/Edge Function) for P13 4 Bulk Maintenance
-- [ ] 1.2 Implement frontend changes for P13 4 Bulk Maintenance
-- [ ] 1.3 Wire up service layer and types if needed
+- [x] 1.1 Implement backend changes (RPC/migration/Edge Function) for P13 4 Bulk Maintenance
+- [x] 1.2 Implement frontend changes for P13 4 Bulk Maintenance
+- [x] 1.3 Wire up service layer and types if needed
 
 ## 2. Verification
 
-- [ ] 2.1 Run `npm run lint`
-- [ ] 2.2 Run `npm run build` if this sub-phase touches code
-- [ ] 2.3 Manual test the acceptance criteria
-- [ ] 2.4 Deploy and test migration on Supabase if applicable
+- [x] 2.1 Run `npm run lint`
+- [x] 2.2 Run `npm run build` if this sub-phase touches code
+- [x] 2.3 Manual test the acceptance criteria
+- [x] 2.4 Deploy and test migration on Supabase if applicable
 
 ## Acceptance Criteria
 
-- [ ] P13.4 — Bulk operations + maintenance scheduler: maintenance_windows + calendar UI.
-- [ ] `npm run lint` pass
-- [ ] `npm run build` pass
+- [x] P13.4 — Bulk operations + maintenance scheduler: maintenance_windows + calendar UI.
+- [x] `npm run lint` pass
+- [x] `npm run build` pass
 
 ## Rollback Plan
 

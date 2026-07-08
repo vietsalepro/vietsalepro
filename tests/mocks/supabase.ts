@@ -40,6 +40,7 @@ const store: Record<string, Row[]> = {
   promo_code_usages: [],
   announcements: [],
   error_logs: [],
+  maintenance_windows: [],
 };
 
 export const resetMockData = () => {
@@ -1314,6 +1315,99 @@ const rpc = async (name: string, params: Record<string, any>) => {
       },
       error: null,
     };
+  }
+
+  if (name === 'bulk_update_tenants') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được bulk update tenant' } };
+    }
+    const ids: string[] = params.p_tenant_ids || [];
+    const updatedIds: string[] = [];
+    const skippedIds: string[] = [];
+    ids.forEach((id: string) => {
+      const tenant = store.tenants.find(t => t.id === id);
+      if (!tenant) {
+        skippedIds.push(id);
+        return;
+      }
+      if (params.p_status !== null && params.p_status !== undefined) {
+        tenant.status = params.p_status;
+        tenant.archived_at = params.p_status === 'archived' ? new Date().toISOString() : null;
+      }
+      if (params.p_plan !== null && params.p_plan !== undefined) {
+        if (!getPlan(params.p_plan)) {
+          skippedIds.push(id);
+          return;
+        }
+        tenant.plan = params.p_plan;
+      }
+      tenant.updated_at = new Date().toISOString();
+      updatedIds.push(id);
+    });
+    return { data: { updated: updatedIds.length, updatedIds, skippedIds }, error: null };
+  }
+
+  if (name === 'get_maintenance_windows') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem maintenance windows' } };
+    }
+    const start = params.p_start ? new Date(params.p_start) : null;
+    const end = params.p_end ? new Date(params.p_end) : null;
+    const rows = store.maintenance_windows.filter(w => {
+      const ws = new Date(w.starts_at);
+      const we = new Date(w.ends_at);
+      if (start && we < start) return false;
+      if (end && ws > end) return false;
+      return true;
+    });
+    return { data: rows, error: null };
+  }
+
+  if (name === 'create_maintenance_window') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo maintenance window' } };
+    }
+    if (!params.p_title || !params.p_starts_at || !params.p_ends_at) {
+      return { data: null, error: { code: '23514', message: 'Thiếu thông tin bắt buộc' } };
+    }
+    const window = {
+      id: uuid(),
+      title: (params.p_title || '').trim(),
+      description: params.p_description ?? null,
+      starts_at: params.p_starts_at,
+      ends_at: params.p_ends_at,
+      status: params.p_status ?? 'scheduled',
+      created_by: currentUserId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    store.maintenance_windows.push(window);
+    return { data: window, error: null };
+  }
+
+  if (name === 'update_maintenance_window') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật maintenance window' } };
+    }
+    const window = store.maintenance_windows.find(w => w.id === params.p_id);
+    if (!window) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_title !== null && params.p_title !== undefined) window.title = params.p_title.trim();
+    if (params.p_description !== null && params.p_description !== undefined) window.description = params.p_description;
+    if (params.p_starts_at !== null && params.p_starts_at !== undefined) window.starts_at = params.p_starts_at;
+    if (params.p_ends_at !== null && params.p_ends_at !== undefined) window.ends_at = params.p_ends_at;
+    if (params.p_status !== null && params.p_status !== undefined) window.status = params.p_status;
+    window.updated_at = new Date().toISOString();
+    return { data: window, error: null };
+  }
+
+  if (name === 'delete_maintenance_window') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa maintenance window' } };
+    }
+    const idx = store.maintenance_windows.findIndex(w => w.id === params.p_id);
+    if (idx < 0) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    store.maintenance_windows.splice(idx, 1);
+    return { data: { id: params.p_id, deleted: true }, error: null };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };

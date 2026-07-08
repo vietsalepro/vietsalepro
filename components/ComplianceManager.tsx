@@ -13,6 +13,7 @@ import {
   recordTermsAcceptance,
 } from '../services/complianceService';
 import { useAuth } from '../contexts/AuthContext';
+import FraudRetentionPanel from './FraudRetentionPanel';
 
 const TERMS_TYPES: TermsType[] = ['tos', 'privacy', 'gdpr', 'cookie', 'custom'];
 
@@ -309,6 +310,9 @@ export default function ComplianceManager() {
           </button>
         </form>
       </div>
+
+      {/* Fraud detection + data retention */}
+      <FraudRetentionPanel />
     </div>
   );
 }

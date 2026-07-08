@@ -7,6 +7,8 @@ export type TenantPlan = string;
 
 export type TenantRole = 'admin' | 'cashier' | 'inventory_manager' | 'accountant';
 
+export type TenantIsolationMode = 'shared' | 'schema' | 'project';
+
 export interface Tenant {
   id: string;
   name: string;
@@ -15,6 +17,9 @@ export interface Tenant {
   plan: TenantPlan;
   ownerId?: string;
   settings?: Record<string, any>;
+  isolationMode?: TenantIsolationMode;
+  isolationSchema?: string;
+  isolationProjectRef?: string;
   createdAt?: string;
   updatedAt?: string;
   archivedAt?: string;
@@ -464,4 +469,63 @@ export interface TenantExportData {
   members: any[];
   tables: TenantExportTable[];
   exported_at: string;
+}
+
+// P17.4: Fraud detection + data retention policy
+export type FraudSeverity = 'low' | 'medium' | 'high';
+export type FraudType = 'ip_burst' | 'email_domain_burst' | 'owner_burst';
+export type FraudQueueStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
+
+export interface FraudQueueItem {
+  id: string;
+  type: FraudType;
+  severity: FraudSeverity;
+  status: FraudQueueStatus;
+  targetValue?: string;
+  eventCount: number;
+  details: any;
+  windowStart?: string;
+  windowEnd?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FraudQueueList {
+  data: FraudQueueItem[];
+  count: number;
+}
+
+export interface FraudStats {
+  total: number;
+  byStatus: Record<FraudQueueStatus | string, number>;
+  bySeverity: Record<FraudSeverity | string, number>;
+}
+
+export interface FraudDetectionConfig {
+  enabled: boolean;
+  ipWindowHours: number;
+  ipMax: number;
+  emailDomainWindowHours: number;
+  emailDomainMax: number;
+  ownerWindowHours: number;
+  ownerMax: number;
+}
+
+export interface DataRetentionConfig {
+  retentionDaysOrders: number;
+  retentionDaysProcessedOperations: number;
+  retentionDaysRateLimitLogs: number;
+  retentionDaysFraudQueue: number;
+  retentionDaysRegistrationEvents: number;
+  cronSchedule: string;
+}
+
+export interface DataRetentionRunResult {
+  archivedOrders: number;
+  archivedItems: number;
+  deletedProcessedOperations: number;
+  deletedRateLimitLogs: number;
+  deletedFraudQueue: number;
+  deletedRegistrationEvents: number;
 }

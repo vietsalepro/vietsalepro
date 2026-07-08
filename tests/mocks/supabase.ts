@@ -41,6 +41,9 @@ const store: Record<string, Row[]> = {
   announcements: [],
   error_logs: [],
   maintenance_windows: [],
+  fraud_queue: [],
+  tenant_registration_events: [],
+  processed_operations: [],
 };
 
 export const resetMockData = () => {
@@ -55,6 +58,8 @@ export const resetMockData = () => {
     { key: 'default_limits_vip', value: { max_users: 999, max_products: 999999, max_orders_per_month: 999999 }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'maintenance_mode', value: { enabled: false, message: '' }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'data_retention_cron', value: { schedule: '0 3 * * *', description: 'Hàng ngày lúc 03:00' }, updated_at: new Date().toISOString(), updated_by: null },
+    { key: 'fraud_detection_config', value: { enabled: true, ip_window_hours: 24, ip_max: 5, email_domain_window_hours: 24, email_domain_max: 10, owner_window_hours: 24, owner_max: 20 }, updated_at: new Date().toISOString(), updated_by: null },
+    { key: 'data_retention_config', value: { retention_days_orders: 730, retention_days_processed_operations: 90, retention_days_rate_limit_logs: 1, retention_days_fraud_queue: 90, retention_days_registration_events: 365, cron_schedule: '0 3 * * *' }, updated_at: new Date().toISOString(), updated_by: null },
     { key: 'email_brand', value: { logo_url: '', brand_color: '#2563eb', signature_html: 'Trân trọng,<br/>Đội ngũ VietSales Pro', from_name: 'VietSales Pro' }, updated_at: new Date().toISOString(), updated_by: null }
   );
 
@@ -1486,6 +1491,163 @@ const rpc = async (name: string, params: Record<string, any>) => {
         source_tenant_id: source,
         target_tenant_id: target,
         result: { tenant_id: target, restored, errors: [], total_rows: totalRows },
+      },
+      error: null,
+    };
+  }
+
+  // P17.4: fraud detection + data retention
+  if (name === 'get_fraud_detection_config') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem cấu hình fraud detection' } };
+    const cfg = store.system_settings.find(s => s.key === 'fraud_detection_config')?.value ?? {};
+    return {
+      data: {
+        enabled: cfg.enabled ?? true,
+        ipWindowHours: cfg.ip_window_hours ?? 24,
+        ipMax: cfg.ip_max ?? 5,
+        emailDomainWindowHours: cfg.email_domain_window_hours ?? 24,
+        emailDomainMax: cfg.email_domain_max ?? 10,
+        ownerWindowHours: cfg.owner_window_hours ?? 24,
+        ownerMax: cfg.owner_max ?? 20,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'set_fraud_detection_config') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật cấu hình fraud detection' } };
+    const cfg = {
+      enabled: params.p_enabled ?? true,
+      ip_window_hours: params.p_ip_window_hours ?? 24,
+      ip_max: params.p_ip_max ?? 5,
+      email_domain_window_hours: params.p_email_domain_window_hours ?? 24,
+      email_domain_max: params.p_email_domain_max ?? 10,
+      owner_window_hours: params.p_owner_window_hours ?? 24,
+      owner_max: params.p_owner_max ?? 20,
+    };
+    const idx = store.system_settings.findIndex(s => s.key === 'fraud_detection_config');
+    if (idx >= 0) store.system_settings[idx].value = cfg;
+    else store.system_settings.push({ key: 'fraud_detection_config', value: cfg, updated_at: new Date().toISOString(), updated_by: null });
+    return {
+      data: {
+        enabled: cfg.enabled,
+        ipWindowHours: cfg.ip_window_hours,
+        ipMax: cfg.ip_max,
+        emailDomainWindowHours: cfg.email_domain_window_hours,
+        emailDomainMax: cfg.email_domain_max,
+        ownerWindowHours: cfg.owner_window_hours,
+        ownerMax: cfg.owner_max,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'run_fraud_detection') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được chạy fraud detection' } };
+    return { data: { enabled: true, inserted: 0, updated: 0 }, error: null };
+  }
+
+  if (name === 'get_fraud_queue') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem fraud queue' } };
+    const status = params.p_status || null;
+    const severity = params.p_severity || null;
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const rows = store.fraud_queue.filter((q: any) => (!status || q.status === status) && (!severity || q.severity === severity));
+    const paged = rows.slice(offset, offset + limit).map((q: any) => ({
+      id: q.id,
+      type: q.type,
+      severity: q.severity,
+      status: q.status,
+      target_value: q.target_value,
+      event_count: q.event_count,
+      details: q.details,
+      window_start: q.window_start,
+      window_end: q.window_end,
+      notes: q.notes,
+      created_at: q.created_at,
+      updated_at: q.updated_at,
+    }));
+    return { data: { data: paged, count: rows.length }, error: null };
+  }
+
+  if (name === 'get_fraud_stats') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem fraud stats' } };
+    const byStatus: Record<string, number> = {};
+    const bySeverity: Record<string, number> = {};
+    for (const q of store.fraud_queue) {
+      byStatus[q.status] = (byStatus[q.status] || 0) + 1;
+      bySeverity[q.severity] = (bySeverity[q.severity] || 0) + 1;
+    }
+    return { data: { total: store.fraud_queue.length, byStatus, bySeverity }, error: null };
+  }
+
+  if (name === 'update_fraud_queue_status') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật fraud queue' } };
+    const q = store.fraud_queue.find((x: any) => x.id === params.p_id);
+    if (!q) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    q.status = params.p_status;
+    if (params.p_notes) q.notes = params.p_notes;
+    q.updated_at = new Date().toISOString();
+    return { data: { id: q.id, status: q.status, notes: q.notes, updatedAt: q.updated_at }, error: null };
+  }
+
+  if (name === 'get_data_retention_config') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem cấu hình data retention' } };
+    const cfg = store.system_settings.find(s => s.key === 'data_retention_config')?.value ?? {};
+    return {
+      data: {
+        retentionDaysOrders: cfg.retention_days_orders ?? 730,
+        retentionDaysProcessedOperations: cfg.retention_days_processed_operations ?? 90,
+        retentionDaysRateLimitLogs: cfg.retention_days_rate_limit_logs ?? 1,
+        retentionDaysFraudQueue: cfg.retention_days_fraud_queue ?? 90,
+        retentionDaysRegistrationEvents: cfg.retention_days_registration_events ?? 365,
+        cronSchedule: cfg.cron_schedule ?? '0 3 * * *',
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'set_data_retention_config') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật cấu hình data retention' } };
+    const cfg = {
+      retention_days_orders: params.p_retention_days_orders ?? 730,
+      retention_days_processed_operations: params.p_retention_days_processed_operations ?? 90,
+      retention_days_rate_limit_logs: params.p_retention_days_rate_limit_logs ?? 1,
+      retention_days_fraud_queue: params.p_retention_days_fraud_queue ?? 90,
+      retention_days_registration_events: params.p_retention_days_registration_events ?? 365,
+      cron_schedule: params.p_cron_schedule ?? '0 3 * * *',
+    };
+    const idx = store.system_settings.findIndex(s => s.key === 'data_retention_config');
+    if (idx >= 0) store.system_settings[idx].value = cfg;
+    else store.system_settings.push({ key: 'data_retention_config', value: cfg, updated_at: new Date().toISOString(), updated_by: null });
+    const cronIdx = store.system_settings.findIndex(s => s.key === 'data_retention_cron');
+    const cronValue = { schedule: cfg.cron_schedule, description: 'Hàng ngày' };
+    if (cronIdx >= 0) store.system_settings[cronIdx].value = cronValue;
+    else store.system_settings.push({ key: 'data_retention_cron', value: cronValue, updated_at: new Date().toISOString(), updated_by: null });
+    return {
+      data: {
+        retentionDaysOrders: cfg.retention_days_orders,
+        retentionDaysProcessedOperations: cfg.retention_days_processed_operations,
+        retentionDaysRateLimitLogs: cfg.retention_days_rate_limit_logs,
+        retentionDaysFraudQueue: cfg.retention_days_fraud_queue,
+        retentionDaysRegistrationEvents: cfg.retention_days_registration_events,
+        cronSchedule: cfg.cron_schedule,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'run_data_retention') {
+    if (!isSystemAdmin) return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được chạy data retention' } };
+    return {
+      data: {
+        archivedOrders: 0,
+        archivedItems: 0,
+        deletedProcessedOperations: 0,
+        deletedRateLimitLogs: 0,
+        deletedFraudQueue: 0,
+        deletedRegistrationEvents: 0,
       },
       error: null,
     };

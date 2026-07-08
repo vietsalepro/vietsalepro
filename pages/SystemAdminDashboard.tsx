@@ -29,6 +29,7 @@ import {
   TenantPlan,
   TenantStatus,
   TenantRole,
+  TenantIsolationMode,
   MemberWithEmail,
   UsageSummary,
   UpdateSubscriptionInput,
@@ -94,6 +95,16 @@ import {
 
 const PLANS: TenantPlan[] = ['free', 'vip'];
 const STATUSES: TenantStatus[] = ['active', 'suspended', 'trial', 'pending', 'archived', 'read_only'];
+const ISOLATION_MODES: TenantIsolationMode[] = ['shared', 'schema', 'project'];
+
+const isolationLabel = (mode: TenantIsolationMode) => {
+  switch (mode) {
+    case 'shared': return 'Shared';
+    case 'schema': return 'Schema';
+    case 'project': return 'Project';
+    default: return mode;
+  }
+};
 
 const statusClass = (status: TenantStatus) => {
   switch (status) {
@@ -280,6 +291,9 @@ export default function SystemAdminDashboard() {
     name: '',
     plan: 'free' as TenantPlan,
     status: 'active' as TenantStatus,
+    isolationMode: 'shared' as TenantIsolationMode,
+    isolationSchema: '',
+    isolationProjectRef: '',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
 
@@ -410,7 +424,14 @@ export default function SystemAdminDashboard() {
 
   const openEdit = (tenant: Tenant) => {
     setEditTenant(tenant);
-    setEditForm({ name: tenant.name, plan: tenant.plan, status: tenant.status });
+    setEditForm({
+      name: tenant.name,
+      plan: tenant.plan,
+      status: tenant.status,
+      isolationMode: tenant.isolationMode || 'shared',
+      isolationSchema: tenant.isolationSchema || '',
+      isolationProjectRef: tenant.isolationProjectRef || '',
+    });
     setError(null);
   };
 
@@ -429,6 +450,9 @@ export default function SystemAdminDashboard() {
         name: editForm.name.trim(),
         plan: editForm.plan,
         status: editForm.status,
+        isolationMode: editForm.isolationMode,
+        isolationSchema: editForm.isolationSchema.trim() || undefined,
+        isolationProjectRef: editForm.isolationProjectRef.trim() || undefined,
       });
       closeEdit();
       await load(page, pageSize);
@@ -1496,6 +1520,7 @@ export default function SystemAdminDashboard() {
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Tên</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Subdomain</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Gói</th>
+                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Cô lập</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Trạng thái</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Thao tác</th>
                 </tr>
@@ -1523,6 +1548,14 @@ export default function SystemAdminDashboard() {
                               usage?.orders.percent ?? 0
                             )} />}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${t.isolationMode && t.isolationMode !== 'shared' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'}`}
+                            title={t.isolationSchema || t.isolationProjectRef || undefined}
+                          >
+                            {(t.isolationMode || 'shared').toUpperCase()}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusClass(t.status)}`}>
@@ -2261,6 +2294,43 @@ export default function SystemAdminDashboard() {
                   {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chế độ cô lập</label>
+                <select
+                  value={editForm.isolationMode}
+                  onChange={(e) => setEditForm({ ...editForm, isolationMode: e.target.value as TenantIsolationMode })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {ISOLATION_MODES.map(m => <option key={m} value={m}>{isolationLabel(m)}</option>)}
+                </select>
+                {editForm.plan !== 'vip' && editForm.isolationMode !== 'shared' && (
+                  <p className="text-xs text-amber-600 mt-1">Cần chuyển sang gói VIP để áp dụng cô lập.</p>
+                )}
+              </div>
+              {editForm.isolationMode === 'schema' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên schema</label>
+                  <input
+                    type="text"
+                    value={editForm.isolationSchema}
+                    onChange={(e) => setEditForm({ ...editForm, isolationSchema: e.target.value })}
+                    placeholder="tenant_abc_schema"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+              {editForm.isolationMode === 'project' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project ref</label>
+                  <input
+                    type="text"
+                    value={editForm.isolationProjectRef}
+                    onChange={(e) => setEditForm({ ...editForm, isolationProjectRef: e.target.value })}
+                    placeholder="abcdefgh12345678"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"

@@ -27,6 +27,9 @@ const mapTenantFromDB = (row: any): Tenant => ({
   plan: row.plan,
   ownerId: row.owner_id,
   settings: row.settings || {},
+  isolationMode: row.isolation_mode || 'shared',
+  isolationSchema: row.isolation_schema,
+  isolationProjectRef: row.isolation_project_ref,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   archivedAt: row.archived_at,
@@ -169,13 +172,16 @@ export async function searchTenants(params: SearchTenantsParams = {}): Promise<S
 
 export async function updateTenant(
   tenantId: string,
-  input: Partial<Pick<Tenant, 'name' | 'plan' | 'status'>>
+  input: Partial<Pick<Tenant, 'name' | 'plan' | 'status' | 'isolationMode' | 'isolationSchema' | 'isolationProjectRef'>>
 ): Promise<Tenant> {
   const { data, error } = await supabase.rpc('update_tenant', {
     p_tenant_id: tenantId,
     p_name: input.name ?? null,
     p_plan: input.plan ?? null,
     p_status: input.status ?? null,
+    p_isolation_mode: input.isolationMode ?? null,
+    p_isolation_schema: input.isolationSchema ?? null,
+    p_isolation_project_ref: input.isolationProjectRef ?? null,
   });
   if (error) throw error;
   return mapTenantFromDB(data);

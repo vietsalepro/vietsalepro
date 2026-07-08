@@ -27,6 +27,27 @@
 - Usage guide: `memory-zone/KE_HOACH/Admin_dashboard/OPENSPEC/OPENSPEC_USAGE.md`.
 - To validate: `openspec validate --changes --store admin-dashboard`.
 
+## System Admin Creation Feature (2026-07-08)
+- **Feature**: Create system admins via email/password instead of manual UUID entry
+- **Status**: ✅ COMPLETED - All 8 sub-phases finished
+- **Production Project**: rsialbfjswnrkzcxarnj
+- **Edge Function**: `create-system-admin` deployed and ACTIVE
+- **Files Created**:
+  - `supabase/functions/create-system-admin/index.ts` - Edge function with rate limiting, auth, audit logging
+  - `tests/smoke/admin-dashboard-create-system-admin.test.ts` - 13 unit tests
+  - `tests/integration/system-admin-creation-integration.test.ts` - 13 integration tests
+  - `DEPLOYMENT_SYSTEM_ADMIN_FEATURE.md` - Deployment and rollback documentation
+  - `GITHUB_DESKTOP_DEPLOYMENT_GUIDE.md` - GitHub Desktop deployment guide
+  - `SYSTEM_ADMIN_FEATURE_COMPLETION_SUMMARY.md` - Project completion summary
+- **Files Modified**:
+  - `services/systemAdminService.ts` - Added `createSystemAdmin(email, password)` function
+  - `pages/SystemAdminDashboard.tsx` - Updated UI for email/password input
+- **Archived**: `memory-zone/archive/PLAN_CREATE_SYSTEM_ADMIN_SUB_PHASE.md`
+- **Security**: Rate limiting (10 req/min), JWT auth, system admin check, audit logging, no password logging
+- **Testing**: 26 tests total (13 unit + 13 integration), all passing
+- **Documentation**: Complete deployment guide, rollback procedures, monitoring queries
+- **Frontend**: Build successful, ready for GitHub Desktop deployment (manual step required)
+
 ## Baseline (2026-06-29)
 - `npm run lint`: PASS
 - `npm run build`: PASS

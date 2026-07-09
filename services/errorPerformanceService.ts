@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { ErrorPerformance } from '../types/tenant';
 
 export async function getErrorPerformance(): Promise<ErrorPerformance> {
-  const { data, error } = await (supabase as any).functions.invoke('error-performance', {
+  const { data, error } = await supabase.functions.invoke<ErrorPerformance>('error-performance', {
     body: {},
   });
   if (error) throw error;

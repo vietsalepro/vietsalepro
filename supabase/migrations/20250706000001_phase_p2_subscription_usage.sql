@@ -119,11 +119,17 @@ BEGIN
     RAISE EXCEPTION 'Gói dịch vụ không hợp lệ: %', v_new_plan;
   END IF;
 
-  -- ponytail: nếu đổi gói và không truyền custom limits, áp giới hạn mặc định của gói mới.
-  --          Giữ custom limits hiện tại nếu user đã tự nhập.
-  v_new_max_users := COALESCE(p_max_users, CASE WHEN p_plan IS NOT NULL AND v_new_plan = 'free' THEN 1 WHEN p_plan IS NOT NULL AND v_new_plan = 'vip' THEN 999 ELSE v_sub.max_users END);
-  v_new_max_products := COALESCE(p_max_products, CASE WHEN p_plan IS NOT NULL AND v_new_plan = 'free' THEN 50 WHEN p_plan IS NOT NULL AND v_new_plan = 'vip' THEN 999999 ELSE v_sub.max_products END);
-  v_new_max_orders := COALESCE(p_max_orders_per_month, CASE WHEN p_plan IS NOT NULL AND v_new_plan = 'free' THEN 300 WHEN p_plan IS NOT NULL AND v_new_plan = 'vip' THEN 999999 ELSE v_sub.max_orders_per_month END);
+  -- ponytail: chỉ áp giới hạn mặc định của gói mới khi admin explicit đổi gói VÀ không truyền custom limits.
+  --          Nếu có truyền bất kỳ custom limit nào, giữ nguyên giá trị hiện tại cho các trường còn lại.
+  v_new_max_users := COALESCE(p_max_users, CASE WHEN p_plan IS NOT NULL AND p_max_users IS NULL AND p_max_products IS NULL AND p_max_orders_per_month IS NULL THEN
+    CASE WHEN v_new_plan = 'free' THEN 1 WHEN v_new_plan = 'vip' THEN 999 ELSE v_sub.max_users END
+  ELSE v_sub.max_users END);
+  v_new_max_products := COALESCE(p_max_products, CASE WHEN p_plan IS NOT NULL AND p_max_users IS NULL AND p_max_products IS NULL AND p_max_orders_per_month IS NULL THEN
+    CASE WHEN v_new_plan = 'free' THEN 50 WHEN v_new_plan = 'vip' THEN 999999 ELSE v_sub.max_products END
+  ELSE v_sub.max_products END);
+  v_new_max_orders := COALESCE(p_max_orders_per_month, CASE WHEN p_plan IS NOT NULL AND p_max_users IS NULL AND p_max_products IS NULL AND p_max_orders_per_month IS NULL THEN
+    CASE WHEN v_new_plan = 'free' THEN 300 WHEN v_new_plan = 'vip' THEN 999999 ELSE v_sub.max_orders_per_month END
+  ELSE v_sub.max_orders_per_month END);
 
   IF v_new_max_users <= 0 OR v_new_max_products <= 0 OR v_new_max_orders <= 0 THEN
     RAISE EXCEPTION 'Giới hạn phải lớn hơn 0';
@@ -185,3 +191,37 @@ BEGIN
   RETURN v_sub;
 END;
 $$;
+
+-- ============================================================
+-- 4. Cron: reset counter đơn hàng tháng đầu tháng
+-- ponytail: tách logic reset stale counter ra cron đầu tháng để usage hiển thị đúng
+-- ngay cả khi chưa có đơn hàng mới.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.reset_stale_monthly_order_counters()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_updated INTEGER;
+BEGIN
+  UPDATE public.tenant_subscriptions
+  SET current_month_orders = 0,
+      current_month_start = date_trunc('month', CURRENT_DATE)::DATE,
+      updated_at = now()
+  WHERE current_month_start IS NULL
+     OR current_month_start <> date_trunc('month', CURRENT_DATE)::DATE;
+
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN v_updated;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.reset_stale_monthly_order_counters() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.reset_stale_monthly_order_counters() TO service_role;
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+SELECT cron.schedule('reset-stale-monthly-counters', '0 1 1 * *', 'SELECT public.reset_stale_monthly_order_counters();');

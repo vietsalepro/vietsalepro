@@ -66,7 +66,7 @@ export async function writeAuditLog(
     user_agent: options.userAgent ?? null,
   };
 
-  const { error } = await (supabase as any).functions.invoke('audit-log', { body });
+  const { error } = await supabase.functions.invoke('audit-log', { body });
   if (error) {
     throw new AppError(error.message || 'Lỗi ghi audit log', 'AUDIT_LOG_WRITE_ERROR', { originalError: error });
   }

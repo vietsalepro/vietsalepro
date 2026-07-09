@@ -108,7 +108,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             </button>
             <h1 className="admin-shell__topbar-title">{pageTitle}</h1>
           </div>
-          <div className="admin-shell__topbar-center" />
           {topbarActions && (
             <div className="admin-shell__topbar-right">
               {topbarActions}
@@ -165,6 +164,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           {/* Page header */}
           {(pageTitle || pageDescription) && (
             <div className="admin-shell__page-header">
+              {pageTitle && (
+                <h1 className="admin-shell__page-title">{pageTitle}</h1>
+              )}
               {pageDescription && (
                 <p className="admin-shell__page-description">{pageDescription}</p>
               )}

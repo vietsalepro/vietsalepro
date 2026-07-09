@@ -113,6 +113,7 @@ CREATE OR REPLACE FUNCTION public.claim_heavy_op_job()
 RETURNS public.heavy_ops_jobs
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_job public.heavy_ops_jobs;

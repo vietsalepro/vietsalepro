@@ -31,8 +31,8 @@ export default function MfaChallenge() {
         }
         await verifyLoginTotp(factor.id, clean);
       } else {
-        if (!/^[A-F0-9]{8}$/i.test(clean)) {
-          throw new Error('Backup code phải gồm 8 ký tự chữ/số');
+        if (!/^[A-F0-9]{32}$/i.test(clean)) {
+          throw new Error('Backup code phải gồm 32 ký tự chữ/số');
         }
         const valid = await verifyBackupCode(clean);
         if (!valid) {
@@ -75,7 +75,7 @@ export default function MfaChallenge() {
               type="text"
               inputMode={mode === 'totp' ? 'numeric' : 'text'}
               autoComplete="off"
-              maxLength={mode === 'totp' ? 6 : 8}
+              maxLength={mode === 'totp' ? 6 : 32}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder={mode === 'totp' ? '000000' : 'ABCD-1234'}
@@ -85,7 +85,7 @@ export default function MfaChallenge() {
 
           <button
             type="submit"
-            disabled={loading || code.length < (mode === 'totp' ? 6 : 8)}
+            disabled={loading || code.length < (mode === 'totp' ? 6 : 32)}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
           >
             {loading ? (

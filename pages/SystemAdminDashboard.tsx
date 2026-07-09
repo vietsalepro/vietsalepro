@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -11,6 +11,8 @@ import type { SidebarSection } from '../components/AdminSidebar';
 import AdminKpiCards from '../components/AdminKpiCards';
 import AdminTabs, { type TabItem } from '../components/AdminTabs';
 import { useDebounce } from '../hooks/useDebounce';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useToast } from '../components/ToastContainer';
 import { getTenantUrl } from '../lib/tenant';
 import { AuditLog } from './AuditLog';
 import BillingConfig from '../components/BillingConfig';
@@ -154,12 +156,15 @@ const statusLabel = (status: TenantStatus) => {
   }
 };
 
-const planLabel = (plan: TenantPlan) => plan === 'free' ? 'Free' : 'VIP';
+export const planLabel = (plan: string) => plan === 'free' ? 'Free' : plan === 'vip' ? 'VIP' : plan.toUpperCase();
 const MONTHLY_PRICE_VIP = 69000;
 
+const isValidSubdomain = (s: string): boolean =>
+  /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(s) && s.length >= 3 && s.length <= 63;
+
 export const calculateProration = (
-  currentPlan: TenantPlan,
-  newPlan: TenantPlan,
+  currentPlan: string,
+  newPlan: string,
   expiresAt?: string | null
 ) => {
   if (currentPlan === newPlan) return null;
@@ -170,8 +175,9 @@ export const calculateProration = (
   const remainingDays = Math.ceil((end.getTime() - today.getTime()) / 86400000);
   const currentMonthly = currentPlan === 'vip' ? MONTHLY_PRICE_VIP : 0;
   const newMonthly = newPlan === 'vip' ? MONTHLY_PRICE_VIP : 0;
-  const credit = Math.round((currentMonthly * remainingDays) / 30);
-  const charge = Math.round((newMonthly * remainingDays) / 30);
+  const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const credit = Math.round((currentMonthly * remainingDays) / daysInCurrentMonth);
+  const charge = Math.round((newMonthly * remainingDays) / daysInCurrentMonth);
   const net = charge - credit;
   return {
     remainingDays,
@@ -302,7 +308,8 @@ export default function SystemAdminDashboard() {
   const [result, setResult] = useState<SearchTenantsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', subdomain: '', plan: 'free' as TenantPlan });
+  const [success, setSuccess] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', subdomain: '', plan: 'free' });
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState({
     searchTerm: '',
@@ -314,7 +321,7 @@ export default function SystemAdminDashboard() {
   const [editTenant, setEditTenant] = useState<Tenant | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
-    plan: 'free' as TenantPlan,
+    plan: 'free',
     status: 'active' as TenantStatus,
     isolationMode: 'shared' as TenantIsolationMode,
     isolationSchema: '',
@@ -334,7 +341,7 @@ export default function SystemAdminDashboard() {
   const [resettingTenantId, setResettingTenantId] = useState<string | null>(null);
 
   const [subTenant, setSubTenant] = useState<Tenant | null>(null);
-  const [subForm, setSubForm] = useState<UpdateSubscriptionInput & { plan: TenantPlan }>({
+  const [subForm, setSubForm] = useState<UpdateSubscriptionInput & { plan: string }>({
     plan: 'free',
     maxUsers: 1,
     maxProducts: 50,
@@ -396,8 +403,10 @@ export default function SystemAdminDashboard() {
   const [impersonatingTenantId, setImpersonatingTenantId] = useState<string | null>(null);
 
   const debouncedSearchTerm = useDebounce(filters.searchTerm, 300);
+  const { openConfirmDialog, confirmDialog } = useConfirmDialog();
+  const { addToast } = useToast();
 
-  const load = async (p: number, ps: number) => {
+  const load = useCallback(async (p: number, ps: number) => {
     setLoading(true);
     setError(null);
     try {
@@ -415,7 +424,7 @@ export default function SystemAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearchTerm, filters.status, filters.plan]);
 
   // Reset về trang 1 khi filter/thanh tìm kiếm thay đổi
   useEffect(() => {
@@ -425,17 +434,29 @@ export default function SystemAdminDashboard() {
   // Tải dữ liệu khi page/pageSize/filter thay đổi
   useEffect(() => {
     load(page, pageSize);
-    // ponytail: eslint exhaustive-deps không được bật trong tsc-only lint; danh sách deps giữ ở mức tối thiểu.
-  }, [page, pageSize, debouncedSearchTerm, filters.status, filters.plan]);
+  }, [load, page, pageSize]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+    const subdomain = form.subdomain.trim().toLowerCase();
+    if (!form.name.trim()) {
+      setError('Vui lòng nhập tên cửa hàng.');
+      return;
+    }
+    if (!isValidSubdomain(subdomain)) {
+      setError('Subdomain phải dài 3–63 ký tự, chỉ gồm chữ thường, số và dấu gạch ngang, không bắt đầu/kết thúc bằng dấu gạch.');
+      return;
+    }
+    if (subdomainCheck?.available !== true) {
+      setError('Vui lòng kiểm tra subdomain và đảm bảo khả dụng.');
+      return;
+    }
+    setSubmitting(true);
     try {
       await createTenantWithAdmin({
         name: form.name.trim(),
-        subdomain: form.subdomain.trim().toLowerCase(),
+        subdomain,
         plan: form.plan,
       });
       setForm({ name: '', subdomain: '', plan: 'free' });
@@ -489,39 +510,55 @@ export default function SystemAdminDashboard() {
     }
   };
 
-  const handleArchive = async (tenant: Tenant) => {
-    if (!window.confirm(`Lưu trữ cửa hàng "${tenant.name}"?`)) return;
-    setError(null);
-    try {
-      await softDeleteTenant(tenant.id);
-      await load(page, pageSize);
-    } catch (err: any) {
-      setError(err?.message || 'Lưu trữ cửa hàng thất bại.');
-    }
+  const handleArchive = (tenant: Tenant) => {
+    openConfirmDialog({
+      title: 'Lưu trữ cửa hàng',
+      message: `Lưu trữ cửa hàng "${tenant.name}"?`,
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await softDeleteTenant(tenant.id);
+          await load(page, pageSize);
+        } catch (err: any) {
+          setError(err?.message || 'Lưu trữ cửa hàng thất bại.');
+        }
+      },
+    });
   };
 
-  const handleRestore = async (tenant: Tenant) => {
-    if (!window.confirm(`Khôi phục cửa hàng "${tenant.name}"?`)) return;
-    setError(null);
-    try {
-      await restoreTenantStatus(tenant.id);
-      await load(page, pageSize);
-    } catch (err: any) {
-      setError(err?.message || 'Khôi phục cửa hàng thất bại.');
-    }
+  const handleRestore = (tenant: Tenant) => {
+    openConfirmDialog({
+      title: 'Khôi phục cửa hàng',
+      message: `Khôi phục cửa hàng "${tenant.name}"?`,
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await restoreTenantStatus(tenant.id);
+          await load(page, pageSize);
+        } catch (err: any) {
+          setError(err?.message || 'Khôi phục cửa hàng thất bại.');
+        }
+      },
+    });
   };
 
-  const handleLoginAs = async (tenant: Tenant) => {
-    if (!window.confirm(`Đăng nhập với tư cách admin của cửa hàng "${tenant.name}"?\n\nBạn sẽ rời khỏi trang admin dashboard.`)) return;
-    setImpersonatingTenantId(tenant.id);
-    setError(null);
-    try {
-      const res = await startImpersonation(tenant.id);
-      window.location.href = getTenantUrl(res.tenant.subdomain, res.tenant.customDomain);
-    } catch (err: any) {
-      setImpersonatingTenantId(null);
-      setError(err?.message || 'Impersonate thất bại.');
-    }
+  const handleLoginAs = (tenant: Tenant) => {
+    openConfirmDialog({
+      title: 'Đăng nhập với tư cách admin',
+      message: `Đăng nhập với tư cách admin của cửa hàng "${tenant.name}"?\n\nBạn sẽ rời khỏi trang admin dashboard.`,
+      variant: 'warning',
+      onConfirm: async () => {
+        setImpersonatingTenantId(tenant.id);
+        setError(null);
+        try {
+          const res = await startImpersonation(tenant.id);
+          window.location.href = getTenantUrl(res.tenant.subdomain, res.tenant.customDomain);
+        } catch (err: any) {
+          setImpersonatingTenantId(null);
+          setError(err?.message || 'Impersonate thất bại.');
+        }
+      },
+    });
   };
 
   const handleBackup = async (tenant: Tenant) => {
@@ -577,32 +614,41 @@ export default function SystemAdminDashboard() {
     e.preventDefault();
     if (!restoreTenant || !restoreFile) return;
     setRestoreSubmitting(true);
+    setSuccess(null);
     setError(null);
     try {
       const res = await restoreTenantBackup(restoreTenant.id, restoreFile);
       const restoredTables = res.result?.restored?.map((r) => `${r.table} (${r.rows})`).join(', ');
       closeRestore();
-      setError(`Restore thành công: ${res.result?.total_rows ?? 0} dòng trong ${res.result?.restored?.length ?? 0} bảng (${restoredTables}).`);
+      setSuccess(`Restore thành công: ${res.result?.total_rows ?? 0} dòng trong ${res.result?.restored?.length ?? 0} bảng (${restoredTables}).`);
     } catch (err: any) {
+      setSuccess(null);
       setError(err?.message || 'Restore tenant thất bại.');
     } finally {
       setRestoreSubmitting(false);
     }
   };
 
-  const handleResetDemo = async (tenant: Tenant) => {
-    if (!window.confirm(`Reset dữ liệu demo cho "${tenant.name}"? Dữ liệu business sẽ bị xóa nhưng tài khoản tenant và thành viên được giữ lại.`)) return;
-    setResettingTenantId(tenant.id);
-    setError(null);
-    try {
-      const res = await resetDemoData(tenant.id);
-      const clearedTables = res.cleared.map((c) => `${c.table} (${c.rows})`).join(', ');
-      setError(`Reset demo thành công: ${res.totalRows} dòng đã xóa (${clearedTables}).`);
-    } catch (err: any) {
-      setError(err?.message || 'Reset demo thất bại.');
-    } finally {
-      setResettingTenantId(null);
-    }
+  const handleResetDemo = (tenant: Tenant) => {
+    openConfirmDialog({
+      title: 'Reset dữ liệu demo',
+      message: `Reset dữ liệu demo cho "${tenant.name}"? Dữ liệu business sẽ bị xóa nhưng tài khoản tenant và thành viên được giữ lại.`,
+      onConfirm: async () => {
+        setResettingTenantId(tenant.id);
+        setSuccess(null);
+        setError(null);
+        try {
+          const res = await resetDemoData(tenant.id);
+          const clearedTables = res.cleared.map((c) => `${c.table} (${c.rows})`).join(', ');
+          setSuccess(`Reset demo thành công: ${res.totalRows} dòng đã xóa (${clearedTables}).`);
+        } catch (err: any) {
+          setSuccess(null);
+          setError(err?.message || 'Reset demo thất bại.');
+        } finally {
+          setResettingTenantId(null);
+        }
+      },
+    });
   };
 
   const toggleUsage = async (tenant: Tenant) => {
@@ -697,25 +743,30 @@ export default function SystemAdminDashboard() {
     }
   };
 
-  const handleResetCounter = async (tenant: Tenant) => {
-    if (!window.confirm(`Reset counter đơn hàng tháng cho "${tenant.name}"?`)) return;
-    setError(null);
-    try {
-      await resetMonthlyOrderCounter(tenant.id);
-      setUsageMap(prev => {
-        const next = { ...prev };
-        delete next[tenant.id];
-        return next;
-      });
-      await toggleUsage(tenant);
-    } catch (err: any) {
-      setError(err?.message || 'Reset counter thất bại.');
-    }
+  const handleResetCounter = (tenant: Tenant) => {
+    openConfirmDialog({
+      title: 'Reset counter đơn hàng tháng',
+      message: `Reset counter đơn hàng tháng cho "${tenant.name}"?`,
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await resetMonthlyOrderCounter(tenant.id);
+          setUsageMap(prev => {
+            const next = { ...prev };
+            delete next[tenant.id];
+            return next;
+          });
+          await toggleUsage(tenant);
+        } catch (err: any) {
+          setError(err?.message || 'Reset counter thất bại.');
+        }
+      },
+    });
   };
 
   // --- Overview tab ---
 
-  const loadOverview = async () => {
+  const loadOverview = useCallback(async () => {
     setOverviewLoading(true);
     setAnalyticsError(null);
     try {
@@ -732,18 +783,17 @@ export default function SystemAdminDashboard() {
     } finally {
       setOverviewLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'overview') {
       loadOverview();
     }
-    // ponytail: eslint exhaustive-deps không được bật trong tsc-only lint; deps giữ ở mức tối thiểu.
-  }, [activeTab]);
+  }, [activeTab, loadOverview]);
 
   // --- Audit & security tabs ---
 
-  const loadRateLimitLogs = async (p: number) => {
+  const loadRateLimitLogs = useCallback(async (p: number) => {
     setRateLimitLoading(true);
     setError(null);
     try {
@@ -755,9 +805,9 @@ export default function SystemAdminDashboard() {
     } finally {
       setRateLimitLoading(false);
     }
-  };
+  }, []);
 
-  const loadSystemAdmins = async () => {
+  const loadSystemAdmins = useCallback(async () => {
     setSystemAdminsLoading(true);
     setError(null);
     try {
@@ -768,9 +818,9 @@ export default function SystemAdminDashboard() {
     } finally {
       setSystemAdminsLoading(false);
     }
-  };
+  }, []);
 
-  const loadLoginHistory = async (p: number, status: 'success' | 'failed' | '') => {
+  const loadLoginHistory = useCallback(async (p: number, status: 'success' | 'failed' | '') => {
     setLoginHistoryLoading(true);
     setError(null);
     try {
@@ -786,9 +836,9 @@ export default function SystemAdminDashboard() {
     } finally {
       setLoginHistoryLoading(false);
     }
-  };
+  }, []);
 
-  const loadLoginAlerts = async () => {
+  const loadLoginAlerts = useCallback(async () => {
     setLoginAlertsLoading(true);
     try {
       const list = await getAdminLoginAlerts(24);
@@ -798,11 +848,11 @@ export default function SystemAdminDashboard() {
     } finally {
       setLoginAlertsLoading(false);
     }
-  };
+  }, []);
 
   // --- Operations tab ---
 
-  const loadOperations = async () => {
+  const loadOperations = useCallback(async () => {
     setRetentionLoading(true);
     setLimitsLoading(true);
     setMaintenanceLoading(true);
@@ -823,7 +873,7 @@ export default function SystemAdminDashboard() {
       setLimitsLoading(false);
       setMaintenanceLoading(false);
     }
-  };
+  }, []);
 
   const handleSaveDefaultLimits = async (plan: 'free' | 'vip', limits: PlanLimits) => {
     setLimitsSubmitting(true);
@@ -852,9 +902,13 @@ export default function SystemAdminDashboard() {
   };
 
   const handleCheckSubdomain = async () => {
-    const s = form.subdomain.trim();
+    const s = form.subdomain.trim().toLowerCase();
     if (!s) {
       setSubdomainCheck({ checking: false, available: false, message: 'Vui lòng nhập subdomain.' });
+      return;
+    }
+    if (!isValidSubdomain(s)) {
+      setSubdomainCheck({ checking: false, available: false, message: 'Subdomain phải dài 3–63 ký tự, chỉ gồm chữ thường, số và dấu gạch ngang, không bắt đầu/kết thúc bằng dấu gạch.' });
       return;
     }
     setSubdomainCheck({ checking: true });
@@ -940,54 +994,59 @@ export default function SystemAdminDashboard() {
     }
   };
 
-  const handleRemoveSystemAdmin = async (userId: string) => {
-    if (!window.confirm('Xóa quyền system admin của user này?')) return;
-    setError(null);
-    try {
-      await removeSystemAdmin(userId);
-      await loadSystemAdmins();
-    } catch (err: any) {
-      setError(err?.message || 'Xóa system admin thất bại.');
-    }
+  const handleRemoveSystemAdmin = (userId: string) => {
+    openConfirmDialog({
+      title: 'Xóa quyền system admin',
+      message: 'Xóa quyền system admin của user này?',
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await removeSystemAdmin(userId);
+          await loadSystemAdmins();
+        } catch (err: any) {
+          setError(err?.message || 'Xóa system admin thất bại.');
+        }
+      },
+    });
   };
 
   useEffect(() => {
     if (activeTab === 'rateLimit') {
       loadRateLimitLogs(rateLimitPage);
     }
-  }, [activeTab, rateLimitPage]);
+  }, [activeTab, rateLimitPage, loadRateLimitLogs]);
 
   useEffect(() => {
     if (activeTab === 'systemAdmins') {
       loadSystemAdmins();
     }
-  }, [activeTab]);
+  }, [activeTab, loadSystemAdmins]);
 
   useEffect(() => {
     if (activeTab === 'loginHistory') {
       loadLoginHistory(loginHistoryPage, loginHistoryStatus);
       loadLoginAlerts();
     }
-  }, [activeTab, loginHistoryPage, loginHistoryStatus]);
+  }, [activeTab, loginHistoryPage, loginHistoryStatus, loadLoginHistory, loadLoginAlerts]);
 
   useEffect(() => {
     if (activeTab === 'operations') {
       loadOperations();
     }
-  }, [activeTab]);
+  }, [activeTab, loadOperations]);
 
   // --- Members tab ---
 
-  const loadAllTenantsForSelector = async () => {
+  const loadAllTenantsForSelector = useCallback(async () => {
     try {
       const list = await getAllTenants();
       setAllTenants(list);
     } catch (err: any) {
       setError(err?.message || 'Không thể tải danh sách cửa hàng.');
     }
-  };
+  }, []);
 
-  const loadMembers = async (tenantId: string) => {
+  const loadMembers = useCallback(async (tenantId: string) => {
     if (!tenantId) {
       setMembers([]);
       return;
@@ -1003,17 +1062,17 @@ export default function SystemAdminDashboard() {
     } finally {
       setMembersLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'members') {
       loadAllTenantsForSelector();
     }
-  }, [activeTab]);
+  }, [activeTab, loadAllTenantsForSelector]);
 
   useEffect(() => {
     loadMembers(memberTenantId);
-  }, [memberTenantId]);
+  }, [memberTenantId, loadMembers]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1048,19 +1107,24 @@ export default function SystemAdminDashboard() {
     }
   };
 
-  const handleRemoveMember = async (userId: string, email?: string) => {
+  const handleRemoveMember = (userId: string, email?: string) => {
     if (!memberTenantId) return;
-    if (!window.confirm(`Xóa thành viên "${email || userId}" khỏi cửa hàng?`)) return;
-    setMemberAction({ userId, action: 'remove' });
-    setError(null);
-    try {
-      await removeMember(memberTenantId, userId);
-      await loadMembers(memberTenantId);
-    } catch (err: any) {
-      setError(err?.message || 'Xóa thành viên thất bại.');
-    } finally {
-      setMemberAction(null);
-    }
+    openConfirmDialog({
+      title: 'Xóa thành viên',
+      message: `Xóa thành viên "${email || userId}" khỏi cửa hàng?`,
+      onConfirm: async () => {
+        setMemberAction({ userId, action: 'remove' });
+        setError(null);
+        try {
+          await removeMember(memberTenantId, userId);
+          await loadMembers(memberTenantId);
+        } catch (err: any) {
+          setError(err?.message || 'Xóa thành viên thất bại.');
+        } finally {
+          setMemberAction(null);
+        }
+      },
+    });
   };
 
   const handleResetPassword = async (userId: string) => {
@@ -1069,7 +1133,10 @@ export default function SystemAdminDashboard() {
     setError(null);
     try {
       const res = await resetMemberPassword(memberTenantId, userId);
-      alert(res?.link ? `Link ${res.action}: ${res.link}` : `Đã gửi yêu cầu ${res?.action || 'reset'}.`);
+      addToast({
+        type: 'success',
+        message: res?.link ? `Link ${res.action}: ${res.link}` : `Đã gửi yêu cầu ${res?.action || 'reset'}.`,
+      });
     } catch (err: any) {
       setError(err?.message || 'Reset mật khẩu thất bại.');
     } finally {
@@ -1134,6 +1201,11 @@ export default function SystemAdminDashboard() {
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">
           {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-100">
+          {success}
         </div>
       )}
 
@@ -1340,7 +1412,7 @@ export default function SystemAdminDashboard() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Gói</label>
               <select
                 value={form.plan}
-                onChange={(e) => setForm({ ...form, plan: e.target.value as TenantPlan })}
+                onChange={(e) => setForm({ ...form, plan: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {PLANS.map(p => <option key={p} value={p}>{planLabel(p)}</option>)}
@@ -1349,7 +1421,12 @@ export default function SystemAdminDashboard() {
             <div className="md:col-span-4">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={
+                  submitting
+                  || !form.name.trim()
+                  || !isValidSubdomain(form.subdomain.trim())
+                  || subdomainCheck?.available !== true
+                }
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
               >
                 {submitting ? 'Đang tạo...' : 'Tạo cửa hàng'}
@@ -1548,7 +1625,7 @@ export default function SystemAdminDashboard() {
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                   <div className="text-sm text-gray-700">
-                                    <span className="font-medium">Gói:</span> {planLabel(usage.plan as TenantPlan)} ·
+                                    <span className="font-medium">Gói:</span> {planLabel(usage.plan)} ·
                                     <span className="font-medium ml-2">Thanh toán:</span> {billingStatusLabel((usage.billingStatus as BillingStatus) ?? 'ok')} ·
                                     <span className="font-medium ml-2">Hết hạn:</span> {usage.expiresAt ? new Date(usage.expiresAt).toLocaleDateString('vi-VN') : 'Không'}
                                   </div>
@@ -2202,7 +2279,7 @@ export default function SystemAdminDashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gói</label>
                 <select
                   value={editForm.plan}
-                  onChange={(e) => setEditForm({ ...editForm, plan: e.target.value as TenantPlan })}
+                  onChange={(e) => setEditForm({ ...editForm, plan: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {PLANS.map(p => <option key={p} value={p}>{planLabel(p)}</option>)}
@@ -2292,7 +2369,7 @@ export default function SystemAdminDashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gói</label>
                 <select
                   value={subForm.plan}
-                  onChange={(e) => setSubForm({ ...subForm, plan: e.target.value as TenantPlan })}
+                  onChange={(e) => setSubForm({ ...subForm, plan: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {PLANS.map(p => <option key={p} value={p}>{planLabel(p)}</option>)}
@@ -2368,7 +2445,7 @@ export default function SystemAdminDashboard() {
                         : <>Số tiền cần thu thêm: <span className="font-medium">{proration.net.toLocaleString('vi-VN')}đ</span></>}
                     </p>
                     <p className="text-xs text-indigo-600 mt-1">
-                      ponytail: tính toán thủ công 30 ngày/tháng, chỉ để admin review trước khi lưu. Không tự động tạo hóa đơn/tính tiền.
+                      ponytail: tính toán proration theo số ngày thực tế của tháng hiện tại, chỉ để admin review trước khi lưu. Không tự động tạo hóa đơn/tính tiền.
                     </p>
                   </div>
                 ) : null;
@@ -2451,6 +2528,7 @@ export default function SystemAdminDashboard() {
           </div>
         </div>
       )}
+      {confirmDialog}
     </AdminShell>
   );
 }

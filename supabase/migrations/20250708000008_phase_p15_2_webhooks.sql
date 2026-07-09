@@ -96,6 +96,65 @@ BEGIN
 END;
 $$;
 
+-- ------------------------------------------------------------
+-- Helper: validate a webhook URL is public HTTPS only.
+-- ponytail: rejects non-HTTPS, localhost, link-local, private
+-- ranges, and well-known metadata endpoints.
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.is_valid_webhook_url(p_url TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  v_host TEXT;
+  v_ip INET;
+BEGIN
+  IF p_url IS NULL OR p_url !~* '^https://' THEN
+    RETURN false;
+  END IF;
+
+  -- Extract host (strip scheme, path, port, credentials).
+  v_host := lower(substring(p_url from '^https://([^/:]+)'));
+  IF v_host IS NULL OR v_host = '' THEN
+    RETURN false;
+  END IF;
+
+  -- Strip IPv6 brackets for INET parsing.
+  IF v_host LIKE '[%]' THEN
+    v_host := trim(both '[]' from v_host);
+  END IF;
+
+  -- Reject localhost and local/metadata-like domains.
+  IF v_host = 'localhost'
+     OR v_host ~* '\.(local|localhost|internal|metadata)$'
+     OR v_host = 'metadata.google.internal'
+     OR v_host = '169.254.169.254' THEN
+    RETURN false;
+  END IF;
+
+  -- If the host is an IP address, reject private/local ranges.
+  BEGIN
+    v_ip := v_host::INET;
+    IF v_ip << '10.0.0.0/8'::INET
+       OR v_ip << '172.16.0.0/12'::INET
+       OR v_ip << '192.168.0.0/16'::INET
+       OR v_ip << '127.0.0.0/8'::INET
+       OR v_ip << '169.254.0.0/16'::INET
+       OR v_ip = '::1'::INET
+       OR v_ip << 'fc00::/7'::INET THEN
+      RETURN false;
+    END IF;
+  EXCEPTION WHEN invalid_text_representation THEN
+    -- Not an IP address; domain checks above already applied.
+    NULL;
+  END;
+
+  RETURN true;
+END;
+$$;
+
 -- ============================================================
 -- 3. RPC create webhook
 -- ============================================================
@@ -134,8 +193,8 @@ BEGIN
     RAISE EXCEPTION 'URL webhook không được để trống';
   END IF;
 
-  IF p_url !~ '^https?://' THEN
-    RAISE EXCEPTION 'URL webhook phải bắt đầu bằng http:// hoặc https://';
+  IF NOT public.is_valid_webhook_url(p_url) THEN
+    RAISE EXCEPTION 'URL webhook phải là public HTTPS, không được là IP nội mạng/metadata/localhost';
   END IF;
 
   INSERT INTO public.tenant_webhooks (
@@ -182,6 +241,15 @@ DECLARE
 BEGIN
   IF NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'Chỉ system admin mới được cập nhật webhook' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  IF p_url IS NOT NULL THEN
+    IF length(trim(p_url)) = 0 THEN
+      RAISE EXCEPTION 'URL webhook không được để trống';
+    END IF;
+    IF NOT public.is_valid_webhook_url(p_url) THEN
+      RAISE EXCEPTION 'URL webhook phải là public HTTPS, không được là IP nội mạng/metadata/localhost';
+    END IF;
   END IF;
 
   UPDATE public.tenant_webhooks

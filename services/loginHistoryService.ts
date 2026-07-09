@@ -63,6 +63,13 @@ const mapEntry = (row: any): AdminLoginHistoryEntry => ({
   createdAt: row.created_at,
 });
 
+const requireDateString = (value: unknown, field: string): string => {
+  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
+    throw new Error(`Phản hồi alert chứa ngày không hợp lệ: ${field}`);
+  }
+  return value;
+};
+
 export async function recordAdminLogin(options: {
   userId?: string | null;
   email?: string | null;
@@ -115,8 +122,8 @@ export async function getAdminLoginAlerts(hoursAgo = 24): Promise<AdminLoginAler
       email: row.email,
       ipAddress: row.ip_address,
       failedCount: row.failed_count,
-      windowStart: row.window_start,
-      windowEnd: row.window_end,
+      windowStart: requireDateString(row.window_start, 'window_start'),
+      windowEnd: requireDateString(row.window_end, 'window_end'),
     });
   });
 
@@ -128,7 +135,7 @@ export async function getAdminLoginAlerts(hoursAgo = 24): Promise<AdminLoginAler
       email: row.email,
       ipAddress: row.ip_address,
       userAgent: row.user_agent,
-      createdAt: row.created_at,
+      createdAt: requireDateString(row.created_at, 'created_at'),
     });
   });
 
@@ -138,8 +145,8 @@ export async function getAdminLoginAlerts(hoursAgo = 24): Promise<AdminLoginAler
       userId: row.user_id,
       email: row.email,
       successCount: row.success_count,
-      windowStart: row.window_start,
-      windowEnd: row.window_end,
+      windowStart: requireDateString(row.window_start, 'window_start'),
+      windowEnd: requireDateString(row.window_end, 'window_end'),
     });
   });
 

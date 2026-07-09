@@ -58,18 +58,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
 
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile && onMobileClose) {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      if (!e.matches && onMobileClose) {
         onMobileClose();
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
   }, [onMobileClose]);
 
   const toggleCollapse = useCallback(() => {

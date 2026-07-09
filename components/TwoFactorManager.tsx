@@ -22,12 +22,16 @@ import {
   TotpEnrollment,
 } from '../services/twoFactorService';
 import { useAuth } from '../contexts/AuthContext';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useToast } from './ToastContainer';
 
 export default function TwoFactorManager() {
   const { user } = useAuth();
   const [status, setStatus] = useState<TwoFactorStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { openConfirmDialog, confirmDialog } = useConfirmDialog();
+  const { addToast } = useToast();
 
   // Enroll flow
   const [enrollment, setEnrollment] = useState<TotpEnrollment | null>(null);
@@ -154,7 +158,7 @@ export default function TwoFactorManager() {
       await overrideAdmin2FA(targetUserId.trim(), approverUserId.trim());
       setTargetUserId('');
       setApproverUserId('');
-      alert('Đã override 2FA thành công.');
+      addToast({ type: 'success', message: 'Đã override 2FA thành công.' });
     } catch (err: any) {
       setError(err?.message || 'Override 2FA thất bại.');
     } finally {
@@ -417,6 +421,7 @@ export default function TwoFactorManager() {
           Override 2FA
         </button>
       </form>
+      {confirmDialog}
     </div>
   );
 }

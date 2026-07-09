@@ -9,7 +9,9 @@
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.user_tenant_role(p_tenant_id UUID)
-RETURNS TEXT LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS TEXT LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT role FROM public.tenant_memberships
   WHERE tenant_id = p_tenant_id AND user_id = auth.uid() LIMIT 1;
 $$;

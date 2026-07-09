@@ -19,7 +19,7 @@ import {
 
 // --- Mappers ---
 
-const mapTenantFromDB = (row: any): Tenant => ({
+export const mapTenantFromDB = (row: any): Tenant => ({
   id: row.id,
   name: row.name,
   subdomain: row.subdomain,
@@ -113,9 +113,16 @@ export async function getTenantById(id: string): Promise<Tenant | null> {
 }
 
 export async function getCurrentUserTenants(): Promise<Tenant[]> {
-  const { data, error } = await supabase.from('tenant_memberships').select('tenant_id (*)');
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('tenant_memberships')
+    .select('tenant_id, tenants(*)')
+    .eq('user_id', userId);
   if (error) throw error;
-  return (data || []).map((row: any) => mapTenantFromDB(row.tenant_id));
+  return (data || []).map((row: any) => mapTenantFromDB(row.tenants));
 }
 
 // --- System admin (requires system_admin privileges) ---
@@ -261,24 +268,28 @@ export async function inviteMemberByEmail(
   email: string,
   role: TenantRole
 ): Promise<{ success: boolean; message?: string }> {
-  const { data, error } = await (supabase as any).functions.invoke('invite-member', {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean; message?: string; error?: string }>('invite-member', {
     body: { tenant_id: tenantId, email, role },
   });
   if (error) throw error;
-  if (data?.error) throw new Error(data.error);
-  return { success: true, ...data };
+  if (!data || typeof data !== 'object' || !data.success) {
+    throw new Error(data?.error || data?.message || 'Mời thành viên thất bại');
+  }
+  return { success: data.success, message: data.message };
 }
 
 export async function resetMemberPassword(
   tenantId: string,
   userId: string
 ): Promise<{ success: boolean; action?: string; redirectTo?: string; link?: string | null }> {
-  const { data, error } = await (supabase as any).functions.invoke('reset-password', {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean; action?: string; redirectTo?: string; link?: string | null; error?: string }>('reset-password', {
     body: { tenant_id: tenantId, user_id: userId },
   });
   if (error) throw error;
-  if (data?.error) throw new Error(data.error);
-  return { success: true, ...data };
+  if (!data || typeof data !== 'object' || !data.success) {
+    throw new Error(data?.error || 'Đặt lại mật khẩu thất bại');
+  }
+  return { success: data.success, action: data.action, redirectTo: data.redirectTo, link: data.link };
 }
 
 export async function inviteMember(
@@ -530,17 +541,21 @@ export async function getTenantStorageUsage(): Promise<StorageUsage> {
 // --- Impersonation (P11.3) ---
 
 export async function startImpersonation(tenantId: string): Promise<{ success: boolean; tenant: Tenant; expiresAt: string }> {
-  const { data, error } = await (supabase as any).functions.invoke('impersonate-tenant', {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean; tenant: unknown; expires_at: string; error?: string }>('impersonate-tenant', {
     body: { tenant_id: tenantId },
   });
   if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  if (!data || typeof data !== 'object' || !data.success || !data.tenant || !data.expires_at) {
+    throw new Error(data?.error || 'Phản hồi impersonation không hợp lệ');
+  }
   return { success: true, tenant: mapTenantFromDB(data.tenant), expiresAt: data.expires_at };
 }
 
 export async function endImpersonation(): Promise<{ success: boolean; ended: number }> {
-  const { data, error } = await (supabase as any).functions.invoke('end-impersonation', { body: {} });
+  const { data, error } = await supabase.functions.invoke<{ success: boolean; ended?: number; error?: string }>('end-impersonation', { body: {} });
   if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  if (!data || typeof data !== 'object' || !data.success) {
+    throw new Error(data?.error || 'Phản hồi kết thúc impersonation không hợp lệ');
+  }
   return { success: true, ended: data.ended ?? 0 };
 }

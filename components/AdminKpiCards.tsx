@@ -42,6 +42,21 @@ const TrendArrow: React.FC<{ direction: 'up' | 'down' }> = ({ direction }) => (
   </svg>
 );
 
+const NeutralIcon: React.FC = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
 /* ─── Component ─────────────────────────────────────── */
 export const AdminKpiCards: React.FC<AdminKpiCardsProps> = ({ cards }) => {
   if (!cards || cards.length === 0) return null;
@@ -55,12 +70,12 @@ export const AdminKpiCards: React.FC<AdminKpiCardsProps> = ({ cards }) => {
         const trendColor = card.color || 'var(--color-primary-500)';
 
         const trendAriaLabel = card.trend != null
-          ? `${trendUp ? 'Tăng' : trendDown ? 'Giảm' : 'Thay đổi'} ${Math.abs(card.trend)}% ${card.trendLabel || ''}`
+          ? `${trendUp ? 'Tăng' : trendDown ? 'Giảm' : 'Không đổi'} ${Math.abs(card.trend)}% ${card.trendLabel || ''}`
           : undefined;
 
         return (
           <article
-            key={index}
+            key={card.label}
             className="admin-kpi-card"
             aria-label={`${card.label}: ${card.value}`}
             style={{ '--kpi-accent': trendColor } as React.CSSProperties}
@@ -80,7 +95,7 @@ export const AdminKpiCards: React.FC<AdminKpiCardsProps> = ({ cards }) => {
                   }`}
                   aria-label={trendAriaLabel}
                 >
-                  <TrendArrow direction={trendUp ? 'up' : trendDown ? 'down' : 'up'} />
+                  {trendUp ? <TrendArrow direction="up" /> : trendDown ? <TrendArrow direction="down" /> : <NeutralIcon />}
                   {Math.abs(card.trend)}%
                 </span>
               )}

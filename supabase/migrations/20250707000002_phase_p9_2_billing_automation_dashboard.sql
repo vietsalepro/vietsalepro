@@ -94,6 +94,10 @@ DECLARE
   v_error TEXT;
 BEGIN
   BEGIN
+    -- ponytail: advisory lock để tránh cron đồng thời xử lý trùng hóa đơn.
+    PERFORM pg_advisory_xact_lock(hashtextextended('expire_overdue_invoices', 0));
+
+    -- ponytail: gộp expire invoices + cập nhật billing_status/status tenant trong một CTE để giảm race window.
     WITH expired AS (
       UPDATE public.invoices
       SET status = 'expired',
@@ -101,28 +105,26 @@ BEGIN
       WHERE status = 'pending'
         AND created_at < now() - INTERVAL '48 hours'
       RETURNING tenant_id
+    ),
+    overdue_subs AS (
+      UPDATE public.tenant_subscriptions s
+      SET billing_status = 'overdue',
+          updated_at = now()
+      FROM expired e
+      WHERE e.tenant_id = s.tenant_id
+        AND s.billing_status <> 'overdue'
+      RETURNING s.tenant_id
+    ),
+    read_only_tenants AS (
+      UPDATE public.tenants t
+      SET status = 'read_only',
+          updated_at = now()
+      FROM overdue_subs o
+      WHERE o.tenant_id = t.id
+        AND t.status IN ('active', 'trial')
+      RETURNING t.id
     )
     SELECT count(DISTINCT tenant_id) INTO v_expired_count FROM expired;
-
-    UPDATE public.tenant_subscriptions s
-    SET billing_status = 'overdue',
-        updated_at = now()
-    WHERE EXISTS (
-      SELECT 1 FROM public.invoices i
-      WHERE i.tenant_id = s.tenant_id
-        AND i.status = 'expired'
-    )
-      AND s.billing_status <> 'overdue';
-
-    UPDATE public.tenants t
-    SET status = 'read_only',
-        updated_at = now()
-    WHERE t.status IN ('active', 'trial')
-      AND EXISTS (
-        SELECT 1 FROM public.invoices i
-        WHERE i.tenant_id = t.id
-          AND i.status = 'expired'
-      );
 
     PERFORM public.log_billing_job(
       'expire_overdue_invoices',
@@ -169,7 +171,8 @@ DECLARE
   v_year INT;
   v_period_start DATE;
   v_period_end DATE;
-  v_unit_price NUMERIC := 69000;
+  v_unit_price NUMERIC;
+  v_plan public.plans%ROWTYPE;
   v_created INTEGER := 0;
   v_invoice_id UUID;
   v_error TEXT;
@@ -178,9 +181,16 @@ BEGIN
     RAISE EXCEPTION 'p_days_before không hợp lệ';
   END IF;
 
+  -- ponytail: lấy đơn giá tháng từ plans; fallback nếu chưa có dữ liệu.
+  SELECT * INTO v_plan FROM public.plans WHERE key = 'vip';
+  v_unit_price := COALESCE(v_plan.monthly_price, 69000);
+
   v_year := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
 
   BEGIN
+    -- ponytail: advisory lock để tránh 2 instance cron tạo renewal invoice trùng nhau.
+    PERFORM pg_advisory_xact_lock(hashtextextended('create_renewal_invoices', 0));
+
     FOR v_sub IN
       SELECT s.tenant_id, s.expires_at
       FROM public.tenant_subscriptions s
@@ -195,6 +205,7 @@ BEGIN
           WHERE i.tenant_id = s.tenant_id
             AND i.status IN ('pending', 'overdue', 'expired')
         )
+      FOR UPDATE OF s
     LOOP
       v_period_start := v_sub.expires_at::DATE;
       v_period_end := (v_period_start + INTERVAL '1 month')::DATE;

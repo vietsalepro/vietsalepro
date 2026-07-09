@@ -68,12 +68,24 @@ REVOKE ALL ON FUNCTION public.get_tenant_restore_table_order() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_tenant_restore_table_order() TO service_role;
 
 -- ============================================================
--- 2. RPC: restore tenant data from a JSON backup
+-- 2. Snapshot table: preserves previous tenant data before overwrite
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.tenant_restore_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  snapshot JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ============================================================
+-- 3. RPC: restore tenant data from a JSON backup
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.restore_tenant_tables(
   p_tenant_id UUID,
-  p_tables JSONB
+  p_tables JSONB,
+  p_confirm_overwrite BOOLEAN DEFAULT false
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -89,6 +101,8 @@ DECLARE
   v_restored JSONB := '[]'::JSONB;
   v_errors JSONB := '[]'::JSONB;
   v_backup_table_count INT;
+  v_snapshot JSONB := '{}'::JSONB;
+  v_old_rows JSONB;
 BEGIN
   IF NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'Chỉ system admin mới được restore tenant' USING ERRCODE = 'insufficient_privilege';
@@ -100,6 +114,10 @@ BEGIN
 
   IF p_tables IS NULL OR p_tables = '{}'::JSONB THEN
     RAISE EXCEPTION 'Dữ liệu backup trống';
+  END IF;
+
+  IF p_confirm_overwrite IS NOT TRUE THEN
+    RAISE EXCEPTION 'Phải xác nhận p_confirm_overwrite=true để ghi đè dữ liệu tenant';
   END IF;
 
   PERFORM id FROM public.tenants WHERE id = p_tenant_id;
@@ -123,6 +141,18 @@ BEGIN
   IF v_order IS NULL OR array_length(v_order, 1) IS NULL THEN
     RAISE EXCEPTION 'Backup không chứa bảng nào có thể restore';
   END IF;
+
+  -- ponytail: snapshot existing tenant data before DELETE so accidental restores can be rolled back.
+  FOR i IN REVERSE array_length(v_order, 1) .. 1 LOOP
+    v_table := v_order[i];
+    EXECUTE format('SELECT COALESCE(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) FROM public.%I t WHERE t.tenant_id = $1', v_table)
+      INTO v_old_rows
+      USING p_tenant_id;
+    v_snapshot := v_snapshot || jsonb_build_object(v_table, v_old_rows);
+  END LOOP;
+
+  INSERT INTO public.tenant_restore_snapshots (tenant_id, snapshot)
+  VALUES (p_tenant_id, v_snapshot);
 
   -- ponytail: delete existing tenant data in reverse dependency order so FK checks pass.
   FOR i IN REVERSE array_length(v_order, 1) .. 1 LOOP
@@ -176,5 +206,5 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.restore_tenant_tables(UUID, JSONB) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.restore_tenant_tables(UUID, JSONB) TO service_role;
+REVOKE ALL ON FUNCTION public.restore_tenant_tables(UUID, JSONB, BOOLEAN) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.restore_tenant_tables(UUID, JSONB, BOOLEAN) TO service_role;

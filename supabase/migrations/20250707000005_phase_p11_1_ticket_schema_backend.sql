@@ -64,25 +64,45 @@ BEGIN
       );
   END IF;
 
+  -- ponytail: thay thế policy update cũ bằng 2 policy + trigger column-level guard.
+  DROP POLICY IF EXISTS support_tickets_update ON public.support_tickets;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'support_tickets' AND policyname = 'support_tickets_update'
+    WHERE schemaname = 'public' AND tablename = 'support_tickets' AND policyname = 'support_tickets_update_creator'
   ) THEN
-    CREATE POLICY "support_tickets_update" ON public.support_tickets FOR UPDATE TO authenticated
+    CREATE POLICY "support_tickets_update_creator" ON public.support_tickets FOR UPDATE TO authenticated
+      USING (
+        tenant_id = public.current_tenant_id()
+        AND public.is_tenant_member(tenant_id)
+        AND created_by = auth.uid()
+      )
+      WITH CHECK (
+        tenant_id = public.current_tenant_id()
+        AND public.is_tenant_member(tenant_id)
+        AND created_by = auth.uid()
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'support_tickets' AND policyname = 'support_tickets_update_staff'
+  ) THEN
+    CREATE POLICY "support_tickets_update_staff" ON public.support_tickets FOR UPDATE TO authenticated
       USING (
         public.is_system_admin()
         OR (
-          tenant_id = public.current_tenant_id()
+          assigned_to = auth.uid()
+          AND tenant_id = public.current_tenant_id()
           AND public.is_tenant_member(tenant_id)
-          AND created_by = auth.uid()
         )
       )
       WITH CHECK (
         public.is_system_admin()
         OR (
-          tenant_id = public.current_tenant_id()
+          assigned_to = auth.uid()
+          AND tenant_id = public.current_tenant_id()
           AND public.is_tenant_member(tenant_id)
-          AND created_by = auth.uid()
         )
       );
   END IF;
@@ -298,5 +318,53 @@ BEGIN
       BEFORE UPDATE ON public.ticket_reply_templates
       FOR EACH ROW
       EXECUTE FUNCTION public.update_ticket_updated_at();
+  END IF;
+END $$;
+
+-- ============================================================
+-- 6. Trigger: hạn chế creator chỉ được cập nhật content/title
+-- ponytail: admin/assigned user được đổi assigned_to/status/priority; creator chỉ title/description.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.support_tickets_update_guard()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF public.is_system_admin() THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.assigned_to IS DISTINCT FROM OLD.assigned_to
+     OR NEW.status IS DISTINCT FROM OLD.status
+     OR NEW.priority IS DISTINCT FROM OLD.priority THEN
+    IF OLD.assigned_to = auth.uid() THEN
+      RETURN NEW;
+    END IF;
+    RAISE EXCEPTION 'Bạn không được phép thay đổi trạng thái, mức độ ưu tiên hoặc người phụ trách của ticket này.';
+  END IF;
+
+  IF OLD.created_by = auth.uid() THEN
+    RETURN NEW;
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.support_tickets_update_guard() FROM PUBLIC;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'support_tickets_update_guard' AND tgrelid = 'public.support_tickets'::regclass
+  ) THEN
+    CREATE TRIGGER support_tickets_update_guard
+      BEFORE UPDATE ON public.support_tickets
+      FOR EACH ROW
+      EXECUTE FUNCTION public.support_tickets_update_guard();
   END IF;
 END $$;

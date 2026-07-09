@@ -31,6 +31,7 @@ DECLARE
   v_subtotal NUMERIC;
   v_total NUMERIC;
   v_description TEXT;
+  v_plan public.plans%ROWTYPE;
 BEGIN
   IF NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'Chỉ system admin mới được tạo hóa đơn' USING ERRCODE = 'insufficient_privilege';
@@ -58,14 +59,17 @@ BEGIN
     RAISE EXCEPTION 'Không tìm thấy subscription cho tenant: %', p_tenant_id;
   END IF;
 
+  -- ponytail: lấy đơn giá từ bảng plans; fallback về giá hardcode cũ nếu chưa có dữ liệu.
+  SELECT * INTO v_plan FROM public.plans WHERE key = 'vip';
+
   -- Tính số tháng được trả và đơn giá theo chu kỳ
   IF p_cycle_type = 'monthly' THEN
     v_paid_months := p_quantity;
-    v_unit_price := 69000;
+    v_unit_price := COALESCE(v_plan.monthly_price, 69000);
     v_description := 'Gói VIP - Tháng';
   ELSE
     v_paid_months := p_quantity * 12;
-    v_unit_price := 59000;  -- 59k/tháng khi mua năm
+    v_unit_price := COALESCE(v_plan.yearly_price, 59000);  -- giá năm từ plans
     v_description := 'Gói VIP - Năm';
   END IF;
 

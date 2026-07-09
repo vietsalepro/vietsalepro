@@ -21,6 +21,8 @@ import {
   deletePromotionRule,
   getPromoCodeUsageCounts,
 } from '../services/promotionService';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useToast } from './ToastContainer';
 
 const formatCurrency = (n: number) => n.toLocaleString('vi-VN') + 'đ';
 const formatDate = (d?: string) => d ? new Date(d + 'T00:00:00').toLocaleDateString('vi-VN') : 'Không';
@@ -100,6 +102,8 @@ export default function VoucherManager() {
   const [ruleSubmitting, setRuleSubmitting] = useState(false);
 
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
+  const { openConfirmDialog, confirmDialog } = useConfirmDialog();
+  const { addToast } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -185,15 +189,21 @@ export default function VoucherManager() {
     }
   };
 
-  const handlePromoDelete = async (id: string) => {
-    if (!window.confirm('Xóa voucher này?')) return;
-    setError(null);
-    try {
-      await deletePromoCode(id);
-      await load();
-    } catch (err: any) {
-      setError(err?.message || 'Xóa voucher thất bại.');
-    }
+  const handlePromoDelete = (id: string) => {
+    openConfirmDialog({
+      title: 'Xóa voucher',
+      message: 'Xóa voucher này?',
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await deletePromoCode(id);
+          await load();
+          addToast({ type: 'success', message: 'Đã xóa voucher.' });
+        } catch (err: any) {
+          setError(err?.message || 'Xóa voucher thất bại.');
+        }
+      },
+    });
   };
 
   const openRuleForm = (rule?: PromotionRule) => {
@@ -243,15 +253,21 @@ export default function VoucherManager() {
     }
   };
 
-  const handleRuleDelete = async (id: string) => {
-    if (!window.confirm('Xóa promotion rule này?')) return;
-    setError(null);
-    try {
-      await deletePromotionRule(id);
-      await load();
-    } catch (err: any) {
-      setError(err?.message || 'Xóa promotion rule thất bại.');
-    }
+  const handleRuleDelete = (id: string) => {
+    openConfirmDialog({
+      title: 'Xóa promotion rule',
+      message: 'Xóa promotion rule này?',
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await deletePromotionRule(id);
+          await load();
+          addToast({ type: 'success', message: 'Đã xóa promotion rule.' });
+        } catch (err: any) {
+          setError(err?.message || 'Xóa promotion rule thất bại.');
+        }
+      },
+    });
   };
 
   const renderPromoForm = () => {
@@ -753,6 +769,7 @@ export default function VoucherManager() {
           )}
         </div>
       )}
+      {confirmDialog}
     </div>
   );
 }

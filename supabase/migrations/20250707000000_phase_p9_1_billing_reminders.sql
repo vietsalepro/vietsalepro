@@ -91,6 +91,44 @@ REVOKE ALL ON FUNCTION public.get_billing_reminder_config() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_billing_reminder_config() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_billing_reminder_config() TO service_role;
 
+-- ponytail: SSRF guard for the Edge Function URL called by pg_net.
+CREATE OR REPLACE FUNCTION public.is_valid_billing_reminder_url(p_url TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+IMMUTABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  v_host TEXT;
+BEGIN
+  IF p_url IS NULL OR p_url = '' THEN
+    RETURN false;
+  END IF;
+
+  IF NOT p_url ~ '^https://' THEN
+    RETURN false;
+  END IF;
+
+  -- Block localhost, loopback, metadata endpoint and private IP ranges.
+  IF p_url ~ '(^https?://)(localhost|127\.0\.0\.1|::1|0\.0\.0\.0|169\.254\.169\.254|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.)' THEN
+    RETURN false;
+  END IF;
+
+  v_host := substring(p_url from '^https://([^/:]+)');
+  IF v_host IS NULL THEN
+    RETURN false;
+  END IF;
+
+  -- Whitelist: Supabase Edge Functions, Vercel, and project domains.
+  RETURN v_host ~ '(\.supabase\.co|\.vercel\.app|vietsalepro\.com)$';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.is_valid_billing_reminder_url(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_valid_billing_reminder_url(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_valid_billing_reminder_url(TEXT) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.set_billing_reminder_config(
   p_enabled BOOLEAN,
   p_milestones INT[],
@@ -112,6 +150,10 @@ BEGIN
   v_milestones := ARRAY(SELECT DISTINCT unnest(p_milestones) ORDER BY 1);
   IF array_length(v_milestones, 1) IS NULL OR array_length(v_milestones, 1) = 0 OR EXISTS (SELECT 1 FROM unnest(v_milestones) x WHERE x <= 0) THEN
     RAISE EXCEPTION 'milestones phải là mảng số nguyên dương không rỗng';
+  END IF;
+
+  IF COALESCE(p_function_url, '') <> '' AND NOT public.is_valid_billing_reminder_url(p_function_url) THEN
+    RAISE EXCEPTION 'function_url không hợp lệ hoặc không nằm trong whitelist';
   END IF;
 
   v_value := jsonb_build_object(
@@ -218,6 +260,10 @@ BEGIN
 
   IF v_url = '' OR v_key = '' THEN
     RETURN jsonb_build_object('sent', 0, 'skipped', 0, 'error', 'function_url hoặc reminder_secret chưa được cấu hình');
+  END IF;
+
+  IF NOT public.is_valid_billing_reminder_url(v_url) THEN
+    RETURN jsonb_build_object('sent', 0, 'skipped', 0, 'error', 'function_url không hợp lệ hoặc không nằm trong whitelist');
   END IF;
 
   FOR v_rec IN SELECT * FROM public.get_pending_billing_reminders()

@@ -26,7 +26,7 @@ export interface RestoreResult {
   };
 }
 
-function validateBackup(backup: unknown): asserts backup is TenantBackupFile {
+export function validateBackup(backup: unknown): asserts backup is TenantBackupFile {
   if (!backup || typeof backup !== 'object') {
     throw new Error('File backup không hợp lệ');
   }
@@ -46,14 +46,20 @@ export async function restoreTenantBackup(tenantId: string, file: File): Promise
   }
   validateBackup(backup);
 
-  const { data, error } = await (supabase as any).functions.invoke('tenant-restore', {
+  const { data, error } = await supabase.functions.invoke<RestoreResult & { error?: string }>('tenant-restore', {
     body: { tenant_id: tenantId, backup },
   });
   if (error) throw error;
-  if (!data || typeof data !== 'object' || data.error) {
-    throw new Error(data?.error || 'Phản hồi restore không hợp lệ');
+  if (!data || typeof data !== 'object') {
+    throw new Error('Phản hồi restore không hợp lệ');
   }
-  return data as RestoreResult;
+  if (typeof data.error === 'string') {
+    throw new Error(data.error);
+  }
+  if (!data.success || !data.result) {
+    throw new Error('Phản hồi restore không hợp lệ');
+  }
+  return data;
 }
 
 export function previewBackupTables(backup: TenantBackupFile): { name: string; rows: number }[] {

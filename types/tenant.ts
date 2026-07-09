@@ -3,7 +3,7 @@
 // ============================================================
 
 export type TenantStatus = 'active' | 'suspended' | 'trial' | 'pending' | 'archived' | 'read_only';
-export type TenantPlan = string;
+export type TenantPlan = 'free' | 'vip';
 
 export type TenantRole = 'admin' | 'cashier' | 'inventory_manager' | 'accountant';
 
@@ -21,7 +21,7 @@ export interface Tenant {
   name: string;
   subdomain: string;
   status: TenantStatus;
-  plan: TenantPlan;
+  plan: string;
   ownerId?: string;
   settings?: Record<string, any>;
   isolationMode?: TenantIsolationMode;
@@ -86,7 +86,7 @@ export interface UsageSummary {
 export type BillingStatus = 'ok' | 'past_due' | 'suspended' | 'cancelled';
 
 export interface UpdateSubscriptionInput {
-  plan?: TenantPlan;
+  plan?: string;
   maxUsers?: number;
   maxProducts?: number;
   maxOrdersPerMonth?: number;
@@ -128,7 +128,7 @@ export interface TopTenant {
   name: string;
   subdomain: string;
   status: TenantStatus;
-  plan: TenantPlan;
+  plan: string;
   createdAt?: string;
   ordersThisMonth: number;
   userCount: number;

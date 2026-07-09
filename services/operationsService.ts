@@ -76,12 +76,15 @@ export async function checkSubdomain(subdomain: string): Promise<{
   available: boolean;
   error?: string;
 }> {
-  const { data, error } = await (supabase as any).functions.invoke('check-subdomain', {
+  const { data, error } = await supabase.functions.invoke<{ available: boolean; error?: string }>('check-subdomain', {
     body: { subdomain: subdomain.trim().toLowerCase() },
   });
   if (error) throw error;
+  if (!data || typeof data !== 'object' || typeof data.available !== 'boolean') {
+    throw new Error(data?.error || 'Phản hồi kiểm tra subdomain không hợp lệ');
+  }
   return {
-    available: data?.available ?? false,
-    error: data?.error,
+    available: data.available,
+    error: data.error,
   };
 }

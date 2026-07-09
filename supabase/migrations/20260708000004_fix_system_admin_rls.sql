@@ -7,6 +7,7 @@ RETURNS JSON
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER  -- Changed from SECURITY INVOKER to allow reading auth.users
+SET search_path = public
 AS $$
 BEGIN
   IF NOT public.is_system_admin() THEN
@@ -31,6 +32,7 @@ CREATE OR REPLACE FUNCTION public.add_system_admin(
 RETURNS public.system_admins
 LANGUAGE plpgsql
 SECURITY DEFINER  -- Changed from SECURITY INVOKER to allow reading auth.users
+SET search_path = public
 AS $$
 DECLARE
   v_row public.system_admins;
@@ -45,7 +47,7 @@ BEGIN
 
   INSERT INTO public.system_admins (user_id)
   VALUES (p_user_id)
-  ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
+  ON CONFLICT (user_id) DO UPDATE SET updated_at = now()
   RETURNING * INTO v_row;
 
   RETURN v_row;

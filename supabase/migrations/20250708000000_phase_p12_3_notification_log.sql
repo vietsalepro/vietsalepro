@@ -44,7 +44,7 @@ BEGIN
     WHERE schemaname = 'public' AND tablename = 'notification_logs' AND policyname = 'notification_logs_select_tenant'
   ) THEN
     CREATE POLICY "notification_logs_select_tenant" ON public.notification_logs FOR SELECT TO authenticated
-      USING (tenant_id = public.current_tenant_id());
+      USING (public.is_tenant_member(tenant_id) AND tenant_id = public.current_tenant_id());
   END IF;
 
   IF NOT EXISTS (

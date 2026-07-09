@@ -203,15 +203,18 @@ export async function overrideAdmin2FA(
   targetUserId: string,
   approvedByUserId: string
 ): Promise<{ success: boolean; unenrolledFactorIds: string[] }> {
-  const { data, error } = await (supabase as any).functions.invoke('admin-2fa-override', {
+  const { data, error } = await supabase.functions.invoke<{ success: boolean; unenrolled_factor_ids?: string[]; error?: string }>('admin-2fa-override', {
     body: {
       target_user_id: targetUserId,
       approved_by_user_id: approvedByUserId,
     },
   });
   if (error) throw new AppError(error.message, 'ADMIN_2FA_OVERRIDE_ERROR', { originalError: error });
+  if (!data || typeof data !== 'object' || !data.success) {
+    throw new AppError(data?.error || 'Phản hồi override 2FA không hợp lệ', 'ADMIN_2FA_OVERRIDE_INVALID');
+  }
   return {
-    success: data?.success ?? false,
-    unenrolledFactorIds: data?.unenrolled_factor_ids || [],
+    success: data.success,
+    unenrolledFactorIds: data.unenrolled_factor_ids || [],
   };
 }

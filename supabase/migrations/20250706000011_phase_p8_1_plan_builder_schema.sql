@@ -766,6 +766,7 @@ CREATE OR REPLACE FUNCTION public.create_renewal_invoices(p_days_before INT DEFA
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_sub RECORD;

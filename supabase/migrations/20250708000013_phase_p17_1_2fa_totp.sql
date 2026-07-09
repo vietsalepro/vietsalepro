@@ -42,6 +42,32 @@ BEGIN
 END $$;
 
 -- ============================================================
+-- 1b. Rate-limit table for backup-code brute-force attempts
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.admin_2fa_backup_code_attempts (
+  id UUID PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  failed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_2fa_backup_attempts_user_failed
+  ON public.admin_2fa_backup_code_attempts(user_id, failed_at);
+
+-- ponytail: purge attempts older than 24 hours to keep the table small.
+CREATE OR REPLACE FUNCTION public.purge_old_backup_code_attempts()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  DELETE FROM public.admin_2fa_backup_code_attempts
+  WHERE failed_at < now() - INTERVAL '24 hours';
+END;
+$$;
+
+-- ============================================================
 -- 2. Helpers
 -- ============================================================
 
@@ -105,7 +131,7 @@ BEGIN
 
   v_i := 0;
   WHILE v_i < v_count LOOP
-    v_code := upper(encode(extensions.gen_random_bytes(4), 'hex'));
+    v_code := upper(encode(extensions.gen_random_bytes(16), 'hex'));
     v_hash := encode(extensions.digest(v_code, 'sha256'), 'hex');
 
     BEGIN
@@ -145,8 +171,19 @@ AS $$
 DECLARE
   v_hash TEXT;
   v_id UUID;
+  v_failed_count INT;
 BEGIN
   IF p_user_id IS NULL OR p_code IS NULL THEN
+    RETURN json_build_object('valid', false, 'code_id', NULL);
+  END IF;
+
+  -- ponytail: rate limit brute-force attempts (5 failures per 15 minutes).
+  SELECT COUNT(*) INTO v_failed_count
+  FROM public.admin_2fa_backup_code_attempts
+  WHERE user_id = p_user_id
+    AND failed_at > now() - INTERVAL '15 minutes';
+
+  IF v_failed_count >= 5 THEN
     RETURN json_build_object('valid', false, 'code_id', NULL);
   END IF;
 
@@ -160,6 +197,8 @@ BEGIN
   FOR UPDATE;
 
   IF v_id IS NULL THEN
+    INSERT INTO public.admin_2fa_backup_code_attempts (user_id)
+    VALUES (p_user_id);
     RETURN json_build_object('valid', false, 'code_id', NULL);
   END IF;
 

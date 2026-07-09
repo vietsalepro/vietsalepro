@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { SystemHealth } from '../types/tenant';
 
 export async function getSystemHealth(): Promise<SystemHealth> {
-  const { data, error } = await (supabase as any).functions.invoke('system-health', {
+  const { data, error } = await supabase.functions.invoke<SystemHealth>('system-health', {
     body: {},
   });
   if (error) throw error;

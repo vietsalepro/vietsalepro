@@ -8,21 +8,8 @@
 -- ============================================================================
 
 -- archived đã có sau P1; ở đây chỉ thêm read_only.
-DO $$
-DECLARE
-  rec RECORD;
-BEGIN
-  FOR rec IN
-    SELECT con.conname
-    FROM pg_constraint con
-    JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
-    WHERE con.conrelid = 'public.tenants'::regclass
-      AND con.contype = 'c'
-      AND att.attname = 'status'
-  LOOP
-    EXECUTE format('ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS %I', rec.conname);
-  END LOOP;
-END $$;
+-- ponytail: drop constraint tên cụ thể, không drop mọi CHECK constraint.
+ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS tenants_status_check;
 
 ALTER TABLE public.tenants
   ADD CONSTRAINT tenants_status_check

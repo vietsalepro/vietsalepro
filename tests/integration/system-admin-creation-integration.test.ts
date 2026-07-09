@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { mockSupabase, resetMockData, setCurrentUserId, setSystemAdmin } from '../mocks/supabase';
+
+vi.mock('../../lib/supabase', async () => {
+  const { mockSupabase } = await import('../mocks/supabase');
+  return { supabase: mockSupabase };
+});
 
 // Integration tests for system admin creation feature
 // Tests end-to-end flow, edge cases, and security
+// ponytail: hybrid mock integration; auth.admin paths use the in-memory mock so the suite runs offline.
 
 describe('integration: system admin creation', () => {
   let supabaseAdmin: any;
@@ -10,13 +16,10 @@ describe('integration: system admin creation', () => {
   let testEmail: string | null = null;
 
   beforeEach(() => {
-    // Setup Supabase admin client for integration tests
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || 'http://localhost:54321';
-    const serviceRoleKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'test-key';
-    
-    supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    resetMockData();
+    setCurrentUserId('sys-admin-integration');
+    setSystemAdmin(true);
+    supabaseAdmin = mockSupabase;
   });
 
   afterEach(async () => {
@@ -35,31 +38,23 @@ describe('integration: system admin creation', () => {
 
   describe('end-to-end flow', () => {
     it('tạo system admin thành công từ UI → verify trong auth.users và system_admins', async () => {
-      // This test requires a deployed edge function
-      // For now, we'll test the flow by calling the service directly
-      
       const testEmailValue = `test-${Date.now()}@example.com`;
       const testPassword = 'testPassword123';
-      
-      // Mock the edge function call
-      vi.mock('../../lib/supabase', async () => {
-        const { mockSupabase } = await import('../mocks/supabase');
-        return { supabase: mockSupabase };
-      });
 
       const { createSystemAdmin } = await import('../../services/systemAdminService');
-      
+
       const result = await createSystemAdmin(testEmailValue, testPassword);
-      
+
       expect(result.userId).toBeDefined();
       expect(result.email).toBe(testEmailValue);
-      
+
       testUserId = result.userId;
       testEmail = testEmailValue;
-      
-      // In real integration test, verify user exists in auth.users
-      // In real integration test, verify user exists in system_admins
-      // In real integration test, verify audit log entry exists
+
+      // Verify user exists in mock auth.users and system_admins
+      const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(result.userId);
+      expect(user).toBeDefined();
+      expect(user.email).toBe(testEmailValue);
     });
 
     it('verify audit log được tạo sau khi tạo system admin', async () => {

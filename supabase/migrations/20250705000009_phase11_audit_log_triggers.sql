@@ -40,7 +40,9 @@ END $$;
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.write_audit_log()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_record_id TEXT;
   v_tenant_id UUID;

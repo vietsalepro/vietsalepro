@@ -51,12 +51,16 @@ CREATE TABLE IF NOT EXISTS public.system_admins (
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.is_system_admin()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (SELECT 1 FROM public.system_admins WHERE user_id = auth.uid());
 $$;
 
 CREATE OR REPLACE FUNCTION public.is_tenant_member(p_tenant_id UUID)
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.tenant_memberships
     WHERE tenant_id = p_tenant_id AND user_id = auth.uid()
@@ -64,7 +68,9 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION public.is_tenant_admin(p_tenant_id UUID)
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.tenant_memberships
     WHERE tenant_id = p_tenant_id AND user_id = auth.uid() AND role = 'admin'
@@ -72,7 +78,9 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION public.has_tenant_role(p_tenant_id UUID, p_role TEXT)
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.tenant_memberships
     WHERE tenant_id = p_tenant_id AND user_id = auth.uid() AND role = p_role
@@ -80,7 +88,9 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION public.get_tenant_by_subdomain(p_subdomain TEXT)
-RETURNS public.tenants LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS public.tenants LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT * FROM public.tenants WHERE subdomain = p_subdomain LIMIT 1;
 $$;
 
@@ -180,3 +190,4 @@ BEGIN
       USING (is_system_admin()) WITH CHECK (is_system_admin());
   END IF;
 END $$;
+

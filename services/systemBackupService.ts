@@ -2,12 +2,15 @@ import { supabase } from '../lib/supabase';
 import { BackupStatus } from '../types/tenant';
 
 export async function getBackupStatus(): Promise<{ checkedAt: string; backupStatus: BackupStatus }> {
-  const { data, error } = await (supabase as any).functions.invoke('system-backup', {
+  const { data, error } = await supabase.functions.invoke<{ checkedAt?: string; backupStatus?: BackupStatus; error?: string }>('system-backup', {
     body: {},
   });
   if (error) throw error;
-  if (!data || typeof data !== 'object' || data.error) {
-    throw new Error(data?.error || 'Phản hồi backup không hợp lệ');
+  if (!data || typeof data !== 'object') {
+    throw new Error('Phản hồi backup không hợp lệ');
+  }
+  if (typeof data.error === 'string') {
+    throw new Error(data.error);
   }
   return {
     checkedAt: data.checkedAt ?? new Date().toISOString(),

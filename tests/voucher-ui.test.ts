@@ -35,6 +35,11 @@ describe('VoucherManager expiry badges', () => {
   });
 });
 
+const daysInCurrentMonth = () => {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+};
+
 describe('Proration review', () => {
   it('returns null when plan is unchanged', () => {
     expect(calculateProration('vip', 'vip', '2100-01-01')).toBeNull();
@@ -47,17 +52,19 @@ describe('Proration review', () => {
   it('calculates amount due when upgrading from free to vip', () => {
     const future = addDays(30);
     const result = calculateProration('free', 'vip', future);
+    const days = daysInCurrentMonth();
     expect(result).not.toBeNull();
     expect(result!.remainingDays).toBe(30);
-    expect(result!.net).toBe(69000); // 30/30 * 69000
+    expect(result!.net).toBe(Math.round((69000 * 30) / days)); // prorated by actual month days
     expect(result!.isRefund).toBe(false);
   });
 
   it('calculates credit when downgrading from vip to free', () => {
     const future = addDays(15);
     const result = calculateProration('vip', 'free', future);
+    const days = daysInCurrentMonth();
     expect(result).not.toBeNull();
-    expect(result!.net).toBe(-34500); // 15/30 * 69000
+    expect(result!.net).toBe(-Math.round((69000 * 15) / days)); // prorated by actual month days
     expect(result!.isRefund).toBe(true);
   });
 });

@@ -4,7 +4,9 @@
 -- 1. Suspend tenant isolation: is_tenant_member must only return true for active tenants.
 --    Before this fix, a suspended tenant's members could still read/write data.
 CREATE OR REPLACE FUNCTION public.is_tenant_member(p_tenant_id UUID)
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.tenant_memberships tm
     JOIN public.tenants t ON t.id = tm.tenant_id

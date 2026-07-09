@@ -8,26 +8,12 @@
 
 ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
 
--- ponytail: xóa mọi CHECK constraint cũ trên cột status rồi thêm constraint mới cho phép archived.
-DO $$
-DECLARE
-  rec RECORD;
-BEGIN
-  FOR rec IN
-    SELECT con.conname
-    FROM pg_constraint con
-    JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
-    WHERE con.conrelid = 'public.tenants'::regclass
-      AND con.contype = 'c'
-      AND att.attname = 'status'
-  LOOP
-    EXECUTE format('ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS %I', rec.conname);
-  END LOOP;
-END $$;
+-- ponytail: drop constraint tên cụ thể rồi thêm lại với enum đầy đủ (bao gồm read_only).
+ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS tenants_status_check;
 
 ALTER TABLE public.tenants
   ADD CONSTRAINT tenants_status_check
-  CHECK (status IN ('active','suspended','trial','pending','archived'));
+  CHECK (status IN ('active','suspended','trial','pending','archived','read_only'));
 
 CREATE INDEX IF NOT EXISTS idx_tenants_status ON public.tenants(status);
 CREATE INDEX IF NOT EXISTS idx_tenants_plan ON public.tenants(plan);
@@ -52,7 +38,7 @@ BEGIN
     RAISE EXCEPTION 'Chỉ system admin mới được cập nhật trạng thái tenant' USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  IF p_status IS NULL OR p_status NOT IN ('active', 'suspended', 'trial', 'pending', 'archived') THEN
+  IF p_status IS NULL OR p_status NOT IN ('active', 'suspended', 'trial', 'pending', 'archived', 'read_only') THEN
     RAISE EXCEPTION 'Trạng thái tenant không hợp lệ: %', p_status;
   END IF;
 
@@ -179,7 +165,7 @@ BEGIN
     RAISE EXCEPTION 'Gói dịch vụ không hợp lệ: %', p_plan;
   END IF;
 
-  IF p_status IS NOT NULL AND p_status NOT IN ('active', 'suspended', 'trial', 'pending', 'archived') THEN
+  IF p_status IS NOT NULL AND p_status NOT IN ('active', 'suspended', 'trial', 'pending', 'archived', 'read_only') THEN
     RAISE EXCEPTION 'Trạng thái tenant không hợp lệ: %', p_status;
   END IF;
 
@@ -240,6 +226,10 @@ CREATE OR REPLACE PROCEDURE public.purge_archived_tenants()
 LANGUAGE plpgsql
 AS $$
 BEGIN
+  IF NOT public.is_system_admin() THEN
+    RAISE EXCEPTION 'Chỉ system admin mới được gọi purge archived tenants' USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
   DELETE FROM public.tenants
   WHERE status = 'archived'
     AND archived_at < now() - INTERVAL '30 days';

@@ -25,6 +25,7 @@ RETURNS public.tenants
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT * FROM public.tenants
   WHERE lower(custom_domain) = lower(p_domain)

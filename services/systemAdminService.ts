@@ -82,7 +82,7 @@ export async function createSystemAdmin(email: string, password: string): Promis
     throw new Error(`Failed to create system admin: ${error.message}`);
   }
 
-  if (!data?.success) {
+  if (!data || typeof data !== 'object' || !data.success || typeof data.userId !== 'string' || typeof data.email !== 'string') {
     throw new Error('Failed to create system admin: Invalid response');
   }
 

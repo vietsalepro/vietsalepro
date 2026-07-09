@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Building2, CreditCard, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useToast } from './ToastContainer';
 import {
   BankAccount,
   CompanyInfo,
@@ -45,6 +47,8 @@ export default function BillingConfig() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { openConfirmDialog, confirmDialog } = useConfirmDialog();
+  const { addToast } = useToast();
 
   const load = async () => {
     setCompanyLoading(true);
@@ -117,15 +121,21 @@ export default function BillingConfig() {
     setForm(emptyAccount);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Xóa tài khoản ngân hàng này?')) return;
-    setError(null);
-    try {
-      await deleteBankAccount(id);
-      await load();
-    } catch (err: any) {
-      setError(err?.message || 'Xóa tài khoản ngân hàng thất bại.');
-    }
+  const handleDelete = (id: string) => {
+    openConfirmDialog({
+      title: 'Xóa tài khoản ngân hàng',
+      message: 'Xóa tài khoản ngân hàng này?',
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await deleteBankAccount(id);
+          await load();
+          addToast({ type: 'success', message: 'Đã xóa tài khoản ngân hàng.' });
+        } catch (err: any) {
+          setError(err?.message || 'Xóa tài khoản ngân hàng thất bại.');
+        }
+      },
+    });
   };
 
   return (
@@ -375,6 +385,7 @@ export default function BillingConfig() {
           </div>
         )}
       </div>
+      {confirmDialog}
     </div>
   );
 }

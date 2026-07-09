@@ -223,9 +223,23 @@ const executeQuery = (state: QueryState) => {
       return { data: null, count: totalCount ?? rows.length, error: null };
     }
     if (state.selectColumns && state.selectColumns.includes('(*)')) {
-      const [fk] = state.selectColumns.split(' ');
-      const refTable = fk === 'tenant_id' ? 'tenants' : table;
-      rows = rows.map(r => ({ [fk]: store[refTable].find(x => x.id === r[fk]) ?? r[fk] }));
+      const tokens = state.selectColumns.split(',').map(s => s.trim());
+      // ponytail: keep legacy `fk (*)` pattern while also supporting explicit resource syntax `tenant_id, tenants(*)`.
+      const oldFkPattern = tokens.length === 2 && tokens[1] === '(*)' ? tokens[0] : null;
+      rows = rows.map(r => {
+        if (oldFkPattern) {
+          const refTable = oldFkPattern === 'tenant_id' ? 'tenants' : table;
+          return { [oldFkPattern]: store[refTable].find(x => x.id === r[oldFkPattern]) ?? r[oldFkPattern] };
+        }
+        const expanded = { ...r };
+        for (const token of tokens) {
+          if (!token.endsWith('(*)')) continue;
+          const relTable = token.slice(0, -3);
+          const fk = relTable === 'tenants' ? 'tenant_id' : `${relTable.replace(/s$/, '')}_id`;
+          expanded[relTable] = store[relTable].find(x => x.id === r[fk]) ?? null;
+        }
+        return expanded;
+      });
     }
     if (state.single) {
       return rows.length
@@ -2131,12 +2145,65 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     };
   }
 
+  if (name === 'create-system-admin') {
+    if (!isSystemAdmin) {
+      return { data: { error: 'Only system admins can create system admins' }, error: null };
+    }
+    const { email, password } = body || {};
+    if (!email || typeof email !== 'string' || !email.trim().includes('@')) {
+      return { data: { error: 'Email is required' }, error: null };
+    }
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return { data: { error: 'Password must be at least 6 characters' }, error: null };
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (store.users.some((u: any) => u.email === normalizedEmail)) {
+      return { data: { error: 'Email already exists' }, error: null };
+    }
+    const userId = uuid();
+    store.users.push({ id: userId, email: normalizedEmail });
+    store.system_admins.push({ user_id: userId, created_at: new Date().toISOString() });
+    store.app_audit_log.push({
+      action: 'create_system_admin',
+      target_user_id: userId,
+      email: normalizedEmail,
+      creator_id: currentUserId,
+      created_at: new Date().toISOString(),
+    });
+    return { data: { success: true, userId, email: normalizedEmail }, error: null };
+  }
+
   return { data: { error: 'Function not found' }, error: null };
 };
 
 export const mockSupabase = {
   auth: {
     getUser: vi.fn(async () => ({ data: { user: currentUserId ? { id: currentUserId } : null }, error: null })),
+    admin: {
+      createUser: vi.fn(async ({ email, password, email_confirm }: { email: string; password: string; email_confirm?: boolean }) => {
+        if (!email || !email.includes('@')) {
+          return { data: { user: null }, error: { message: 'Invalid email', status: 422 } };
+        }
+        if (!password || password.length < 6) {
+          return { data: { user: null }, error: { message: 'Password should be at least 6 characters', status: 422 } };
+        }
+        const existing = store.users.find(u => u.email === email);
+        if (existing) {
+          return { data: { user: null }, error: { message: 'User already registered', status: 422 } };
+        }
+        const user = { id: uuid(), email, email_confirmed_at: email_confirm ? new Date().toISOString() : null, created_at: new Date().toISOString() };
+        store.users.push(user);
+        return { data: { user }, error: null };
+      }),
+      deleteUser: vi.fn(async (userId: string) => {
+        store.users = store.users.filter(u => u.id !== userId);
+        return { data: { user: null }, error: null };
+      }),
+      getUserById: vi.fn(async (userId: string) => {
+        const user = store.users.find(u => u.id === userId) ?? null;
+        return { data: { user }, error: user ? null : { message: 'User not found', status: 404 } };
+      }),
+    },
   },
   from: vi.fn((table: string) => queryBuilder(table)),
   rpc: vi.fn(rpc),

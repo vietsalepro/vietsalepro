@@ -274,13 +274,14 @@ BEGIN
     v_total := 0;
   END IF;
 
-  -- Cập nhật invoice: discount nối vào cột giảm giá, kéo dài period_end nếu có tháng tặng
+  -- Cập nhật invoice: discount nối vào cột giảm giá, kéo dài period_end nếu có tháng tặng.
+  -- ponytail: tính bonus months từ điểm muộn nhất giữa period_end hóa đơn và expiry hiện tại để không chồng chéo chu kỳ đã trả.
   UPDATE public.invoices
   SET discount = v_discount,
       total = v_total,
       period_end = CASE
         WHEN v_bonus_months > 0 AND v_invoice.period_end IS NOT NULL
-        THEN (v_invoice.period_end + (v_bonus_months * INTERVAL '1 month'))::DATE
+        THEN (GREATEST(v_invoice.period_end, COALESCE(v_tenant.expires_at::DATE, v_invoice.period_end)) + (v_bonus_months * INTERVAL '1 month'))::DATE
         ELSE v_invoice.period_end
       END,
       updated_at = now()

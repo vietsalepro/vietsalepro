@@ -77,6 +77,9 @@ END $$;
 -- 3. Data retention procedure
 -- ============================================================
 
+-- ponytail: drop any previous function/procedure so the kind can change from function to procedure.
+DROP ROUTINE IF EXISTS public.run_data_retention() CASCADE;
+
 CREATE OR REPLACE PROCEDURE public.run_data_retention()
 LANGUAGE plpgsql
 AS $$

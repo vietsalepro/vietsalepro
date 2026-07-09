@@ -2,7 +2,9 @@
 -- Returns the tenant_id passed in via the x-tenant-id request header.
 
 CREATE OR REPLACE FUNCTION public.current_tenant_id()
-RETURNS UUID LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+RETURNS UUID LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_header TEXT;
   v_tenant_id UUID;

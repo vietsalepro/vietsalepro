@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import './AdminTabs.css';
 
 /* ─── Types ─────────────────────────────────────────── */
@@ -17,13 +17,20 @@ interface AdminTabsProps {
 }
 
 export const AdminTabs: React.FC<AdminTabsProps> = ({ tabs, activeTab, onTabChange, children }) => {
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  // ponytail: reset refs when tabs change so removed tabs don’t leave stale refs.
+  useEffect(() => {
+    tabRefs.current = new Map<string, HTMLButtonElement>();
+  }, [tabs]);
 
   const focusTab = useCallback((index: number) => {
-    const tab = tabRefs.current[index];
-    if (tab) {
-      tab.focus();
-      onTabChange(tabs[index].id);
+    const tab = tabs[index];
+    if (!tab) return;
+    const el = tabRefs.current.get(tab.id);
+    if (el) {
+      el.focus();
+      onTabChange(tab.id);
     }
   }, [tabs, onTabChange]);
 
@@ -59,7 +66,10 @@ export const AdminTabs: React.FC<AdminTabsProps> = ({ tabs, activeTab, onTabChan
           return (
             <button
               key={tab.id}
-              ref={(el) => { tabRefs.current[index] = el; }}
+              ref={(el) => {
+                if (el) tabRefs.current.set(tab.id, el);
+                else tabRefs.current.delete(tab.id);
+              }}
               className={`admin-tabs__item ${isActive ? 'admin-tabs__item--active' : ''}`}
               role="tab"
               aria-selected={isActive}

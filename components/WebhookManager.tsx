@@ -13,6 +13,8 @@ import {
   triggerWebhookEvent,
   updateTenantWebhook,
 } from '../services/webhookService';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { useToast } from './ToastContainer';
 
 const statusLabel = (status: TenantWebhook['status']) => {
   switch (status) {
@@ -69,6 +71,8 @@ export default function WebhookManager() {
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
   const [deliveriesLoading, setDeliveriesLoading] = useState(false);
   const [expandedDeliveries, setExpandedDeliveries] = useState<Record<string, boolean>>({});
+  const { openConfirmDialog, confirmDialog } = useConfirmDialog();
+  const { addToast } = useToast();
 
   const loadTenants = async () => {
     setTenantsLoading(true);
@@ -193,16 +197,22 @@ export default function WebhookManager() {
     }
   };
 
-  const handleDelete = async (webhookId: string) => {
-    if (!window.confirm('Xóa webhook này? Hành động này không thể hoàn tác.')) return;
-    setError(null);
-    try {
-      await deleteTenantWebhook(webhookId);
-      if (selectedWebhookId === webhookId) setSelectedWebhookId(null);
-      await loadWebhooks(tenantId);
-    } catch (err: any) {
-      setError(err?.message || 'Xóa webhook thất bại.');
-    }
+  const handleDelete = (webhookId: string) => {
+    openConfirmDialog({
+      title: 'Xóa webhook',
+      message: 'Xóa webhook này? Hành động này không thể hoàn tác.',
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await deleteTenantWebhook(webhookId);
+          if (selectedWebhookId === webhookId) setSelectedWebhookId(null);
+          await loadWebhooks(tenantId);
+          addToast({ type: 'success', message: 'Đã xóa webhook.' });
+        } catch (err: any) {
+          setError(err?.message || 'Xóa webhook thất bại.');
+        }
+      },
+    });
   };
 
   const handleTest = async (wh: TenantWebhook) => {
@@ -214,7 +224,7 @@ export default function WebhookManager() {
         message: 'Test event from VietSales Pro admin dashboard',
       });
       if (selectedWebhookId === wh.id) await loadDeliveries(wh.id);
-      window.alert('Đã enqueue event test. Vui lòng chạy worker để gửi thực tế.');
+      addToast({ type: 'success', message: 'Đã enqueue event test. Vui lòng chạy worker để gửi thực tế.' });
     } catch (err: any) {
       setError(err?.message || 'Test webhook thất bại.');
     }
@@ -496,6 +506,7 @@ export default function WebhookManager() {
           )}
         </div>
       )}
+      {confirmDialog}
     </div>
   );
 }

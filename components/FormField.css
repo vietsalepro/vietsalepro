@@ -1,0 +1,51 @@
+.form-field {
+  margin-bottom: var(--space-6, 24px);
+}
+
+.form-field__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-sm, 13px);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-primary, #0f172a);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.form-field__required {
+  color: var(--color-danger-500, #ef4444);
+  margin-left: 2px;
+}
+
+.form-field__control {
+  display: block;
+}
+
+.form-field__control > input,
+.form-field__control > select,
+.form-field__control > textarea {
+  width: 100%;
+}
+
+.form-field--error .form-field__control > input,
+.form-field--error .form-field__control > select,
+.form-field--error .form-field__control > textarea {
+  border-color: var(--color-border-error, #ef4444);
+}
+
+.form-field__hint {
+  margin: var(--space-1, 4px) 0 0;
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-secondary, #64748b);
+  line-height: var(--leading-normal, 1.5);
+}
+
+.form-field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  margin: var(--space-1, 4px) 0 0;
+  font-size: var(--text-xs, 12px);
+  color: var(--color-danger-500, #ef4444);
+  line-height: var(--leading-normal, 1.5);
+}

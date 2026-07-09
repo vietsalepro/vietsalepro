@@ -20,6 +20,38 @@
   --z-modal-dialog:  1010;
 }
 
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+}
+
+@keyframes overlay-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    OVERLAY
    ═══════════════════════════════════════════════════════════════ */
@@ -29,8 +61,12 @@
   z-index: var(--z-modal-overlay, 1000);
   background: var(--modal-overlay, rgba(15, 23, 42, 0.52));
   backdrop-filter: blur(2px);
-  animation: mmFadeIn var(--motion-normal, 250ms) var(--ease-standard, ease-out) forwards;
+  animation: overlay-enter 150ms ease forwards;
   pointer-events: auto;
+}
+
+.master-modal-overlay--closing {
+  animation: overlay-exit 150ms ease forwards;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -59,23 +95,37 @@
   border-radius: var(--modal-radius, 1rem);
   box-shadow: var(--modal-shadow, 0 24px 64px -12px rgba(15, 23, 42, 0.28));
   border: 1px solid var(--modal-border, #e2e8f0);
-  animation: mmFadeUp var(--motion-normal, 250ms) var(--ease-standard, ease-out) forwards;
+  animation: modal-enter 150ms ease forwards;
+}
+
+.master-modal-dialog--closing {
+  animation: modal-exit 150ms ease forwards;
 }
 
 /* ── Modal Sizes ────────────────────────────────────────────── */
-/* sm = 640px */
+.master-modal-dialog.size-xs {
+  max-width: 360px;
+  max-height: 80vh;
+}
+
 .master-modal-dialog.size-sm {
-  max-width: 640px;
+  max-width: 480px;
+  max-height: 80vh;
 }
 
-/* md = 960px */
 .master-modal-dialog.size-md {
-  max-width: 960px;
+  max-width: 640px;
+  max-height: 85vh;
 }
 
-/* lg = 1400px */
 .master-modal-dialog.size-lg {
-  max-width: 1400px;
+  max-width: 800px;
+  max-height: 85vh;
+}
+
+.master-modal-dialog.size-xl {
+  max-width: 1024px;
+  max-height: 90vh;
 }
 
 /* fullscreen = 95vw / 95vh */
@@ -92,6 +142,21 @@
   max-height: 100vh;
   height: 100vh;
   border-radius: var(--radius-none, 0);
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 767px) {
+  .master-modal-container {
+    padding: 0;
+  }
+
+  .master-modal-dialog:not(.size-fullscreen) {
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
 }
 
 /* ── Container size overrides ───────────────────── */
@@ -409,4 +474,11 @@
 .master-modal-v1-footer {
   background: var(--modal-footer-bg, #f8fafc);
   border-top: 1px solid var(--modal-border, #e2e8f0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .master-modal-overlay,
+  .master-modal-dialog {
+    animation: none;
+  }
 }

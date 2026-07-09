@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { AdminSidebar, SidebarSection } from './AdminSidebar';
+import { ToastProvider } from './ToastContainer';
 import './AdminShell.css';
 
 /* ─── Types ─────────────────────────────────────────── */
@@ -166,7 +167,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           )}
 
           {/* Slot children */}
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </main>
 
         {/* Footer */}

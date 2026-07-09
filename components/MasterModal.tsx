@@ -25,7 +25,7 @@
  *     - Full ARIA attributes (role="dialog", aria-modal, aria-labelledby, aria-describedby)
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import { useMasterModalV2 } from '../features';
 import { LoadingState } from './LoadingState';
@@ -48,7 +48,7 @@ export { SummaryRow }   from './SummaryRow';
 export type { SummaryRowProps } from './SummaryRow';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-export type ModalSize     = 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'fullscreen' | 'mobile';
+export type ModalSize     = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'fullscreen' | 'mobile';
 export type StatusVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'purple';
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
 
@@ -86,13 +86,14 @@ const SIZE_MAP_V1: Record<string, string> = {
 
 // ─── V2 size class mapping ──────────────────────────────────────────────────
 const SIZE_CLASS_V2: Record<string, string> = {
+  xs:   'size-xs',
   sm:   'size-sm',
   md:   'size-md',
   lg:   'size-lg',
+  xl:   'size-xl',
   fullscreen: 'size-fullscreen',
   mobile:    'size-mobile',
   // backward compat fallback
-  xl:   'size-fullscreen',
   full: 'size-fullscreen',
 };
 
@@ -157,17 +158,27 @@ export const MasterModal: React.FC<MasterModalProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null);
   const previousActiveElement = useRef<Element | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(() => {
+      setClosing(false);
+      onClose();
+    }, 150);
+  }, [closing, onClose]);
 
   // ── Store trigger element when modal opens ────────────────
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !closing) {
       triggerRef.current = document.activeElement;
     }
-  }, [isOpen]);
+  }, [isOpen, closing]);
 
   // ── Scroll lock ──────────────────────────────────────────
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || closing) return;
     if (useMasterModalV2) {
       lockBodyScroll();
     }
@@ -176,11 +187,11 @@ export const MasterModal: React.FC<MasterModalProps> = ({
         unlockBodyScroll();
       }
     };
-  }, [isOpen]);
+  }, [isOpen, closing]);
 
   // ── Focus trap: focus first element on open ──────────────
   useEffect(() => {
-    if (!isOpen || !useMasterModalV2) return;
+    if (!isOpen || !useMasterModalV2 || closing) return;
 
     // Small delay to ensure DOM is rendered
     const raf = requestAnimationFrame(() => {
@@ -199,7 +210,7 @@ export const MasterModal: React.FC<MasterModalProps> = ({
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [isOpen]);
+  }, [isOpen, closing]);
 
   // ── Focus trap: Tab/Shift+Tab cycling ────────────────────
   const handleKeyDown = useCallback(
@@ -210,7 +221,7 @@ export const MasterModal: React.FC<MasterModalProps> = ({
       if (e.key === 'Escape' && !disableEscape) {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        handleClose();
         return;
       }
 
@@ -240,7 +251,7 @@ export const MasterModal: React.FC<MasterModalProps> = ({
         }
       }
     },
-    [isOpen, onClose, disableEscape]
+    [isOpen, handleClose, disableEscape]
   );
 
   // ── Keyboard event listener ──────────────────────────────
@@ -257,11 +268,12 @@ export const MasterModal: React.FC<MasterModalProps> = ({
   useEffect(() => {
     if (isOpen || !useMasterModalV2) return;
 
-    // Restore focus to trigger element when modal closes
-    const trigger = triggerRef.current;
-    if (trigger && trigger instanceof HTMLElement) {
-      trigger.focus();
+    // Restore focus to the element that had focus before the modal opened
+    const target = previousActiveElement.current ?? triggerRef.current;
+    if (target && target instanceof HTMLElement && target.isConnected) {
+      target.focus();
     }
+    previousActiveElement.current = null;
     triggerRef.current = null;
   }, [isOpen]);
 
@@ -270,7 +282,7 @@ export const MasterModal: React.FC<MasterModalProps> = ({
   const showError = error && useMasterModalV2;
   const showContent = !showLoading && !showError;
 
-  if (!isOpen) return null;
+  if (!isOpen && !closing) return null;
 
   // ── V2: CSS-driven path ──────────────────────────────────
   if (useMasterModalV2) {
@@ -281,8 +293,8 @@ export const MasterModal: React.FC<MasterModalProps> = ({
       <div className="master-modal-root">
         {/* Overlay */}
         <div
-          className="master-modal-overlay"
-          onClick={disableBackdropClose ? undefined : onClose}
+          className={`master-modal-overlay${closing ? ' master-modal-overlay--closing' : ''}`}
+          onClick={disableBackdropClose ? undefined : handleClose}
           aria-hidden="true"
         />
 
@@ -296,7 +308,7 @@ export const MasterModal: React.FC<MasterModalProps> = ({
             aria-labelledby="mm-title"
             aria-describedby={stateDescriptionId}
             tabIndex={-1}
-            className={`master-modal-dialog ${sizeClass}`}
+            className={`master-modal-dialog ${sizeClass}${closing ? ' master-modal-dialog--closing' : ''}`}
           >
             {/* Header */}
             <div className="master-modal-header">
@@ -321,7 +333,7 @@ export const MasterModal: React.FC<MasterModalProps> = ({
               </div>
 
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="master-modal-close-btn"
                 aria-label="Đóng"
               >

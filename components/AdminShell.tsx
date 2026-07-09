@@ -31,15 +31,13 @@ interface AdminShellProps {
   userName?: string;
   /** User avatar element */
   userAvatar?: React.ReactNode;
-  /** Elements to render on the right side of topbar */
-  topbarActions?: React.ReactNode;
   /** Footer content (defaults to copyright) */
   footerContent?: React.ReactNode;
   /** Default sidebar collapsed state */
   defaultCollapsed?: boolean;
 }
 
-/* ─── Hamburger Icon ───────────────────────────────── */
+/* ─── Hamburger Icon (for mobile floating button) ──── */
 const HamburgerIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="3" y1="6" x2="21" y2="6" />
@@ -60,7 +58,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   brandLabel,
   userName,
   userAvatar,
-  topbarActions,
   footerContent,
   defaultCollapsed,
 }) => {
@@ -81,6 +78,15 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         Skip to main content
       </a>
 
+      {/* Floating hamburger button for mobile sidebar toggle */}
+      <button
+        className="admin-shell__hamburger-float"
+        onClick={toggleMobile}
+        aria-label="Toggle sidebar"
+      >
+        <HamburgerIcon />
+      </button>
+
       {/* Sidebar */}
       <AdminSidebar
         sections={sidebarSections}
@@ -96,25 +102,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
       {/* Main content area */}
       <div className="admin-shell__main">
-        {/* Topbar */}
-        <header className="admin-shell__topbar">
-          <div className="admin-shell__topbar-left">
-            <button
-              className="admin-shell__hamburger"
-              onClick={toggleMobile}
-              aria-label="Toggle sidebar"
-            >
-              <HamburgerIcon />
-            </button>
-            <h1 className="admin-shell__topbar-title">{pageTitle}</h1>
-          </div>
-          {topbarActions && (
-            <div className="admin-shell__topbar-right">
-              {topbarActions}
-            </div>
-          )}
-        </header>
-
         {/* Scrollable content */}
         <main id="admin-main-content" className="admin-shell__content">
           {/* Breadcrumbs */}

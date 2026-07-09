@@ -107,6 +107,7 @@ const STATUSES: TenantStatus[] = ['active', 'suspended', 'trial', 'pending', 'ar
 const ISOLATION_MODES: TenantIsolationMode[] = ['shared', 'schema', 'project'];
 
 // Define sidebar sections for AdminShell
+// Includes ALL tabs from AdminTabs — no separate top navigation needed.
 const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: 'Dashboard',
@@ -120,6 +121,31 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: 'loginHistory', label: 'Login history', icon: <Mail size={16} /> },
       { id: 'operations', label: 'Vận hành', icon: <Settings size={16} /> },
       { id: 'billing', label: 'Thanh toán', icon: <CreditCard size={16} /> },
+    ],
+  },
+  {
+    label: 'Tính năng mở rộng',
+    items: [
+      { id: 'vouchers', label: 'Voucher', icon: <TicketPercent size={16} /> },
+      { id: 'tickets', label: 'Support tickets', icon: <MessageSquare size={16} /> },
+      { id: 'emails', label: 'Email templates', icon: <Mail size={16} /> },
+      { id: 'notifications', label: 'Thông báo', icon: <Megaphone size={16} /> },
+    ],
+  },
+  {
+    label: 'Hệ thống',
+    items: [
+      { id: 'health', label: 'Health', icon: <ShieldCheck size={16} /> },
+      { id: 'errors', label: 'Lỗi & Hiệu năng', icon: <AlertTriangle size={16} /> },
+      { id: 'storage', label: 'Lưu trữ', icon: <Package size={16} /> },
+      { id: 'bulkMaintenance', label: 'Bulk & Bảo trì', icon: <Settings size={16} /> },
+      { id: 'apiKeys', label: 'API Keys', icon: <ShieldCheck size={16} /> },
+      { id: 'webhooks', label: 'Webhooks', icon: <Mail size={16} /> },
+      { id: 'integrations', label: 'Integrations', icon: <Building2 size={16} /> },
+      { id: 'twoFactor', label: '2FA', icon: <ShieldCheck size={16} /> },
+      { id: 'compliance', label: 'Tuân thủ', icon: <ShieldCheck size={16} /> },
+      { id: 'whiteLabel', label: 'White-label', icon: <Store size={16} /> },
+      { id: 'readReplicaQueue', label: 'Replica / Queue', icon: <Clock size={16} /> },
     ],
   },
 ];
@@ -1209,7 +1235,7 @@ export default function SystemAdminDashboard() {
         </div>
       )}
 
-      <AdminTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as typeof activeTab)}>
+      {/* Tab content — sidebar handles navigation, no horizontal tab bar */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {analyticsError && (
@@ -2251,8 +2277,6 @@ export default function SystemAdminDashboard() {
     {activeTab === 'whiteLabel' && <WhiteLabelManager />}
 
     {activeTab === 'readReplicaQueue' && <ReadReplicaQueueManager />}
-
-      </AdminTabs>
 
       {/* Edit modal */}
       {editTenant && (

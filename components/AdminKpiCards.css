@@ -1,0 +1,86 @@
+/*
+ * VIETSALE PRO — AdminKpiCards Styles
+ * Uses design-system-tokens.css variables exclusively.
+ */
+
+/* Grid container – 4 columns on desktop, 2 on tablet, 1 on mobile */
+.admin-kpi-cards {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1023px) {
+  .admin-kpi-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-kpi-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-kpi-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.admin-kpi-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.admin-kpi-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-kpi-card__icon {
+  color: var(--kpi-accent, var(--color-primary-500));
+  display: flex;
+  align-items: center;
+}
+
+.admin-kpi-card__trend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.admin-kpi-card__trend--up {
+  color: var(--color-success-500);
+}
+
+.admin-kpi-card__trend--down {
+  color: var(--color-danger-500);
+}
+
+.admin-kpi-card__trend--neutral {
+  color: var(--color-neutral-600);
+}
+
+.admin-kpi-card__value {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.admin-kpi-card__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.admin-kpi-card__trend-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

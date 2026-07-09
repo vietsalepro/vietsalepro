@@ -1,10 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
   Store, Users, Package, ShoppingBag, AlertTriangle, Clock, TrendingUp, CreditCard,
+  Building2, Receipt, TicketPercent, MessageSquare, Megaphone, Mail, ShieldCheck, Settings, Home,
 } from 'lucide-react';
+import AdminShell from '../components/AdminShell';
+import type { SidebarSection } from '../components/AdminSidebar';
+import AdminKpiCards from '../components/AdminKpiCards';
+import AdminTabs, { type TabItem } from '../components/AdminTabs';
 import { useDebounce } from '../hooks/useDebounce';
 import { getTenantUrl } from '../lib/tenant';
 import { DashboardV2KPI } from './Dashboard';
@@ -99,6 +104,24 @@ import {
 const PLANS: TenantPlan[] = ['free', 'vip'];
 const STATUSES: TenantStatus[] = ['active', 'suspended', 'trial', 'pending', 'archived', 'read_only'];
 const ISOLATION_MODES: TenantIsolationMode[] = ['shared', 'schema', 'project'];
+
+// Define sidebar sections for AdminShell
+const SIDEBAR_SECTIONS: SidebarSection[] = [
+  {
+    label: 'Dashboard',
+    items: [
+      { id: 'overview', label: 'Tổng quan', icon: <Home size={16} /> },
+      { id: 'tenants', label: 'Cửa hàng', icon: <Store size={16} /> },
+      { id: 'members', label: 'Thành viên', icon: <Users size={16} /> },
+      { id: 'audit', label: 'Audit log', icon: <AlertTriangle size={16} /> },
+      { id: 'rateLimit', label: 'Rate limit', icon: <Clock size={16} /> },
+      { id: 'systemAdmins', label: 'System admins', icon: <ShieldCheck size={16} /> },
+      { id: 'loginHistory', label: 'Login history', icon: <Mail size={16} /> },
+      { id: 'operations', label: 'Vận hành', icon: <Settings size={16} /> },
+      { id: 'billing', label: 'Thanh toán', icon: <CreditCard size={16} /> },
+    ],
+  },
+];
 
 const isolationLabel = (mode: TenantIsolationMode) => {
   switch (mode) {
@@ -1067,21 +1090,22 @@ export default function SystemAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Quản trị hệ thống</h1>
-          <p className="text-gray-600">Tạo và quản lý các cửa hàng (tenant) trên hệ thống.</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">
-            {error}
+    <AdminShell sidebarSections={SIDEBAR_SECTIONS} pageTitle="Quản trị hệ thống">
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Quản trị hệ thống</h1>
+            <p className="text-gray-600">Tạo và quản lý các cửa hàng (tenant) trên hệ thống.</p>
           </div>
-        )}
 
-        {/* Tabs */}
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex gap-2">
+          {error && (
+            <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">
+              {error}
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex gap-2">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
@@ -2579,74 +2603,8 @@ export default function SystemAdminDashboard() {
         </div>
       )}
 
-      {/* Restore tenant modal */}
-      {restoreTenant && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={(e) => {
-            if (e.currentTarget === e.target && !restoreSubmitting) closeRestore();
-          }}
-        >
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Restore dữ liệu — {restoreTenant.name}
-            </h3>
-            <form onSubmit={handleRestoreSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">File backup JSON</label>
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  onChange={handleRestoreFileChange}
-                  disabled={restoreSubmitting}
-                  className="w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  ponytail: restore ghi đè dữ liệu hiện có của tenant bằng backup; file lớn hơn ~6MB cần xử lý offline.
-                </p>
-              </div>
-              {restorePreview && (
-                <div className="border border-gray-100 rounded-lg overflow-hidden">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-700">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium">Bảng</th>
-                        <th className="px-3 py-2 text-right font-medium">Số dòng</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {restorePreview.map((p) => (
-                        <tr key={p.name}>
-                          <td className="px-3 py-2 text-gray-900">{p.name}</td>
-                          <td className="px-3 py-2 text-right text-gray-600">{p.rows.toLocaleString('vi-VN')}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={closeRestore}
-                  disabled={restoreSubmitting}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-60"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={restoreSubmitting || !restoreFile || !restorePreview}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
-                >
-                  {restoreSubmitting ? 'Đang restore...' : 'Restore'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
+    </div> {/* close max-w-6xl mx-auto */}
+  </div> {/* close min-h-screen */}
+</AdminShell>
+);
 }

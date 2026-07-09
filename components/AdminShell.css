@@ -1,0 +1,171 @@
+/*
+ * ─────────────────────────────────────────────────
+ *  VIETSALE PRO — AdminShell Styles
+ *  Section: System Admin Dashboard Layout
+ * ─────────────────────────────────────────────────
+ */
+
+/* ── Shell Container (fills viewport) ──────────────── */
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg-secondary);
+}
+
+/* ── Main Content Area ────────────────────────────── */
+.admin-shell__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevent flex overflow */
+  overflow-x: hidden;
+}
+
+/* ── Topbar ────────────────────────────────────────── */
+.admin-shell__topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 56px;
+  padding: 0 var(--space-5);
+  background: var(--color-bg-primary);
+  border-bottom: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.admin-shell__topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.admin-shell__hamburger {
+  display: none; /* hidden on desktop */
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+}
+
+.admin-shell__hamburger:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.admin-shell__topbar-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.admin-shell__topbar-center {
+  flex: 1;
+}
+
+.admin-shell__topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .admin-shell__hamburger {
+    display: flex;
+  }
+}
+
+/* ── Scrollable Content ────────────────────────────── */
+.admin-shell__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+/* ── Page Header within content ────────────────────── */
+.admin-shell__page-header {
+  margin-bottom: var(--space-6);
+}
+
+.admin-shell__page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.admin-shell__page-description {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Breadcrumb ────────────────────────────────────── */
+.admin-shell__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.admin-shell__breadcrumb-item {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.admin-shell__breadcrumb-item:hover {
+  color: var(--color-primary-500);
+}
+
+.admin-shell__breadcrumb-separator {
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+.admin-shell__breadcrumb-item--current {
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* ── Admin Shell Footer ────────────────────────────── */
+.admin-shell__footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: var(--border-width-default) var(--border-style-default) var(--color-border-default);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 767px) {
+  .admin-shell__content {
+    padding: var(--space-4);
+  }
+
+  .admin-shell__topbar {
+    padding: 0 var(--space-4);
+  }
+
+  .admin-shell__page-title {
+    font-size: var(--text-xl);
+  }
+}
+
+/* ── Reduced Motion ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell__hamburger {
+    transition: none;
+  }
+}

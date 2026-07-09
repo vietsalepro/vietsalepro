@@ -6,11 +6,13 @@
  *
  *  Purpose:
  *    Standardized data table container with toolbar, sortable headers,
- *    row selection, pagination, and state handling.
+ *    row selection, pagination, density controls, column visibility,
+ *    sticky columns, and state handling.
  *
  *  Sub-components:
  *    - DataGrid           → Container + state orchestration
  *    - DataGridToolbar    → Search, filter, actions
+ *    - DataGridViewControls → Density + column visibility toggles
  *    - DataGridHeader     → Sortable column headers + select-all
  *    - DataGridBody       → Row list
  *    - DataGridRow        → Single row + selection checkbox
@@ -25,14 +27,25 @@
  *  ═══════════════════════════════════════════════════════════════
  */
 
-import React, { useMemo } from 'react';
-import { Search, ChevronUp, ChevronDown, Filter, ListFilter } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  Search,
+  ChevronUp,
+  ChevronDown,
+  Filter,
+  ListFilter,
+  Rows3,
+  Rows4,
+  Rows,
+  Columns3,
+} from 'lucide-react';
 import { TextInput } from './TextInput';
 import { SelectInput } from './SelectInput';
 import { ActionButton } from './ActionButton';
 import { LoadingState } from './LoadingState';
 import { EmptyState } from './EmptyState';
 import { ErrorState } from './ErrorState';
+import { useClickOutside } from '../hooks/useClickOutside';
 import './DataGrid.css';
 
 /* ─── Types ──────────────────────────────────────────── */
@@ -40,6 +53,8 @@ import './DataGrid.css';
 export type ColumnAlign = 'left' | 'center' | 'right';
 
 export type SortDirection = 'asc' | 'desc' | 'none';
+
+export type Density = 'compact' | 'default' | 'comfortable';
 
 export interface DataGridColumn<T = unknown> {
   /** Unique key used to access row data */
@@ -58,6 +73,8 @@ export interface DataGridColumn<T = unknown> {
   maxWidth?: string;
   /** Cell alignment */
   align?: ColumnAlign;
+  /** Pin column to left/right while scrolling horizontally */
+  sticky?: 'left' | 'right';
 }
 
 export interface DataGridPaginationProps {
@@ -135,6 +152,8 @@ export interface DataGridProps<T = unknown> {
   className?: string;
   /** Remove outer border/shadow when used inside a card/box */
   embedded?: boolean;
+  /** Default row density */
+  density?: Density;
 }
 
 /* ─── Utility Helpers ────────────────────────────────── */
@@ -207,6 +226,110 @@ export const DataGridToolbar: React.FC<DataGridToolbarProps> = ({
       </div>
       <div className="datagrid-toolbar__right">
         {right}
+      </div>
+    </div>
+  );
+};
+
+/* ─── DataGridViewControls ───────────────────────────── */
+
+interface DataGridViewControlsProps {
+  density: Density;
+  onDensityChange: (density: Density) => void;
+  columns: DataGridColumn<unknown>[];
+  visibleColumns: string[];
+  onVisibleColumnsChange: (keys: string[]) => void;
+}
+
+const DataGridViewControls: React.FC<DataGridViewControlsProps> = ({
+  density,
+  onDensityChange,
+  columns,
+  visibleColumns,
+  onVisibleColumnsChange,
+}) => {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useClickOutside(dropdownRef, () => setOpen(false), open);
+
+  const allKeys = useMemo(() => columns.map((c) => c.key), [columns]);
+
+  const toggleKey = (key: string) => {
+    const next = new Set(visibleColumns);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    onVisibleColumnsChange(Array.from(next));
+  };
+
+  const densityButton = (mode: Density, icon: React.ReactNode, label: string) => (
+    <ActionButton
+      key={mode}
+      variant={density === mode ? 'secondary' : 'ghost'}
+      size="sm"
+      icon={icon}
+      onClick={() => onDensityChange(mode)}
+      aria-label={label}
+      aria-pressed={density === mode}
+    />
+  );
+
+  return (
+    <div className="datagrid-view-controls">
+      <div className="datagrid-density" role="group" aria-label="Row density">
+        {densityButton('compact', <Rows3 size={16} />, 'Compact rows')}
+        {densityButton('default', <Rows4 size={16} />, 'Default rows')}
+        {densityButton('comfortable', <Rows size={16} />, 'Comfortable rows')}
+      </div>
+
+      <div className="datagrid-columns" ref={dropdownRef}>
+        <ActionButton
+          variant="ghost"
+          size="sm"
+          icon={<Columns3 size={16} />}
+          onClick={() => setOpen((prev) => !prev)}
+          aria-label="Toggle column visibility"
+          aria-expanded={open}
+        />
+
+        {open && (
+          <div className="datagrid-columns__dropdown">
+            <div className="datagrid-columns__header">
+              <span className="datagrid-columns__title">Hiển thị cột</span>
+              <div className="datagrid-columns__actions">
+                <button
+                  type="button"
+                  className="datagrid-columns__action"
+                  onClick={() => onVisibleColumnsChange(allKeys)}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  className="datagrid-columns__action"
+                  onClick={() => onVisibleColumnsChange([])}
+                >
+                  Ẩn
+                </button>
+              </div>
+            </div>
+            <div className="datagrid-columns__list">
+              {columns.map((column) => (
+                <label key={column.key} className="datagrid-columns__item">
+                  <input
+                    type="checkbox"
+                    className="datagrid-columns__checkbox"
+                    checked={visibleColumns.includes(column.key)}
+                    onChange={() => toggleKey(column.key)}
+                  />
+                  <span className="datagrid-columns__label">{column.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -350,7 +473,7 @@ export function DataGridHeader<T>({
       <div className="datagrid-header__row" role="row">
         {selectable && (
           <div
-            className="datagrid-header__cell datagrid-header__cell--checkbox"
+            className="datagrid-header__cell datagrid-header__cell--checkbox datagrid-header__cell--sticky-left"
             role="columnheader"
           >
             <input
@@ -372,7 +495,11 @@ export function DataGridHeader<T>({
               'datagrid-header__cell',
               column.sortable ? 'datagrid-header__cell--sortable' : '',
               `datagrid-header__cell--align-${column.align || 'left'}`,
-            ].join(' ')}
+              column.sticky === 'left' ? 'datagrid-header__cell--sticky-left' : '',
+              column.sticky === 'right' ? 'datagrid-header__cell--sticky-right' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             role="columnheader"
             style={getColumnStyle(column)}
             onClick={() => handleSortClick(column)}
@@ -435,7 +562,7 @@ export function DataGridRow<T>({
     >
       {onSelect && (
         <div
-          className="datagrid-cell datagrid-cell--checkbox"
+          className="datagrid-cell datagrid-cell--checkbox datagrid-cell--sticky-left"
           role="cell"
           onClick={(e) => e.stopPropagation()}
         >
@@ -454,7 +581,11 @@ export function DataGridRow<T>({
           className={[
             'datagrid-cell',
             `datagrid-cell--align-${column.align || 'left'}`,
-          ].join(' ')}
+            column.sticky === 'left' ? 'datagrid-cell--sticky-left' : '',
+            column.sticky === 'right' ? 'datagrid-cell--sticky-right' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           role="cell"
           style={getColumnStyle(column)}
         >
@@ -543,11 +674,50 @@ export function DataGrid<T>({
   onSortChange,
   className,
   embedded = false,
+  density: densityProp,
 }: DataGridProps<T>): React.ReactElement {
   const selectable = !!onSelectionChange;
   const selectedSet = useMemo(() => new Set(selectedRows || []), [selectedRows]);
   const allSelected = data.length > 0 && data.every((item) => selectedSet.has(keyExtractor(item)));
   const someSelected = data.some((item) => selectedSet.has(keyExtractor(item))) && !allSelected;
+
+  const [localDensity, setLocalDensity] = useState<Density>(densityProp ?? 'default');
+  useEffect(() => {
+    if (densityProp) setLocalDensity(densityProp);
+  }, [densityProp]);
+
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => columns.map((c) => c.key));
+  useEffect(() => {
+    setVisibleColumns((prev) => {
+      const allKeys = columns.map((c) => c.key);
+      const kept = prev.filter((k) => allKeys.includes(k));
+      const missing = allKeys.filter((k) => !kept.includes(k));
+      return [...kept, ...missing];
+    });
+  }, [columns]);
+
+  const visibleCols = useMemo(
+    () => columns.filter((c) => visibleColumns.includes(c.key)),
+    [columns, visibleColumns]
+  );
+
+  const [scrolledRight, setScrolledRight] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!contentRef.current || !sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setScrolledRight(!entry.isIntersecting || entry.intersectionRatio < 1);
+      },
+      { root: contentRef.current, threshold: 1 }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [data.length, columns.length]);
 
   const handleSelectAll = () => {
     if (!onSelectionChange) return;
@@ -562,7 +732,29 @@ export function DataGrid<T>({
   const renderToolbar = () => {
     if (!toolbar) return null;
     if (React.isValidElement(toolbar)) return toolbar;
-    return <DataGridToolbar {...(toolbar as DataGridToolbarProps)} />;
+
+    const props = toolbar as DataGridToolbarProps;
+    const controls = (
+      <DataGridViewControls
+        density={localDensity}
+        onDensityChange={setLocalDensity}
+        columns={columns as DataGridColumn<unknown>[]}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={setVisibleColumns}
+      />
+    );
+
+    return (
+      <DataGridToolbar
+        {...props}
+        right={
+          <>
+            {controls}
+            {props.right}
+          </>
+        }
+      />
+    );
   };
 
   const renderPagination = () => {
@@ -606,38 +798,47 @@ export function DataGrid<T>({
     }
 
     return (
-      <div className="datagrid-table" role="table" aria-label="Data grid">
-        <DataGridHeader
-          columns={columns}
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onSortChange={onSortChange}
-          selectable={selectable}
-          allSelected={allSelected}
-          someSelected={someSelected}
-          onSelectAll={handleSelectAll}
-        />
-        <DataGridBody
-          data={data}
-          columns={columns}
-          keyExtractor={keyExtractor}
-          selectedRows={selectedRows}
-          onSelectionChange={onSelectionChange}
-          onRowClick={onRowClick}
-          selectable={selectable}
-        />
-      </div>
+      <>
+        <div className="datagrid-sentinel" ref={sentinelRef} aria-hidden="true" />
+        <div className="datagrid-table" role="table" aria-label="Data grid">
+          <DataGridHeader
+            columns={visibleCols}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSortChange={onSortChange}
+            selectable={selectable}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onSelectAll={handleSelectAll}
+          />
+          <DataGridBody
+            data={data}
+            columns={visibleCols}
+            keyExtractor={keyExtractor}
+            selectedRows={selectedRows}
+            onSelectionChange={onSelectionChange}
+            onRowClick={onRowClick}
+            selectable={selectable}
+          />
+        </div>
+      </>
     );
   };
 
-  const rootClass = ['datagrid', embedded ? 'datagrid--embedded' : '', className || '']
+  const rootClass = [
+    'datagrid',
+    embedded ? 'datagrid--embedded' : '',
+    `datagrid--${localDensity}`,
+    scrolledRight ? 'datagrid--scrolled-right' : '',
+    className || '',
+  ]
     .filter(Boolean)
     .join(' ');
 
   return (
     <div className={rootClass}>
       {renderToolbar()}
-      <div className="datagrid-content">
+      <div className="datagrid-content" ref={contentRef}>
         {renderContent()}
       </div>
       {renderPagination()}

@@ -15,7 +15,7 @@
  *    var(--text-*), var(--font-*) — no hardcoded colors.
  */
 
-import React from 'react';
+import React, { forwardRef } from 'react';
 import './ActionButton.css';
 
 /* ─── Types ──────────────────────────────────────────── */
@@ -46,40 +46,48 @@ const Spinner: React.FC = () => (
 
 /* ─── Main Component ────────────────────────────────── */
 
-export const ActionButton: React.FC<ActionButtonProps> = ({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  icon,
-  fullWidth = false,
-  children,
-  disabled,
-  className,
-  ...rest
-}) => {
-  const isDisabled = disabled || loading;
+export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
+  (
+    {
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      icon,
+      fullWidth = false,
+      children,
+      disabled,
+      className,
+      ...rest
+    },
+    ref
+  ) => {
+    const isDisabled = disabled || loading;
 
-  const classes = [
-    'action-button',
-    `action-button--${variant}`,
-    `action-button--${size}`,
-    fullWidth ? 'action-button--full' : '',
-    className || '',
-  ].filter(Boolean).join(' ');
+    const classes = [
+      'action-button',
+      `action-button--${variant}`,
+      `action-button--${size}`,
+      fullWidth ? 'action-button--full' : '',
+      className || '',
+    ].filter(Boolean).join(' ');
 
-  return (
-    <button
-      className={classes}
-      disabled={isDisabled}
-      aria-disabled={isDisabled}
-      aria-busy={loading}
-      {...rest}
-    >
-      {loading ? <Spinner /> : icon ? <IconWrapper>{icon}</IconWrapper> : null}
-      {children && <span>{children}</span>}
-    </button>
-  );
-};
+    return (
+      <button
+        ref={ref}
+        className={classes}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        aria-busy={loading}
+        {...rest}
+      >
+        {loading ? <Spinner /> : icon ? <IconWrapper>{icon}</IconWrapper> : null}
+        {children && <span>{children}</span>}
+      </button>
+    );
+  }
+);
+
+ActionButton.displayName = 'ActionButton';
 
 /* ─── Icon Wrapper (16×16) ────────────────────────── */
 

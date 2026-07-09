@@ -5,6 +5,10 @@
  * ═══════════════════════════════════════════════════════════════ */
 
 /* ─── Container ─────────────────────────── */
+:root {
+  --empty-icon-size: 48px;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -20,15 +24,22 @@
 
 /* ─── Icon / Illustration ──────────────── */
 .empty-state__icon {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-16);
-  height: var(--space-16);
-  margin-bottom: var(--space-1);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--color-bg-secondary);
   color: var(--color-text-muted);
-  font-size: var(--text-3xl);
+  margin-bottom: var(--space-3);
+  opacity: 0.4;
   flex-shrink: 0;
+}
+
+.empty-state__icon svg {
+  width: var(--empty-icon-size);
+  height: var(--empty-icon-size);
 }
 
 /* ─── Title ─────────────────────────────── */
@@ -47,12 +58,13 @@
   line-height: var(--leading-relaxed);
   color: var(--color-text-secondary);
   margin: 0;
-  max-width: 360px;
+  max-width: 320px;
+  text-align: center;
 }
 
 /* ─── Action / CTA area ────────────────── */
 .empty-state__action {
-  margin-top: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 /* ─── Compact variant ──────────────────── */
@@ -63,9 +75,13 @@
 }
 
 .empty-state--compact .empty-state__icon {
-  width: var(--space-12);
-  height: var(--space-12);
-  font-size: var(--text-2xl);
+  width: 64px;
+  height: 64px;
+}
+
+.empty-state--compact .empty-state__icon svg {
+  width: 32px;
+  height: 32px;
 }
 
 /* ─── Custom className passthrough ─────── */

@@ -16,6 +16,44 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        run: |
+          missing_secrets=""
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            missing_secrets="$missing_secrets CLOUDFLARE_API_TOKEN"
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            missing_secrets="$missing_secrets CLOUDFLARE_ACCOUNT_ID"
+          fi
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then
+            missing_secrets="$missing_secrets VITE_SUPABASE_URL"
+          fi
+          if [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+            missing_secrets="$missing_secrets VITE_SUPABASE_ANON_KEY"
+          fi
+          if [ -n "$missing_secrets" ]; then
+            echo "::error::Missing required GitHub Secrets:$missing_secrets"
+            echo ""
+            echo "============================================"
+            echo "  DEPLOY FAILED: Missing GitHub Secrets"
+            echo "============================================"
+            echo ""
+            echo "The following secrets are not set in this repository:"
+            for secret in $missing_secrets; do
+              echo "  - $secret"
+            done
+            echo ""
+            echo "HOW TO FIX:"
+            echo "  1. Go to: Settings > Secrets and variables > Actions"
+            echo "  2. Add each missing secret with the correct value"
+            echo ""
+            echo "DETAILED GUIDE: See CLOUDFLARE_PAGES_SETUP.md"
+            echo "  https://github.com/${{ github.repository }}/blob/master/CLOUDFLARE_PAGES_SETUP.md"
+            echo "============================================"
+            exit 1
+          fi
+          echo "All required secrets are present. Proceeding with deployment..."
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

@@ -12,7 +12,6 @@ import AdminKpiCards from '../components/AdminKpiCards';
 import AdminTabs, { type TabItem } from '../components/AdminTabs';
 import { useDebounce } from '../hooks/useDebounce';
 import { getTenantUrl } from '../lib/tenant';
-import { DashboardV2KPI } from './Dashboard';
 import { AuditLog } from './AuditLog';
 import BillingConfig from '../components/BillingConfig';
 import VoucherManager from '../components/VoucherManager';
@@ -1081,6 +1080,42 @@ export default function SystemAdminDashboard() {
   const tenants = result?.tenants ?? [];
   const counts = result?.counts;
 
+  const kpiCards = useMemo(() => [
+    { label: 'Tổng cửa hàng', value: overview?.totalTenants ?? 0, icon: Store, color: 'var(--color-primary-500)' },
+    { label: 'Hoạt động', value: overview?.activeTenants ?? 0, icon: TrendingUp, color: 'var(--color-success-500)' },
+    { label: 'Gói VIP', value: overview?.vipTenants ?? 0, icon: Users, color: 'var(--color-warning-500)' },
+    { label: 'Sắp hết hạn', value: overview?.expiringSoon ?? 0, icon: Clock, color: 'var(--color-danger-500)' },
+    { label: 'Gần giới hạn', value: overview?.nearLimit ?? 0, icon: AlertTriangle, color: 'var(--color-warning-500)' },
+    { label: 'Mới tháng này', value: overview?.newThisMonth ?? 0, icon: ShoppingBag, color: 'var(--color-success-500)' },
+  ], [overview]);
+
+  const tabs: TabItem[] = [
+    { id: 'overview', label: 'Tổng quan', icon: Home },
+    { id: 'tenants', label: 'Cửa hàng', icon: Store },
+    { id: 'members', label: 'Thành viên', icon: Users },
+    { id: 'audit', label: 'Audit log', icon: AlertTriangle },
+    { id: 'rateLimit', label: 'Rate limit', icon: Clock },
+    { id: 'systemAdmins', label: 'System admins', icon: ShieldCheck },
+    { id: 'loginHistory', label: 'Login history', icon: Mail },
+    { id: 'operations', label: 'Vận hành', icon: Settings },
+    { id: 'billing', label: 'Thanh toán', icon: CreditCard },
+    { id: 'vouchers', label: 'Voucher', icon: TicketPercent },
+    { id: 'tickets', label: 'Support tickets', icon: MessageSquare },
+    { id: 'emails', label: 'Email templates', icon: Mail },
+    { id: 'notifications', label: 'Thông báo', icon: Megaphone },
+    { id: 'health', label: 'Health', icon: ShieldCheck },
+    { id: 'errors', label: 'Lỗi & Hiệu năng', icon: AlertTriangle },
+    { id: 'storage', label: 'Lưu trữ', icon: Package },
+    { id: 'bulkMaintenance', label: 'Bulk & Bảo trì', icon: Settings },
+    { id: 'apiKeys', label: 'API Keys', icon: ShieldCheck },
+    { id: 'webhooks', label: 'Webhooks', icon: Mail },
+    { id: 'integrations', label: 'Integrations', icon: Building2 },
+    { id: 'twoFactor', label: '2FA', icon: ShieldCheck },
+    { id: 'compliance', label: 'Tuân thủ', icon: ShieldCheck },
+    { id: 'whiteLabel', label: 'White-label', icon: Store },
+    { id: 'readReplicaQueue', label: 'Replica / Queue', icon: Clock },
+  ];
+
   if (loading && !result) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -1090,168 +1125,19 @@ export default function SystemAdminDashboard() {
   }
 
   return (
-    <AdminShell sidebarSections={SIDEBAR_SECTIONS} pageTitle="Quản trị hệ thống">
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Quản trị hệ thống</h1>
-            <p className="text-gray-600">Tạo và quản lý các cửa hàng (tenant) trên hệ thống.</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">
-              {error}
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex gap-2">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Tổng quan
-          </button>
-          <button
-            onClick={() => setActiveTab('tenants')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'tenants' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Cửa hàng
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'members' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Thành viên
-          </button>
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'audit' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Audit log
-          </button>
-          <button
-            onClick={() => setActiveTab('rateLimit')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'rateLimit' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Rate limit
-          </button>
-          <button
-            onClick={() => setActiveTab('systemAdmins')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'systemAdmins' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            System admins
-          </button>
-          <button
-            onClick={() => setActiveTab('loginHistory')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'loginHistory' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Login history
-          </button>
-          <button
-            onClick={() => setActiveTab('operations')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'operations' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Vận hành
-          </button>
-          <button
-            onClick={() => setActiveTab('billing')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'billing' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Thanh toán
-          </button>
-          <button
-            onClick={() => setActiveTab('vouchers')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'vouchers' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Voucher
-          </button>
-          <button
-            onClick={() => setActiveTab('tickets')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'tickets' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Support tickets
-          </button>
-          <button
-            onClick={() => setActiveTab('emails')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'emails' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Email templates
-          </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'notifications' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Thông báo
-          </button>
-          <button
-            onClick={() => setActiveTab('health')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'health' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Health
-          </button>
-          <button
-            onClick={() => setActiveTab('errors')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'errors' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Lỗi & Hiệu năng
-          </button>
-          <button
-            onClick={() => setActiveTab('storage')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'storage' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Lưu trữ
-          </button>
-          <button
-            onClick={() => setActiveTab('bulkMaintenance')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'bulkMaintenance' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Bulk & Bảo trì
-          </button>
-          <button
-            onClick={() => setActiveTab('apiKeys')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'apiKeys' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            API Keys
-          </button>
-          <button
-            onClick={() => setActiveTab('webhooks')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'webhooks' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Webhooks
-          </button>
-          <button
-            onClick={() => setActiveTab('integrations')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'integrations' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Integrations
-          </button>
-          <button
-            onClick={() => setActiveTab('twoFactor')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'twoFactor' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            2FA
-          </button>
-          <button
-            onClick={() => setActiveTab('compliance')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'compliance' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Tuân thủ
-          </button>
-          <button
-            onClick={() => setActiveTab('whiteLabel')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'whiteLabel' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            White-label
-          </button>
-          <button
-            onClick={() => setActiveTab('readReplicaQueue')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg ${activeTab === 'readReplicaQueue' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            Replica / Queue
-          </button>
+    <AdminShell
+      sidebarSections={SIDEBAR_SECTIONS}
+      pageTitle="Quản trị hệ thống"
+      activeSidebarItem={activeTab}
+      onSidebarNavigate={(id) => setActiveTab(id as typeof activeTab)}
+    >
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">
+          {error}
         </div>
+      )}
 
+      <AdminTabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as typeof activeTab)}>
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {analyticsError && (
@@ -1261,44 +1147,7 @@ export default function SystemAdminDashboard() {
             )}
 
             {/* KPI cards */}
-            <div className="dashboard-v2__grid">
-              <DashboardV2KPI
-                title="Tổng cửa hàng"
-                value={overview?.totalTenants ?? 0}
-                icon={<Store className="w-6 h-6" />}
-                variant="primary"
-              />
-              <DashboardV2KPI
-                title="Hoạt động"
-                value={overview?.activeTenants ?? 0}
-                icon={<TrendingUp className="w-6 h-6" />}
-                variant="success"
-              />
-              <DashboardV2KPI
-                title="Gói VIP"
-                value={overview?.vipTenants ?? 0}
-                icon={<Users className="w-6 h-6" />}
-                variant="warning"
-              />
-              <DashboardV2KPI
-                title="Sắp hết hạn"
-                value={overview?.expiringSoon ?? 0}
-                icon={<Clock className="w-6 h-6" />}
-                variant="warning"
-              />
-              <DashboardV2KPI
-                title="Gần giới hạn"
-                value={overview?.nearLimit ?? 0}
-                icon={<AlertTriangle className="w-6 h-6" />}
-                variant="warning"
-              />
-              <DashboardV2KPI
-                title="Mới tháng này"
-                value={overview?.newThisMonth ?? 0}
-                icon={<ShoppingBag className="w-6 h-6" />}
-                variant="success"
-              />
-            </div>
+            <AdminKpiCards cards={kpiCards} />
 
             {/* Chart tenant mới */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -2326,9 +2175,9 @@ export default function SystemAdminDashboard() {
 
     {activeTab === 'readReplicaQueue' && <ReadReplicaQueueManager />}
 
-  </div>
+      </AdminTabs>
 
-  {/* Edit modal */}
+      {/* Edit modal */}
       {editTenant && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -2602,9 +2451,6 @@ export default function SystemAdminDashboard() {
           </div>
         </div>
       )}
-
-    </div> {/* close max-w-6xl mx-auto */}
-  </div> {/* close min-h-screen */}
-</AdminShell>
-);
+    </AdminShell>
+  );
 }

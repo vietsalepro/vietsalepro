@@ -42,7 +42,7 @@ import { StockLedger } from './pages/StockLedger';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import LandingPage from './pages/LandingPage';
-import SystemAdminDashboard from './pages/SystemAdminDashboard';
+
 import MfaChallenge from './components/MfaChallenge';
 import { TenantNotFoundPage, TenantSuspendedPage, TenantForbiddenPage } from './components/TenantStatusPages';
 import { getSubdomain } from './lib/tenant';
@@ -61,6 +61,8 @@ import { calculatePromotionDiscount } from './utils/promotionUtils';
 import { Loader2, Package, Truck, ArrowDownToLine, Settings as SettingsIcon, LogOut, X, BarChart, Users, Receipt, User as UserIcon } from 'lucide-react';
 import { useNewAppShell } from './features';
 import { AppError } from './utils/errors';
+
+const SystemAdminDashboard = React.lazy(() => import('./pages/SystemAdminDashboard'));
 
 function CustomersWrapper(props: any) {
   const [searchParams] = useSearchParams();
@@ -1303,7 +1305,15 @@ function AppContent() {
   if (subdomain === 'admin' || isAdminPath) {
     if (!user) return <Login />;
     if (!isSystemAdmin) return <TenantForbiddenPage />;
-    return <SystemAdminDashboard />;
+    return (
+      <React.Suspense fallback={
+        <div className="flex items-center justify-center h-screen bg-gray-50">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+        </div>
+      }>
+        <SystemAdminDashboard />
+      </React.Suspense>
+    );
   }
 
   // ponytail: root domain không resolve tenant; hiển thị landing page.

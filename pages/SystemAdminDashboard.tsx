@@ -31,14 +31,13 @@ import TwoFactorManager from '../components/TwoFactorManager';
 import ComplianceManager from '../components/ComplianceManager';
 import WhiteLabelManager from '../components/WhiteLabelManager';
 import ReadReplicaQueueManager from '../components/ReadReplicaQueueManager';
+import { MemberManagement } from '../components/MemberManagement';
 import './Dashboard.css';
 import {
   Tenant,
   TenantPlan,
   TenantStatus,
-  TenantRole,
   TenantIsolationMode,
-  MemberWithEmail,
   UsageSummary,
   UpdateSubscriptionInput,
   BillingStatus,
@@ -66,10 +65,6 @@ import {
   resetMonthlyOrderCounter,
   getAllTenants,
   getTenantCredentials,
-  getTenantMembersWithEmail,
-  inviteMemberByEmail,
-  updateMemberRole,
-  removeMember,
   resetMemberPassword,
   getSystemOverview,
   getTopTenants,
@@ -226,8 +221,6 @@ export const calculateProration = (
   };
 };
 
-const ROLES: TenantRole[] = ['admin', 'cashier', 'inventory_manager', 'accountant'];
-
 const TENANT_FEATURE_FLAG_LIST: {
   key: keyof TenantFeatureFlags;
   label: string;
@@ -242,16 +235,6 @@ const TENANT_FEATURE_FLAG_LIST: {
   { key: 'invoicing', label: 'Hóa đơn thu phí', description: 'Tạo hóa đơn và ghi nhận thanh toán cho tenant.' },
   { key: 'lotTracking', label: 'Quản lý lô', description: 'Theo dõi lô hàng, HSD, FIFO.' },
 ];
-
-const roleLabel = (role: TenantRole) => {
-  switch (role) {
-    case 'admin': return 'Admin';
-    case 'cashier': return 'Thu ngân';
-    case 'inventory_manager': return 'Quản kho';
-    case 'accountant': return 'Kế toán';
-    default: return role;
-  }
-};
 
 const BILLING_STATUSES: BillingStatus[] = ['ok', 'past_due', 'suspended', 'cancelled'];
 
@@ -404,12 +387,6 @@ export default function SystemAdminDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'tenants' | 'members' | 'audit' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'billing' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor' | 'compliance' | 'whiteLabel' | 'readReplicaQueue'>('overview');
   const [allTenants, setAllTenants] = useState<Tenant[]>([]);
   const [memberTenantId, setMemberTenantId] = useState<string>('');
-  const [members, setMembers] = useState<MemberWithEmail[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<TenantRole>('cashier');
-  const [inviteSubmitting, setInviteSubmitting] = useState(false);
-  const [memberAction, setMemberAction] = useState<{ userId: string; action: string } | null>(null);
 
   const [overview, setOverview] = useState<SystemOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -1134,8 +1111,6 @@ export default function SystemAdminDashboard() {
     }
   }, [activeTab, loadOperations]);
 
-  // --- Members tab ---
-
   const loadAllTenantsForSelector = useCallback(async () => {
     try {
       const list = await getAllTenants();
@@ -1145,103 +1120,11 @@ export default function SystemAdminDashboard() {
     }
   }, []);
 
-  const loadMembers = useCallback(async (tenantId: string) => {
-    if (!tenantId) {
-      setMembers([]);
-      return;
-    }
-    setMembersLoading(true);
-    setError(null);
-    try {
-      const list = await getTenantMembersWithEmail(tenantId);
-      setMembers(list);
-    } catch (err: any) {
-      setMembers([]);
-      setError(err?.message || 'Không thể tải danh sách thành viên.');
-    } finally {
-      setMembersLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     if (activeTab === 'members') {
       loadAllTenantsForSelector();
     }
   }, [activeTab, loadAllTenantsForSelector]);
-
-  useEffect(() => {
-    loadMembers(memberTenantId);
-  }, [memberTenantId, loadMembers]);
-
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!memberTenantId) {
-      setError('Vui lòng chọn cửa hàng trước khi mời.');
-      return;
-    }
-    setInviteSubmitting(true);
-    setError(null);
-    try {
-      await inviteMemberByEmail(memberTenantId, inviteEmail.trim().toLowerCase(), inviteRole);
-      setInviteEmail('');
-      await loadMembers(memberTenantId);
-    } catch (err: any) {
-      setError(err?.message || 'Mời thành viên thất bại.');
-    } finally {
-      setInviteSubmitting(false);
-    }
-  };
-
-  const handleRoleChange = async (userId: string, role: TenantRole) => {
-    if (!memberTenantId) return;
-    setMemberAction({ userId, action: 'role' });
-    setError(null);
-    try {
-      await updateMemberRole(memberTenantId, userId, role);
-      await loadMembers(memberTenantId);
-    } catch (err: any) {
-      setError(err?.message || 'Đổi vai trò thất bại.');
-    } finally {
-      setMemberAction(null);
-    }
-  };
-
-  const handleRemoveMember = (userId: string, email?: string) => {
-    if (!memberTenantId) return;
-    openConfirmDialog({
-      title: 'Xóa thành viên',
-      message: `Xóa thành viên "${email || userId}" khỏi cửa hàng?`,
-      onConfirm: async () => {
-        setMemberAction({ userId, action: 'remove' });
-        setError(null);
-        try {
-          await removeMember(memberTenantId, userId);
-          await loadMembers(memberTenantId);
-        } catch (err: any) {
-          setError(err?.message || 'Xóa thành viên thất bại.');
-        } finally {
-          setMemberAction(null);
-        }
-      },
-    });
-  };
-
-  const handleResetPassword = async (userId: string) => {
-    if (!memberTenantId) return;
-    setMemberAction({ userId, action: 'reset' });
-    setError(null);
-    try {
-      const res = await resetMemberPassword(memberTenantId, userId);
-      addToast({
-        type: 'success',
-        message: res?.link ? `Link ${res.action}: ${res.link}` : `Đã gửi yêu cầu ${res?.action || 'reset'}.`,
-      });
-    } catch (err: any) {
-      setError(err?.message || 'Reset mật khẩu thất bại.');
-    } finally {
-      setMemberAction(null);
-    }
-  };
 
   const tenants = result?.tenants ?? [];
   const counts = result?.counts;
@@ -1867,113 +1750,7 @@ export default function SystemAdminDashboard() {
             ))}
           </select>
         </div>
-
-        {/* Invite form */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Mời thành viên</h2>
-          <form onSubmit={handleInvite} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="email@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vai trò</label>
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as TenantRole)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
-              </select>
-            </div>
-            <div>
-              <button
-                type="submit"
-                disabled={inviteSubmitting || !memberTenantId}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
-              >
-                {inviteSubmitting ? 'Đang mời...' : 'Mời'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Members table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800">Danh sách thành viên</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Email</th>
-                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Vai trò</th>
-                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Mời bởi</th>
-                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Ngày tạo</th>
-                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {membersLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Đang tải...</td>
-                  </tr>
-                ) : members.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                      {memberTenantId ? 'Không có thành viên nào.' : 'Vui lòng chọn cửa hàng.'}
-                    </td>
-                  </tr>
-                ) : members.map(m => {
-                  const isBusy = memberAction?.userId === m.userId;
-                  return (
-                    <tr key={m.id}>
-                      <td className="px-6 py-4 text-sm text-gray-900">{m.email || m.userId}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        <select
-                          value={m.role}
-                          onChange={(e) => handleRoleChange(m.userId, e.target.value as TenantRole)}
-                          disabled={isBusy}
-                          className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
-                        >
-                          {ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{m.invitedByEmail || m.invitedBy || '-'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{m.createdAt ? new Date(m.createdAt).toLocaleDateString('vi-VN') : '-'}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleResetPassword(m.userId)}
-                            disabled={isBusy}
-                            className="px-3 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg disabled:opacity-60"
-                          >
-                            Reset MK
-                          </button>
-                          <button
-                            onClick={() => handleRemoveMember(m.userId, m.email)}
-                            disabled={isBusy}
-                            className="px-3 py-1.5 text-sm text-red-700 bg-red-50 hover:bg-red-100 rounded-lg disabled:opacity-60"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <MemberManagement tenantId={memberTenantId} />
       </div>
     )}
 

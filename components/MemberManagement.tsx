@@ -37,7 +37,7 @@ import { MemberDetailDrawer } from './MemberManagement/MemberDetailDrawer';
 
 const ROLES: TenantRole[] = ['admin', 'cashier', 'inventory_manager', 'accountant'];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
-const SORTABLE_KEYS: SearchMembersParams['sortBy'][] = ['email', 'role', 'status', 'created_at'];
+const SORTABLE_KEYS: SearchMembersParams['sortBy'][] = ['email', 'role', 'status', 'created_at', 'last_sign_in_at'];
 
 const roleLabel = (role: TenantRole) => {
   switch (role) {
@@ -185,19 +185,26 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     }
   };
 
-  const handleRoleChange = async (userId: string, role: TenantRole) => {
+  const handleRoleChange = useCallback((userId: string, role: TenantRole, email?: string) => {
     if (!tenantId) return;
-    setBusyUserId(userId);
-    try {
-      await updateMemberRole(tenantId, userId, role);
-      addToast({ type: 'success', message: 'Đã cập nhật vai trò.' });
-      await loadMembers();
-    } catch (err: any) {
-      addToast({ type: 'error', message: err?.message || 'Đổi vai trò thất bại.' });
-    } finally {
-      setBusyUserId(null);
-    }
-  };
+    openConfirmDialog({
+      title: 'Đổi vai trò',
+      message: `Đổi vai trò thành viên "${email || userId}" thành "${roleLabel(role)}"?`,
+      variant: 'warning',
+      onConfirm: async () => {
+        setBusyUserId(userId);
+        try {
+          await updateMemberRole(tenantId, userId, role);
+          addToast({ type: 'success', message: 'Đã cập nhật vai trò.' });
+          await loadMembers();
+        } catch (err: any) {
+          addToast({ type: 'error', message: err?.message || 'Đổi vai trò thất bại.' });
+        } finally {
+          setBusyUserId(null);
+        }
+      },
+    });
+  }, [tenantId, openConfirmDialog, addToast, loadMembers]);
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
     if (!tenantId) return;
@@ -266,7 +273,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
       render: (m) => (
         <select
           value={m.role}
-          onChange={(e) => handleRoleChange(m.userId, e.target.value as TenantRole)}
+          onChange={(e) => handleRoleChange(m.userId, e.target.value as TenantRole, m.email)}
           disabled={busyUserId === m.userId}
           className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
           onClick={(e) => e.stopPropagation()}
@@ -320,8 +327,9 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
       render: (m) => <span className="text-sm text-gray-600">{formatDate(m.invitedAt || m.createdAt)}</span>,
     },
     {
-      key: 'lastSignInAt',
+      key: 'last_sign_in_at',
       label: 'Đăng nhập cuối',
+      sortable: true,
       width: '140px',
       render: (m) => <span className="text-sm text-gray-600">{formatDate(m.lastSignInAt)}</span>,
     },

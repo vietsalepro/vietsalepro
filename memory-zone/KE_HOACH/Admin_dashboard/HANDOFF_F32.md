@@ -386,7 +386,7 @@ Nếu có lỗi nghiêm trọng trên production:
 - [x] `npm run lint`: PASS
 - [x] `npm run build`: PASS
 - [x] `npx vitest run`: PASS (244 tests, 41 files)
-- [ ] Edge Function deployed version: cần chạy `supabase functions deploy create-tenant`
+- [x] Edge Function deployed version: `create-tenant` trên project `rsialbfjswnrkzcxarnj` (deployed 2026-07-10, script size 72 kB)
 - [ ] Vercel deployment URL / commit: cần deploy frontend
 - [ ] Production smoke test result: cần thực hiện trên production sau deploy
 - [ ] Test data cleaned up: cần dọn dẹp sau smoke test

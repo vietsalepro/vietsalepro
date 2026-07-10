@@ -14,7 +14,7 @@ Mỗi chat chỉ đọc **một file handoff sub-phase** và làm đúng scope c
 | 2 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P2_SEARCH_RPC.md` | Tạo `search_tenant_members` RPC | baseline function (9280-9314) | ~3K tokens | Chưa làm |
 | 3 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P3_GUARDRAILS.md` | Trigger bảo vệ owner / admin cuối cùng | `supabase/migrations/*` | ~2K tokens | Hoàn thành |
 | 4 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P4_INVITE_EDGE.md` | Sửa `invite-member` edge function | `supabase/functions/invite-member/index.ts` | ~5K tokens | Chưa làm |
-| 5 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P5_RESET_AND_STATUS.md` | Status activation + kiểm tra reset-password | `supabase/functions/reset-password/index.ts`, `contexts/AuthContext.tsx` | ~5K tokens | Chưa làm |
+| 5 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P5_RESET_AND_STATUS.md` | Status activation + kiểm tra reset-password | `supabase/functions/reset-password/index.ts`, `contexts/AuthContext.tsx` | ~5K tokens | Hoàn thành |
 | 6 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P6_TYPES_SERVICE.md` | Types + service layer frontend | `types/tenant.ts`, `services/tenantService.ts` | ~15K tokens | Chưa làm |
 | 7 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P7_DATAGRID_CONTAINER.md` | `MemberManagement` container + DataGrid | `components/DataGrid.tsx` | ~15K tokens | Chưa làm |
 | 8 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P8_SUBCOMPONENTS.md` | InviteModal, BulkActions, DetailDrawer | `components/DataGrid.tsx` | ~15K tokens | Chưa làm |

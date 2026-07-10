@@ -87,6 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
           status: 'success',
         }).catch(() => {});
+        Promise.resolve(
+          supabase.rpc('activate_pending_memberships', { p_user_id: newSession.user.id })
+        ).catch(() => {});
       }
       setLoading(false);
     });

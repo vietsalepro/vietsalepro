@@ -36,6 +36,16 @@ export interface Tenant {
   archivedAt?: string;
 }
 
+export interface CreateTenantResult {
+  tenant: Tenant;
+  adminUser: {
+    id: string;
+    email: string;
+    created_at?: string;
+  };
+  initialPassword: string;
+}
+
 export interface TenantMembership {
   id: string;
   tenantId: string;

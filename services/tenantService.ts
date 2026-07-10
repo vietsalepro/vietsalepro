@@ -15,6 +15,7 @@ import {
   TenantFeatureFlags,
   DEFAULT_TENANT_FEATURE_FLAGS,
   StorageUsage,
+  CreateTenantResult,
 } from '../types/tenant';
 
 // --- Mappers ---
@@ -131,6 +132,52 @@ export async function getAllTenants(): Promise<Tenant[]> {
   const { data, error } = await supabase.from('tenants').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTenantFromDB);
+}
+
+export interface CreateTenantInput {
+  name: string;
+  subdomain: string;
+  plan: TenantPlan;
+  adminEmail: string;
+  adminPassword?: string;
+}
+
+export async function createTenantWithCredentials(
+  input: CreateTenantInput
+): Promise<CreateTenantResult> {
+  const { data, error } = await supabase.functions.invoke<
+    CreateTenantResult & { error?: string }
+  >('create-tenant', {
+    body: {
+      name: input.name.trim(),
+      subdomain: input.subdomain.trim().toLowerCase(),
+      email: input.adminEmail.trim().toLowerCase(),
+      plan: input.plan,
+      adminPassword: input.adminPassword,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Tạo cửa hàng thất bại');
+  }
+
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    !data.tenant ||
+    !data.adminUser ||
+    typeof data.adminUser.id !== 'string' ||
+    typeof data.adminUser.email !== 'string' ||
+    typeof data.initialPassword !== 'string'
+  ) {
+    throw new Error(data?.error || 'Phản hồi tạo cửa hàng không hợp lệ');
+  }
+
+  return {
+    tenant: mapTenantFromDB(data.tenant),
+    adminUser: data.adminUser,
+    initialPassword: data.initialPassword,
+  };
 }
 
 export async function createTenantWithAdmin(input: {

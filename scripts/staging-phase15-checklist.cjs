@@ -204,10 +204,8 @@ async function main() {
     if (!create.ok) throw new Error(`create free tenant: ${create.status} ${JSON.stringify(createData)}`);
 
     const freeTenantId = createData.tenant.id;
-    const freeAdminEmail = createData.adminUser.email;
-    // First sign in to set password for the free admin (create-tenant returns initialPassword)
-    // Actually we need to invite a second member. The admin is already 1 user. Inviting second should fail.
-    const freeAdminToken = await signIn(freeAdminEmail, createData.initialPassword);
+    // The system admin token can call invite-member; the subscription limit should still block the second user.
+    const freeAdminToken = sysToken;
     const invite = await fetch(`${SUPABASE_URL}/functions/v1/invite-member`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${freeAdminToken}`, 'Content-Type': 'application/json', apikey: ANON_KEY },

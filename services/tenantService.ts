@@ -36,7 +36,6 @@ export const mapTenantFromDB = (row: any): Tenant => ({
   readReplicaUrl: row.read_replica_url,
   connectionPoolConfig: row.connection_pool_config || {},
   adminEmail: row.admin_email,
-  adminInitialPassword: row.admin_initial_password,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   archivedAt: row.archived_at,
@@ -139,14 +138,13 @@ export async function getAllTenants(): Promise<Tenant[]> {
 export interface TenantCredentials {
   tenantId: string;
   adminEmail: string;
-  adminInitialPassword: string;
 }
 
 export async function getTenantCredentials(tenantIds: string[]): Promise<Record<string, TenantCredentials>> {
   if (tenantIds.length === 0) return {};
   const { data, error } = await supabase
     .from('tenant_credentials')
-    .select('tenant_id, admin_email, admin_initial_password')
+    .select('tenant_id, admin_email')
     .in('tenant_id', tenantIds);
   if (error) throw error;
   const map: Record<string, TenantCredentials> = {};
@@ -154,7 +152,6 @@ export async function getTenantCredentials(tenantIds: string[]): Promise<Record<
     map[row.tenant_id] = {
       tenantId: row.tenant_id,
       adminEmail: row.admin_email,
-      adminInitialPassword: row.admin_initial_password,
     };
   });
   return map;
@@ -165,7 +162,6 @@ export interface CreateTenantInput {
   subdomain: string;
   plan: TenantPlan;
   adminEmail: string;
-  adminPassword?: string;
 }
 
 export async function createTenantWithCredentials(
@@ -179,7 +175,6 @@ export async function createTenantWithCredentials(
       subdomain: input.subdomain.trim().toLowerCase(),
       email: input.adminEmail.trim().toLowerCase(),
       plan: input.plan,
-      adminPassword: input.adminPassword,
     },
   });
 
@@ -196,8 +191,7 @@ export async function createTenantWithCredentials(
     !data.adminUser.id ||
     typeof data.adminUser.email !== 'string' ||
     !data.adminUser.email ||
-    typeof data.initialPassword !== 'string' ||
-    !data.initialPassword
+    typeof data.resetEmailSent !== 'boolean'
   ) {
     throw new Error(data?.error || 'Phản hồi tạo cửa hàng không hợp lệ');
   }
@@ -205,7 +199,8 @@ export async function createTenantWithCredentials(
   return {
     tenant: mapTenantFromDB(data.tenant),
     adminUser: data.adminUser,
-    initialPassword: data.initialPassword,
+    resetEmailSent: data.resetEmailSent,
+    redirectTo: data.redirectTo,
   };
 }
 

@@ -30,12 +30,13 @@ describe('createTenantWithCredentials', () => {
     vi.restoreAllMocks();
   });
 
-  it('creates tenant with generated password', async () => {
+  it('creates tenant and reports reset email sent', async () => {
     const spy = vi.spyOn(supabase.functions, 'invoke').mockResolvedValue({
       data: {
         tenant: mockTenant(),
         adminUser: { id: 'user-1', email: 'admin@shop.com' },
-        initialPassword: 'auto-generated-password',
+        resetEmailSent: true,
+        redirectTo: 'https://shop-test.vietsalepro.com/set-password',
       },
       error: null,
     } as any);
@@ -53,19 +54,19 @@ describe('createTenantWithCredentials', () => {
         subdomain: 'shop-test',
         email: 'admin@shop.com',
         plan: 'free',
-        adminPassword: undefined,
       },
     });
     expect(result.tenant.subdomain).toBe('shop-test');
-    expect(result.initialPassword).toBe('auto-generated-password');
+    expect(result.resetEmailSent).toBe(true);
+    expect(result.redirectTo).toBe('https://shop-test.vietsalepro.com/set-password');
   });
 
-  it('creates tenant with custom password', async () => {
+  it('creates tenant even when reset email could not be sent', async () => {
     vi.spyOn(supabase.functions, 'invoke').mockResolvedValue({
       data: {
         tenant: mockTenant({ id: 'tenant-2', name: 'Shop Custom', subdomain: 'shop-custom', plan: 'vip' }),
         adminUser: { id: 'user-2', email: 'admin@custom.com' },
-        initialPassword: 'my-pass-123',
+        resetEmailSent: false,
       },
       error: null,
     } as any);
@@ -75,10 +76,9 @@ describe('createTenantWithCredentials', () => {
       subdomain: 'shop-custom',
       plan: 'vip',
       adminEmail: 'admin@custom.com',
-      adminPassword: 'my-pass-123',
     });
 
-    expect(result.initialPassword).toBe('my-pass-123');
+    expect(result.resetEmailSent).toBe(false);
   });
 
   it('throws when Edge Function returns business error', async () => {
@@ -115,7 +115,7 @@ describe('createTenantWithCredentials', () => {
 
   it('throws on invalid response shape', async () => {
     vi.spyOn(supabase.functions, 'invoke').mockResolvedValue({
-      data: { tenant: mockTenant() }, // missing adminUser / initialPassword
+      data: { tenant: mockTenant() }, // missing adminUser / resetEmailSent
       error: null,
     } as any);
 
@@ -134,7 +134,7 @@ describe('createTenantWithCredentials', () => {
       data: {
         tenant: mockTenant(),
         adminUser: { id: '', email: '' },
-        initialPassword: 'pass123',
+        resetEmailSent: true,
       },
       error: null,
     } as any);
@@ -149,20 +149,20 @@ describe('createTenantWithCredentials', () => {
     ).rejects.toThrow('Phản hồi tạo cửa hàng không hợp lệ');
   });
 
-  it('throws when initialPassword is missing', async () => {
+  it('throws when resetEmailSent is missing', async () => {
     vi.spyOn(supabase.functions, 'invoke').mockResolvedValue({
       data: {
         tenant: mockTenant(),
         adminUser: { id: 'user-1', email: 'admin@shop.com' },
-        initialPassword: undefined,
+        resetEmailSent: undefined,
       },
       error: null,
     } as any);
 
     await expect(
       createTenantWithCredentials({
-        name: 'Shop No Password',
-        subdomain: 'shop-no-password',
+        name: 'Shop No Reset',
+        subdomain: 'shop-no-reset',
         plan: 'free',
         adminEmail: 'admin@shop.com',
       })
@@ -176,18 +176,16 @@ describe('getTenantCredentials', () => {
     setSystemAdmin(true);
   });
 
-  it('returns credentials for given tenant ids', async () => {
+  it('returns admin email for given tenant ids', async () => {
     addMockRow('tenant_credentials', {
       tenant_id: 'tenant-1',
       admin_email: 'admin@shop.com',
-      admin_initial_password: 'secret-pass-123',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
     addMockRow('tenant_credentials', {
       tenant_id: 'tenant-2',
       admin_email: 'admin@other.com',
-      admin_initial_password: 'other-pass-456',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
@@ -198,7 +196,6 @@ describe('getTenantCredentials', () => {
     expect(map['tenant-1']).toEqual({
       tenantId: 'tenant-1',
       adminEmail: 'admin@shop.com',
-      adminInitialPassword: 'secret-pass-123',
     });
   });
 

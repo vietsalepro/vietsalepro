@@ -87,7 +87,7 @@ serve(async (req) => {
 
     // Request body.
     const body = await req.json();
-    const { name, subdomain, email, plan = 'free', adminPassword } = body;
+    const { name, subdomain, email, plan = 'free' } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return jsonResponse({ error: 'Tên cửa hàng không được để trống' }, 400);
@@ -96,14 +96,9 @@ serve(async (req) => {
       return jsonResponse({ error: 'Email admin không hợp lệ' }, 400);
     }
 
-    const initialPassword =
-      typeof adminPassword === 'string' && adminPassword.length >= 6
-        ? adminPassword
-        : crypto.randomUUID();
-
-    if (typeof adminPassword === 'string' && adminPassword.length < 6) {
-      return jsonResponse({ error: 'Mật khẩu admin phải có ít nhất 6 ký tự' }, 400);
-    }
+    // ponytail: temporary password only used to satisfy auth.user creation.
+    // The real flow sends a reset/setup email so the user sets their own password.
+    const tempPassword = crypto.randomUUID() + crypto.randomUUID();
 
     if (!subdomain || typeof subdomain !== 'string') {
       return jsonResponse({ error: 'Subdomain không được để trống' }, 400);
@@ -152,7 +147,7 @@ serve(async (req) => {
     // Create admin user.
     const { data: createUserData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email: email.trim().toLowerCase(),
-      password: initialPassword,
+      password: tempPassword,
       email_confirm: true,
     });
     if (createUserError) {
@@ -198,11 +193,11 @@ serve(async (req) => {
       });
       if (membershipError) throw membershipError;
 
-      // Store admin credentials for system admin dashboard lookup.
+      // Store admin email for system admin dashboard lookup.
+      // ponytail: we never store the password here; the user receives a reset/setup email instead.
       const { error: credentialsError } = await supabaseAdmin.from('tenant_credentials').insert({
         tenant_id: tenant.id as string,
         admin_email: adminUser.email as string,
-        admin_initial_password: initialPassword,
       });
       if (credentialsError) throw credentialsError;
 
@@ -219,29 +214,24 @@ serve(async (req) => {
       });
       if (auditError) throw auditError;
 
-      // Best-effort: gửi email credential. Lỗi email không rollback tenant.
-      const { error: emailErr } = await supabaseAdmin.functions.invoke('send-template-email', {
-        body: {
-          template_key: 'tenant_credentials',
-          to: adminUser.email,
-          variables: {
-            shop_name: tenant.name as string,
-            shop_url: `https://${tenant.subdomain}.vietsalepro.com/`,
-            admin_email: adminUser.email as string,
-            admin_password: initialPassword,
-          },
-        },
+      // Trigger a password reset/setup email so the admin can set their own password.
+      // ponytail: the temporary password is never returned; Supabase Auth sends the link when an email provider is configured.
+      const redirectTo = `https://${tenant.subdomain as string}.vietsalepro.com/set-password`;
+      const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'invite',
+        email: adminUser.email as string,
+        options: { redirectTo },
       });
 
-      if (emailErr) {
-        console.error('Failed to send tenant credentials email:', emailErr);
+      if (linkError) {
+        console.error('Failed to send tenant admin reset email:', linkError);
         await supabaseAdmin.from('app_audit_log').insert({
           tenant_id: tenant.id as string,
           user_id: adminUser.id,
           table_name: 'tenants',
           record_id: tenant.id as string,
           action: 'EMAIL_FAILED',
-          new_data: { error: emailErr.message || String(emailErr) },
+          new_data: { error: linkError.message || String(linkError) },
         }).catch(() => {});
       }
     } catch (e) {
@@ -258,7 +248,8 @@ serve(async (req) => {
           email: adminUser.email,
           created_at: adminUser.created_at,
         },
-        initialPassword,
+        resetEmailSent: !linkError,
+        redirectTo: !linkError ? redirectTo : undefined,
       },
       201
     );

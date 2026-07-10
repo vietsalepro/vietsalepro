@@ -86,7 +86,8 @@ curl -X POST https://rsialbfjswnrkzcxarnj.supabase.co/functions/v1/create-tenant
     "id": "uuid-cua-admin",
     "email": "khachhang@email.com"
   },
-  "initialPassword": "auto-generated-uuid-password"
+  "resetEmailSent": true,
+  "redirectTo": "https://shop-1.vietsalepro.com/set-password"
 }
 ```
 
@@ -97,14 +98,17 @@ curl -X POST https://rsialbfjswnrkzcxarnj.supabase.co/functions/v1/create-tenant
 | 1 | Kiểm tra rate limit (10 request/phút/IP) |
 | 2 | Xác thực JWT + kiểm tra System Admin |
 | 3 | Validate subdomain (định dạng, reserved, uniqueness) |
-| 4 | Tạo user mới trong **`auth.users`** (email + password tự động) |
+| 4 | Tạo user mới trong **`auth.users`** (email + password tạm tự động) |
 | 5 | Tạo dòng trong **`tenants`** |
 | 6 | Tạo dòng trong **`tenant_subscriptions`** |
 | 7 | Tạo dòng trong **`tenant_memberships`** (role = admin) |
-| 8 | Ghi audit log |
-| 9 | Trả về thông tin + mật khẩu ban đầu |
+| 8 | Lưu email admin vào **`tenant_credentials`** (không lưu mật khẩu) |
+| 9 | Gửi email đặt lại mật khẩu (reset/setup) đến admin shop |
+| 10 | Ghi audit log |
+| 11 | Trả về thông tin + trạng thái gửi email |
 
 > ⚠️ Nếu bước 5-7 thất bại, function **tự động xóa auth user** đã tạo để tránh orphan.
+> Mật khẩu tạm không bao giờ được trả về; user sẽ tự đặt mật khẩu qua link trong email.
 
 ---
 

@@ -83,7 +83,7 @@ async function main() {
     console.log(`\nCreating tenant ${tenant.subdomain}...`);
     const created = await createTenant(adminToken, tenant);
     console.log(`Tenant created: ${created.tenant.id} (${created.tenant.subdomain})`);
-    console.log(`Admin user: ${created.adminUser.email} / ${created.initialPassword}`);
+    console.log(`Admin user: ${created.adminUser.email}`);
 
     await setPassword(created.adminUser.id, USER_PASSWORD);
     console.log('Set admin password.');
@@ -99,7 +99,7 @@ async function main() {
 
     results.push({
       tenant: created.tenant,
-      admin: { email: created.adminUser.email, password: created.initialPassword, userId: created.adminUser.id },
+      admin: { email: created.adminUser.email, password: USER_PASSWORD, userId: created.adminUser.id },
       members,
     });
   }

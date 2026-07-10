@@ -32,7 +32,6 @@ export interface Tenant {
   readReplicaUrl?: string;
   connectionPoolConfig?: Record<string, any>;
   adminEmail?: string;
-  adminInitialPassword?: string;
   createdAt?: string;
   updatedAt?: string;
   archivedAt?: string;
@@ -45,7 +44,8 @@ export interface CreateTenantResult {
     email: string;
     created_at?: string;
   };
-  initialPassword: string;
+  resetEmailSent: boolean;
+  redirectTo?: string;
 }
 
 export interface TenantMembership {

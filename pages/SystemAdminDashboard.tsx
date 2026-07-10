@@ -351,11 +351,7 @@ export default function SystemAdminDashboard() {
     subdomain: '',
     plan: 'free',
     adminEmail: '',
-    adminPassword: '',
-    generatePassword: true,
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [visiblePasswordIds, setVisiblePasswordIds] = useState<Set<string>>(new Set());
   const [createResult, setCreateResult] = useState<CreateTenantResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState({
@@ -470,7 +466,6 @@ export default function SystemAdminDashboard() {
         tenants: res.tenants.map((t) => ({
           ...t,
           adminEmail: credentialMap[t.id]?.adminEmail,
-          adminInitialPassword: credentialMap[t.id]?.adminInitialPassword,
         })),
       });
     } catch (err: any) {
@@ -524,10 +519,6 @@ export default function SystemAdminDashboard() {
       setError('Vui lòng nhập email admin hợp lệ.');
       return;
     }
-    if (!form.generatePassword && form.adminPassword.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự.');
-      return;
-    }
     setSubmitting(true);
     try {
       const result = await createTenantWithCredentials({
@@ -535,12 +526,10 @@ export default function SystemAdminDashboard() {
         subdomain,
         plan: form.plan as TenantPlan,
         adminEmail: form.adminEmail.trim(),
-        adminPassword: form.generatePassword ? undefined : form.adminPassword,
       });
       setCreateResult(result);
-      setForm({ name: '', subdomain: '', plan: 'free', adminEmail: '', adminPassword: '', generatePassword: true });
+      setForm({ name: '', subdomain: '', plan: 'free', adminEmail: '' });
       setSubdomainCheck(null);
-      setShowPassword(false);
       await load(1, pageSize);
     } catch (err: any) {
       setError(err?.message || 'Tạo cửa hàng thất bại.');
@@ -1014,7 +1003,7 @@ export default function SystemAdminDashboard() {
     try {
       const list = await getAllTenants();
       const credentialMap = await getTenantCredentials(list.map((t) => t.id));
-      const headers = ['ID', 'Tên', 'Subdomain', 'Gói', 'Trạng thái', 'Owner ID', 'Email admin', 'Mật khẩu', 'Ngày tạo', 'Ngày cập nhật'];
+      const headers = ['ID', 'Tên', 'Subdomain', 'Gói', 'Trạng thái', 'Owner ID', 'Email admin', 'Ngày tạo', 'Ngày cập nhật'];
       const rows = list.map(t => {
         const creds = credentialMap[t.id];
         return [
@@ -1025,7 +1014,6 @@ export default function SystemAdminDashboard() {
           t.status,
           t.ownerId ?? '',
           creds?.adminEmail ?? '',
-          creds?.adminInitialPassword ?? '',
           t.createdAt ? new Date(t.createdAt).toLocaleString('vi-VN') : '',
           t.updatedAt ? new Date(t.updatedAt).toLocaleString('vi-VN') : '',
         ];
@@ -1515,54 +1503,6 @@ export default function SystemAdminDashboard() {
                 required
               />
             </div>
-            <div className="md:col-span-2 flex items-center gap-3">
-              <input
-                id="generatePassword"
-                type="checkbox"
-                checked={form.generatePassword}
-                onChange={(e) => setForm({ ...form, generatePassword: e.target.checked, adminPassword: '' })}
-                className="h-4 w-4"
-              />
-              <label htmlFor="generatePassword" className="text-sm text-gray-700">Tự động sinh mật khẩu</label>
-            </div>
-            {!form.generatePassword && (
-              <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu admin</label>
-                <div className="flex gap-2">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={form.adminPassword}
-                    onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập ít nhất 6 ký tự"
-                    minLength={6}
-                    required={!form.generatePassword}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
-                  >
-                    {showPassword ? 'Ẩn' : 'Hiện'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-                      let pwd = '';
-                      for (let i = 0; i < 12; i++) {
-                        pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-                      }
-                      setForm({ ...form, adminPassword: pwd });
-                      setShowPassword(true);
-                    }}
-                    className="px-3 py-2 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg"
-                  >
-                    Sinh ngẫu nhiên
-                  </button>
-                </div>
-              </div>
-            )}
             <div className="md:col-span-4">
               <button
                 type="submit"
@@ -1585,28 +1525,34 @@ export default function SystemAdminDashboard() {
               <div className="space-y-2 text-sm text-gray-800">
                 <p>Link đăng nhập: <a href={getTenantUrl(createResult.tenant.subdomain)} target="_blank" rel="noreferrer" className="text-blue-600 underline">{getTenantUrl(createResult.tenant.subdomain)}</a></p>
                 <p>Email admin: <strong>{createResult.adminUser.email}</strong></p>
-                <p className="flex items-center gap-2 flex-wrap">
-                  Mật khẩu:
-                  <code className="bg-white px-2 py-1 rounded border">{createResult.initialPassword}</code>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(createResult.initialPassword);
-                        addToast({ type: 'success', message: 'Đã copy mật khẩu vào clipboard' });
-                      } catch {
-                        alert('Không thể tự động copy. Vui lòng copy thủ công.');
-                      }
-                    }}
-                    className="text-blue-600 hover:text-blue-800 underline"
-                  >Copy</button>
-                </p>
+                {createResult.resetEmailSent ? (
+                  <p>
+                    Email đặt lại mật khẩu đã được gửi đến <strong>{createResult.adminUser.email}</strong>.
+                    Vui lòng kiểm tra hộp thư (kể cả thư rác) để đặt mật khẩu.
+                  </p>
+                ) : (
+                  <p className="text-amber-700">
+                    Không thể gửi email đặt lại mật khẩu tự động. Bạn có thể gửi lại hoặc yêu cầu user dùng chức năng "Quên mật khẩu" trên trang đăng nhập.
+                  </p>
+                )}
               </div>
               <div className="mt-4 flex gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => handleLoginAs(createResult.tenant)}
+                  onClick={async () => {
+                    try {
+                      await resetMemberPassword(createResult.tenant.id, createResult.adminUser.id);
+                      addToast({ type: 'success', message: 'Đã gửi lại email đặt lại mật khẩu' });
+                    } catch (err: any) {
+                      addToast({ type: 'error', message: err?.message || 'Gửi lại email thất bại' });
+                    }
+                  }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >Gửi lại email đặt lại mật khẩu</button>
+                <button
+                  type="button"
+                  onClick={() => handleLoginAs(createResult.tenant)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                 >Đăng nhập với tư cách admin</button>
                 <button
                   type="button"
@@ -1684,7 +1630,6 @@ export default function SystemAdminDashboard() {
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Tên</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Subdomain</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Email admin</th>
-                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Mật khẩu</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Gói</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Cô lập</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Trạng thái</th>
@@ -1706,45 +1651,6 @@ export default function SystemAdminDashboard() {
                         <td className="px-6 py-4 text-sm text-gray-900">{t.name}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{t.subdomain}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{t.adminEmail || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {t.adminInitialPassword ? (
-                            <div className="flex items-center gap-2">
-                              <code className="bg-gray-100 px-2 py-1 rounded">
-                                {visiblePasswordIds.has(t.id) ? t.adminInitialPassword : '••••••••'}
-                              </code>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setVisiblePasswordIds((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(t.id)) next.delete(t.id);
-                                    else next.add(t.id);
-                                    return next;
-                                  });
-                                }}
-                                className="text-xs text-blue-600 hover:text-blue-800 underline"
-                              >
-                                {visiblePasswordIds.has(t.id) ? 'Ẩn' : 'Hiện'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(t.adminInitialPassword || '');
-                                    addToast({ type: 'success', message: 'Đã copy mật khẩu vào clipboard' });
-                                  } catch {
-                                    addToast({ type: 'error', message: 'Không thể tự động copy mật khẩu' });
-                                  }
-                                }}
-                                className="text-xs text-green-600 hover:text-green-800 underline"
-                              >
-                                Copy
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <span className="uppercase">{planLabel(t.plan)}</span>

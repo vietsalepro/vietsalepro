@@ -166,8 +166,8 @@ supabase db push --linked --yes
   FROM pg_constraint
   WHERE conrelid = 'public.app_audit_log'::regclass AND conname LIKE '%action%';
   ```
-- [ ] Gọi `send-template-email` với `template_key = 'tenant_credentials'` trả về `success: true`.
-  - ponytail: Đã gọi thử; Edge Function chạy, template được tìm thấy, nhưng Resend trả lỗi `validation_error`: domain `mail.vietsalepro.com` chưa được verify trên Resend. Cần verify domain trên Resend dashboard hoặc cấu hình `RESEND_FROM` với domain đã verify để email gửi được.
+- [x] Gọi `send-template-email` với `template_key = 'tenant_credentials'` trả về `success: true`.
+  - ponytail: Ban đầu Resend báo domain `mail.vietsalepro.com` chưa verify. Đã thêm 4 bản ghi DNS cần thiết trong Vercel (DKIM, SPF MX/TXT, Receiving MX) cho `mail.vietsalepro.com`, re-verify trên Resend và gửi thử thành công với `success: true`, id `56eaf9e1-de7d-4778-af67-fc33a7034d30`.
 - [x] `npm run lint` PASS.
 
 ---
@@ -197,7 +197,7 @@ supabase db push --linked --yes
 - [x] Verify query result:
   - `tenant_credentials`: `is_active = true`
   - `app_audit_log_action_check`: cho phép `EMAIL_FAILED`
-- [ ] Email test result: **BLOCKED** — Resend domain `mail.vietsalepro.com` chưa verify. Chi tiết lỗi: `{"statusCode":403,"message":"The mail.vietsalepro.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error"}`.
+- [x] Email test result: **PASS** — Đã thêm DNS records trong Vercel, re-verify Resend domain, gửi thử `tenant_credentials` với `test=true` thành công. Resend email id: `56eaf9e1-de7d-4778-af67-fc33a7034d30`.
 - [x] `npm run lint`: **PASS** (tsc --noEmit exit 0, no output).
 - [x] Commit hash: `d57397ec1c6809c00023255cc7dfc67af8e0fb24`
 

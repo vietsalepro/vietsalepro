@@ -2622,7 +2622,7 @@ function TenantRowActions({
       >
         <Pencil size={18} />
       </button>
-      <div ref={ref} className="relative">
+      <div ref={ref} className="relative z-50">
         <button
           type="button"
           onClick={() => setOpen(prev => !prev)}
@@ -2633,7 +2633,7 @@ function TenantRowActions({
           <MoreHorizontal size={18} />
         </button>
         {open && (
-          <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20 origin-top-right">
+          <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 origin-top-right">
             <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
               <Database size={12} />
               Quản lý dữ liệu

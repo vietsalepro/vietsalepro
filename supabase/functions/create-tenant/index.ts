@@ -87,7 +87,7 @@ serve(async (req) => {
 
     // Request body.
     const body = await req.json();
-    const { name, subdomain, email, plan = 'free' } = body;
+    const { name, subdomain, email, plan = 'free', adminPassword } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return jsonResponse({ error: 'Tên cửa hàng không được để trống' }, 400);
@@ -95,6 +95,16 @@ serve(async (req) => {
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonResponse({ error: 'Email admin không hợp lệ' }, 400);
     }
+
+    const initialPassword =
+      typeof adminPassword === 'string' && adminPassword.length >= 6
+        ? adminPassword
+        : crypto.randomUUID();
+
+    if (typeof adminPassword === 'string' && adminPassword.length < 6) {
+      return jsonResponse({ error: 'Mật khẩu admin phải có ít nhất 6 ký tự' }, 400);
+    }
+
     if (!subdomain || typeof subdomain !== 'string') {
       return jsonResponse({ error: 'Subdomain không được để trống' }, 400);
     }
@@ -105,7 +115,7 @@ serve(async (req) => {
     }
     if (!/^[a-z0-9-]+$/.test(s) || s.startsWith('-') || s.endsWith('-')) {
       return jsonResponse(
-        { error: 'Subdomain chỉ được chứa chữ thường, số và dấu gạng ngang, không được bắt đầu/kết thúc bằng gạch ngang' },
+        { error: 'Subdomain chỉ được chứa chữ thường, số và dấu gạch ngang, không được bắt đầu/kết thúc bằng gạch ngang' },
         400
       );
     }
@@ -127,7 +137,17 @@ serve(async (req) => {
       return jsonResponse({ error: 'Subdomain đã tồn tại' }, 409);
     }
 
-    const initialPassword = crypto.randomUUID();
+    // Fetch default plan limits from Plan Builder.
+    const { data: limits, error: limitsError } = await supabaseAdmin.rpc(
+      'get_default_plan_limit_values',
+      { p_plan: plan }
+    );
+    if (limitsError) throw limitsError;
+
+    const maxUsers = (limits?.max_users as number) ?? (plan === 'vip' ? 999 : 1);
+    const maxProducts = (limits?.max_products as number) ?? (plan === 'vip' ? 999999 : 50);
+    const maxOrdersPerMonth =
+      (limits?.max_orders_per_month as number) ?? (plan === 'vip' ? 999999 : 300);
 
     // Create admin user.
     const { data: createUserData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
@@ -165,9 +185,9 @@ serve(async (req) => {
       const { error: subError } = await supabaseAdmin.from('tenant_subscriptions').insert({
         tenant_id: tenant.id as string,
         plan: tenant.plan as string,
-        max_users: plan === 'vip' ? 999999 : 1,
-        max_products: plan === 'vip' ? 999999 : 50,
-        max_orders_per_month: plan === 'vip' ? 999999 : 300,
+        max_users: maxUsers,
+        max_products: maxProducts,
+        max_orders_per_month: maxOrdersPerMonth,
       });
       if (subError) throw subError;
 
@@ -190,6 +210,32 @@ serve(async (req) => {
         user_agent: req.headers.get('user-agent'),
       });
       if (auditError) throw auditError;
+
+      // Best-effort: gửi email credential. Lỗi email không rollback tenant.
+      const { error: emailErr } = await supabaseAdmin.functions.invoke('send-template-email', {
+        body: {
+          template_key: 'tenant_credentials',
+          to: adminUser.email,
+          variables: {
+            shop_name: tenant.name as string,
+            shop_url: `https://${tenant.subdomain}.vietsalepro.com/`,
+            admin_email: adminUser.email as string,
+            admin_password: initialPassword,
+          },
+        },
+      });
+
+      if (emailErr) {
+        console.error('Failed to send tenant credentials email:', emailErr);
+        await supabaseAdmin.from('app_audit_log').insert({
+          tenant_id: tenant.id as string,
+          user_id: adminUser.id,
+          table_name: 'tenants',
+          record_id: tenant.id as string,
+          action: 'EMAIL_FAILED',
+          new_data: { error: emailErr.message || String(emailErr) },
+        }).catch(() => {});
+      }
     } catch (e) {
       // ponytail: best-effort cleanup of the orphaned auth user if tenant setup fails.
       await supabaseAdmin.auth.admin.deleteUser(adminUser.id).catch(() => {});

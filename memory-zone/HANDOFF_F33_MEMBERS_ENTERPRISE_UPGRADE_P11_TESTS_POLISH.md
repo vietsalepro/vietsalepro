@@ -37,18 +37,22 @@ Viết tests, sửa UX còn lại, đảm bảo a11y.
 
 ## Tiêu chí chấp nhận
 
-- [ ] Tests chạy pass.
-- [ ] Reset password không lộ link.
-- [ ] Bulk invite summary hiển thị.
-- [ ] Responsive + a11y cơ bản.
+- [x] Tests chạy pass.
+- [x] Reset password không lộ link.
+- [x] Bulk invite summary hiển thị.
+- [x] Responsive + a11y cơ bản.
 
 ## Verify
 
 ```bash
-npm run lint
-npm run build
-npx vitest run
+npm run lint   # PASS
+npm run build  # PASS
+npx vitest run # PASS (257 tests)
 ```
+
+## Done
+
+Hoàn thành 2026-07-10.
 
 ## Next
 

@@ -60,9 +60,9 @@ describe('smoke: admin dashboard P3 member management', () => {
     const res = await inviteMemberByEmail(tenant.id, 'cashier@example.com', 'cashier');
     expect(res.success).toBe(true);
 
-    const members = await getTenantMembersWithEmail(tenant.id);
-    expect(members.length).toBe(2);
-    expect(members.some(m => m.role === 'cashier')).toBe(true);
+    const list = await searchTenantMembers({ tenantId: tenant.id });
+    expect(list.totalCount).toBe(2);
+    expect(list.members.some(m => m.role === 'cashier')).toBe(true);
   });
 
   it('không mời quá giới hạn user của gói', async () => {
@@ -70,8 +70,8 @@ describe('smoke: admin dashboard P3 member management', () => {
     // Free gói mặc định 1 user; owner đã chiếm 1 slot.
     await expect(inviteMemberByEmail(tenant.id, 'extra@example.com', 'cashier')).rejects.toThrow('giới hạn');
 
-    const members = await getTenantMembersWithEmail(tenant.id);
-    expect(members.length).toBe(1);
+    const list = await searchTenantMembers({ tenantId: tenant.id });
+    expect(list.totalCount).toBe(1);
   });
 
   it('update_member_role đổi vai trò', async () => {
@@ -93,8 +93,14 @@ describe('smoke: admin dashboard P3 member management', () => {
     if (!cashier) throw new Error('Không tìm thấy cashier');
     await removeMember(tenant.id, cashier.user_id);
 
-    const members = await getTenantMembersWithEmail(tenant.id);
-    expect(members.length).toBe(1);
+    const list = await searchTenantMembers({ tenantId: tenant.id });
+    expect(list.totalCount).toBe(1);
+  });
+
+  it('remove_member từ chối xóa chủ sở hữu', async () => {
+    const tenant = await seedTenant();
+    const owner = getMockRows('tenant_memberships').find(m => m.tenant_id === tenant.id)!;
+    await expect(removeMember(tenant.id, owner.user_id)).rejects.toThrow('chủ sở hữu');
   });
 
   it('reset_member_password trả về link redirect', async () => {
@@ -134,8 +140,20 @@ describe('smoke: admin dashboard P3 member management', () => {
     expect(res.failed).toBe(0);
     expect(res.alreadyMember).toBe(0);
 
-    const members = await getTenantMembersWithEmail(tenant.id);
-    expect(members.length).toBe(3);
+    const list = await searchTenantMembers({ tenantId: tenant.id });
+    expect(list.totalCount).toBe(3);
+  });
+
+  it('bulk_invite_members vượt quota trả về summary lỗi', async () => {
+    const tenant = await seedTenant();
+    // owner chiếm 1 slot, chỉ còn 1 slot nữa.
+    const sub = getMockRows('tenant_subscriptions').find(s => s.tenant_id === tenant.id);
+    if (sub) sub.max_users = 2;
+
+    const res = await bulkInviteMembers(tenant.id, ['a@example.com', 'b@example.com', 'c@example.com'], 'cashier', 1);
+    expect(res.succeeded).toBe(1);
+    expect(res.failed).toBe(2);
+    expect(res.errors.length).toBeGreaterThan(0);
   });
 
   it('toggle_member_active cập nhật trạng thái is_active', async () => {

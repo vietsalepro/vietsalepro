@@ -20,7 +20,7 @@ Mỗi chat chỉ đọc **một file handoff sub-phase** và làm đúng scope c
 | 8 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P8_SUBCOMPONENTS.md` | InviteModal, BulkActions, DetailDrawer | `components/DataGrid.tsx` | ~15K tokens | Chưa làm |
 | 9 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P9_SYSTEM_ADMIN_INTEGRATION.md` | Thay thế tab Members trong `SystemAdminDashboard` | `pages/SystemAdminDashboard.tsx` | ~35K tokens | Chưa làm |
 | 10 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P10_TENANT_ADMIN_NAVIGATION.md` | Thêm menu/route cho tenant admin | `App.tsx`, `AppTopbar.tsx`, `MobileLayout.tsx`, `FeaturePicker.tsx`, `BottomNav.tsx` | ~10K tokens | Chưa làm |
-| 11 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P11_TESTS_POLISH.md` | Tests + UX polish | `tests/smoke/admin-dashboard-p3-member-management.test.ts`, `tests/mocks/supabase.ts` | ~10K tokens | Chưa làm |
+| 11 | `HANDOFF_F33_MEMBERS_ENTERPRISE_UPGRADE_P11_TESTS_POLISH.md` | Tests + UX polish | `tests/smoke/admin-dashboard-p3-member-management.test.ts`, `tests/mocks/supabase.ts` | ~10K tokens | Hoàn thành |
 
 \*Dự trữ context = ước tính tổng số token của handoff + các file phải đọc. Tất cả đều nhỏ hơn rất nhiều so với giới hạn 220K tokens/chat.
 

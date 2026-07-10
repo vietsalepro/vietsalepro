@@ -3,6 +3,7 @@ import { X, Mail, Send, RotateCcw, Power, PowerOff, UserCog, Trash2 } from 'luci
 import { ActionButton } from '../ActionButton';
 import { SelectInput } from '../SelectInput';
 import { StatusBadge } from '../StatusBadge';
+import { SkeletonLoader } from '../SkeletonLoader';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useToast } from '../ToastContainer';
 import { MemberWithEmail, TenantRole } from '../../types/tenant';
@@ -19,6 +20,7 @@ interface MemberDetailDrawerProps {
   tenantId: string;
   onClose: () => void;
   onChanged?: () => void;
+  loading?: boolean;
 }
 
 const ROLES: { value: TenantRole; label: string }[] = [
@@ -69,6 +71,7 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
   tenantId,
   onClose,
   onChanged,
+  loading,
 }) => {
   const [busy, setBusy] = useState(false);
   const [role, setRole] = useState<TenantRole>(member.role);
@@ -208,12 +211,16 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <div className="space-y-3">
-            {info.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-3 gap-2 text-sm">
-                <span className="text-gray-500">{item.label}</span>
-                <span className="col-span-2 text-gray-900">{item.value}</span>
-              </div>
-            ))}
+            {loading ? (
+              <SkeletonLoader variant="text" lines={6} />
+            ) : (
+              info.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-3 gap-2 text-sm">
+                  <span className="text-gray-500">{item.label}</span>
+                  <span className="col-span-2 text-gray-900">{item.value}</span>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="space-y-4 border-t border-gray-100 pt-4">

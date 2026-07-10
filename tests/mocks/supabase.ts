@@ -326,6 +326,18 @@ const executeQuery = (state: QueryState) => {
 
   if (state.operation === 'delete') {
     if (adminOnlyTables.includes(table) && !isSystemAdmin) return { data: null, error: rlsError() };
+    if (table === 'tenant_memberships') {
+      for (const row of rows) {
+        const tenant = store.tenants.find(t => t.id === row.tenant_id);
+        if (tenant && tenant.owner_id === row.user_id) {
+          return { data: null, error: { code: '23503', message: 'Không thể xóa chủ sở hữu' } };
+        }
+        const admins = store.tenant_memberships.filter(m => m.tenant_id === row.tenant_id && m.role === 'admin');
+        if (row.role === 'admin' && admins.length <= 1) {
+          return { data: null, error: { code: '23503', message: 'Không thể xóa admin cuối cùng' } };
+        }
+      }
+    }
     store[table] = store[table].filter(r => !rows.includes(r));
     return { data: null, error: null };
   }
@@ -671,11 +683,15 @@ const rpc = async (name: string, params: Record<string, any>) => {
     if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
     const rows = store.tenant_memberships
       .filter(m => m.tenant_id === params.p_tenant_id)
-      .map(m => ({
-        ...m,
-        email: `user-${m.user_id}@example.com`,
-        invited_by_email: m.invited_by ? `inviter-${m.invited_by}@example.com` : null,
-      }));
+      .map(m => {
+        const user = store.users.find(u => u.id === m.user_id);
+        const inviter = m.invited_by ? store.users.find(u => u.id === m.invited_by) : null;
+        return {
+          ...m,
+          email: user?.email || `user-${m.user_id}@example.com`,
+          invited_by_email: inviter?.email || (m.invited_by ? `inviter-${m.invited_by}@example.com` : null),
+        };
+      });
     return { data: rows, error: null };
   }
 
@@ -687,12 +703,16 @@ const rpc = async (name: string, params: Record<string, any>) => {
     if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
     let rows: any[] = store.tenant_memberships
       .filter(m => m.tenant_id === params.p_tenant_id)
-      .map(m => ({
-        ...m,
-        email: `user-${m.user_id}@example.com`,
-        invited_by_email: m.invited_by ? `inviter-${m.invited_by}@example.com` : null,
-        is_owner: tenant.owner_id === m.user_id,
-      }));
+      .map(m => {
+        const user = store.users.find(u => u.id === m.user_id);
+        const inviter = m.invited_by ? store.users.find(u => u.id === m.invited_by) : null;
+        return {
+          ...m,
+          email: user?.email || `user-${m.user_id}@example.com`,
+          invited_by_email: inviter?.email || (m.invited_by ? `inviter-${m.invited_by}@example.com` : null),
+          is_owner: tenant.owner_id === m.user_id,
+        };
+      });
     if (params.p_role) {
       rows = rows.filter(m => m.role === params.p_role);
     }
@@ -705,6 +725,16 @@ const rpc = async (name: string, params: Record<string, any>) => {
     const search = params.p_search ? String(params.p_search).toLowerCase() : '';
     if (search) {
       rows = rows.filter(m => (m.email || '').toLowerCase().includes(search));
+    }
+    const sortBy = params.p_sort_by as string | null;
+    if (sortBy) {
+      const sortDir = params.p_sort_dir === 'asc' ? 1 : -1;
+      rows.sort((a, b) => {
+        const aVal = a[sortBy] ?? '';
+        const bVal = b[sortBy] ?? '';
+        if (aVal === bVal) return 0;
+        return (aVal < bVal ? -1 : 1) * sortDir;
+      });
     }
     const page = Number(params.p_page ?? 1);
     const pageSize = Number(params.p_page_size ?? 20);

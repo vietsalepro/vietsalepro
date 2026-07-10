@@ -217,13 +217,8 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     if (!tenantId) return;
     setBusyUserId(userId);
     try {
-      const res = await resetMemberPassword(tenantId, userId);
-      addToast({
-        type: 'success',
-        message: res?.link
-          ? `Link ${res.action}: ${res.link}`
-          : `Đã gửi yêu cầu ${res?.action || 'reset'}.`,
-      });
+      await resetMemberPassword(tenantId, userId);
+      addToast({ type: 'success', message: 'Đã gửi email đặt lại mật khẩu.' });
     } catch (err: any) {
       addToast({ type: 'error', message: err?.message || 'Đặt lại mật khẩu thất bại.' });
     } finally {
@@ -514,6 +509,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
           tenantId={tenantId}
           onClose={() => setDetailMember(null)}
           onChanged={loadMembers}
+          loading={loading}
         />
       )}
       {confirmDialog}

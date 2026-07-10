@@ -58,11 +58,11 @@ await supabaseAdmin.auth.admin.generateLink({
 4. Cập nhật test nếu có test kiểm tra link type. Hiện tại test mock trong `tests/mocks/supabase.ts` có thể không phân biệt type, nhưng nên kiểm tra lại.
 
 ### Tiêu chí chấp nhận
-- [ ] User mới được tạo với `type: 'invite'` link.
-- [ ] `redirectTo` vẫn trỏ về `/set-password`.
-- [ ] Nếu provider lỗi, vẫn tạo user và báo `emailProviderConfigured: false`.
-- [ ] `npm run lint`, `npm run build`, `npx vitest run` pass.
-- [ ] Deploy edge function lên remote nếu cần.
+- [x] User mới được tạo với `type: 'invite'` link.
+- [x] `redirectTo` vẫn trỏ về `/set-password`.
+- [x] Nếu provider lỗi, vẫn tạo user và báo `emailProviderConfigured: false`.
+- [x] `npm run lint`, `npm run build`, `npx vitest run` pass.
+- [ ] Deploy edge function lên remote nếu cần (chờ xác nhận từ user).
 
 ---
 
@@ -87,9 +87,9 @@ Nhưng `BottomNav.tsx` chưa có item `/members`. Handoff P10 ghi là "Thêm ico
 4. Không bắt buộc nếu BottomNav không có đủ chỗ hoặc sẽ gây clutter. Nếu không thêm, chỉ cần ghi chú "Để lại trong menu cài đặt".
 
 ### Tiêu chí chấp nhận
-- [ ] Có hoặc không có item `/members` trong BottomNav đều hợp lệ, nhưng phải có quyết định rõ ràng.
-- [ ] Nếu thêm: chỉ hiện với VIP + `canManageUsers`.
-- [ ] `npm run lint`, `npm run build`, `npx vitest run` pass.
+- [x] Quyết định: thêm item `/members` vào BottomNav (icon `UserCog`, label "Thành viên").
+- [x] Chỉ hiện với VIP + `canManageUsers`.
+- [x] `npm run lint`, `npm run build`, `npx vitest run` pass.
 
 ---
 
@@ -111,10 +111,10 @@ Tab members trong System Admin Dashboard vẫn dùng `<select>` load `allTenants
 4. Đảm bảo tương thích với các tab khác trong `SystemAdminDashboard` (ví dụ `audit` tab cũng dùng `allTenants`). Có thể chỉ thay selector trong tab members, không cần đụng `audit`.
 
 ### Tiêu chí chấp nhận
-- [ ] Tab members không load toàn bộ tenants về client khi mở.
-- [ ] Chỉ fetch tenants khi user gõ tìm kiếm (debounce).
-- [ ] Tenant được chọn vẫn truyền đúng `tenantId` xuống `MemberManagement`.
-- [ ] `npm run lint`, `npm run build`, `npx vitest run` pass.
+- [x] Tab members không load toàn bộ tenants về client khi mở.
+- [x] Chỉ fetch tenants khi user gõ tìm kiếm (debounce 300ms qua `searchTenants`).
+- [x] Tenant được chọn vẫn truyền đúng `tenantId` xuống `MemberManagement`.
+- [x] `npm run lint`, `npm run build`, `npx vitest run` pass.
 
 ---
 
@@ -197,3 +197,14 @@ supabase db push
 supabase functions deploy invite-member
 supabase functions deploy reset-password
 ```
+
+---
+
+## Ghi chú sau khi xử lý
+
+- Issue 1, 2, 3 đã được sửa code và pass verification (2026-07-10).
+- Verification pass:
+  - `npm run lint` ✓
+  - `npm run build` ✓
+  - `npx vitest run` ✓ (257 tests)
+- Issue 4 (deploy migrations / edge functions lên remote) **chưa thực hiện**, chờ user xác nhận rõ ràng mới chạy deploy. Sau khi sửa Issue 1, edge function `invite-member` cần được deploy lại.

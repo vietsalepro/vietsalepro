@@ -235,13 +235,14 @@ serve(async (req) => {
         targetUserId = newUser.id;
         isNewUser = true;
 
-        // Generate recovery link pointing to the tenant subdomain.
-        // ponytail: generateLink returns the link; the project assumes Supabase Auth's default
-        // email provider handles delivery. If email is not received, verify the project's
+        // Generate invite link pointing to the tenant subdomain.
+        // ponytail: new users have never signed in, so 'invite' (not 'recovery') is the correct
+        // Supabase Auth link type. generateLink returns the link; the project assumes Supabase Auth's
+        // default email provider handles delivery. If email is not received, verify the project's
         // Auth email provider / SMTP settings or add a custom send-email hook.
         // In staging without email provider, we continue so the admin can set the password manually.
         const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'recovery',
+          type: 'invite',
           email: normalizedEmail,
           options: { redirectTo: `https://${tenant.subdomain}.vietsalepro.com/set-password` },
         });

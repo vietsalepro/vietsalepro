@@ -61,6 +61,7 @@ import { calculatePromotionDiscount } from './utils/promotionUtils';
 import { Loader2, Package, Truck, ArrowDownToLine, Settings as SettingsIcon, LogOut, X, BarChart, Users, Receipt, User as UserIcon } from 'lucide-react';
 import { useNewAppShell } from './features';
 import { AppError } from './utils/errors';
+import { ToastProvider } from './components/ToastContainer';
 
 const SystemAdminDashboard = React.lazy(() => import('./pages/SystemAdminDashboard'));
 
@@ -1306,13 +1307,15 @@ function AppContent() {
     if (!user) return <Login />;
     if (!isSystemAdmin) return <TenantForbiddenPage />;
     return (
-      <React.Suspense fallback={
-        <div className="flex items-center justify-center h-screen bg-gray-50">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-        </div>
-      }>
-        <SystemAdminDashboard />
-      </React.Suspense>
+      <ToastProvider>
+        <React.Suspense fallback={
+          <div className="flex items-center justify-center h-screen bg-gray-50">
+            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+          </div>
+        }>
+          <SystemAdminDashboard />
+        </React.Suspense>
+      </ToastProvider>
     );
   }
 

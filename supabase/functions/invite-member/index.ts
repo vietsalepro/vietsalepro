@@ -6,9 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 10;
+const IP_RATE_LIMIT_WINDOW_MS = 60_000;
+const IP_RATE_LIMIT_MAX = 10;
+const TENANT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const TENANT_RATE_LIMIT_MAX = 50;
 const ROLES = new Set(['admin', 'cashier', 'inventory_manager', 'accountant']);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const getClientIp = (req: Request): string => {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -20,6 +23,8 @@ const isValidIp = (ip: string): boolean => {
   // ponytail: quick regex check; INET will reject anything that slips through.
   return /^((\d{1,3}\.){3}\d{1,3}|([0-9a-fA-F:]+))$/.test(ip);
 };
+
+const isValidEmail = (email: string): boolean => EMAIL_REGEX.test(email);
 
 const jsonResponse = (data: unknown, status: number) =>
   new Response(JSON.stringify(data), {
@@ -41,27 +46,6 @@ serve(async (req) => {
 
     const rawIp = getClientIp(req);
     const ip = isValidIp(rawIp) ? rawIp : '0.0.0.0';
-    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-
-    // Rate limiting: 10 requests per minute per IP.
-    const { count, error: countError } = await supabaseAdmin
-      .from('rate_limit_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('ip_address', ip)
-      .eq('action', 'invite_member')
-      .gte('window_start', windowStart);
-
-    if (countError) throw countError;
-    if ((count ?? 0) >= RATE_LIMIT_MAX) {
-      return jsonResponse({ error: 'Rate limit exceeded: 10 requests per minute' }, 429);
-    }
-
-    const { error: logError } = await supabaseAdmin.from('rate_limit_logs').insert({
-      ip_address: ip,
-      action: 'invite_member',
-      window_start: new Date().toISOString(),
-    });
-    if (logError) throw logError;
 
     // Caller authentication.
     const authHeader = req.headers.get('Authorization');
@@ -81,16 +65,18 @@ serve(async (req) => {
     if (!tenant_id || typeof tenant_id !== 'string') {
       return jsonResponse({ error: 'tenant_id không hợp lệ' }, 400);
     }
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string') {
+      return jsonResponse({ error: 'Email không hợp lệ' }, 400);
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
       return jsonResponse({ error: 'Email không hợp lệ' }, 400);
     }
     if (!role || typeof role !== 'string' || !ROLES.has(role)) {
       return jsonResponse({ error: 'Vai trò không hợp lệ' }, 400);
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Tenant + admin check.
+    // Tenant lookup.
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from('tenants')
       .select('id, subdomain, status')
@@ -103,6 +89,39 @@ serve(async (req) => {
     if (tenant.status !== 'active') {
       return jsonResponse({ error: 'Tenant không hoạt động' }, 403);
     }
+
+    // Rate limiting: IP (10/min) and tenant (50/hour).
+    const ipWindowStart = new Date(Date.now() - IP_RATE_LIMIT_WINDOW_MS).toISOString();
+    const { count: ipCount, error: ipCountError } = await supabaseAdmin
+      .from('rate_limit_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('ip_address', ip)
+      .eq('action', 'invite_member')
+      .gte('window_start', ipWindowStart);
+    if (ipCountError) throw ipCountError;
+    if ((ipCount ?? 0) >= IP_RATE_LIMIT_MAX) {
+      return jsonResponse({ error: 'Rate limit exceeded: 10 requests per minute' }, 429);
+    }
+
+    const tenantWindowStart = new Date(Date.now() - TENANT_RATE_LIMIT_WINDOW_MS).toISOString();
+    const { count: tenantCount, error: tenantCountError } = await supabaseAdmin
+      .from('rate_limit_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', tenant_id)
+      .eq('action', 'invite_member')
+      .gte('window_start', tenantWindowStart);
+    if (tenantCountError) throw tenantCountError;
+    if ((tenantCount ?? 0) >= TENANT_RATE_LIMIT_MAX) {
+      return jsonResponse({ error: 'Rate limit exceeded: 50 invites per hour for this tenant' }, 429);
+    }
+
+    const { error: logError } = await supabaseAdmin.from('rate_limit_logs').insert({
+      ip_address: ip,
+      tenant_id,
+      action: 'invite_member',
+      window_start: new Date().toISOString(),
+    });
+    if (logError) throw logError;
 
     // Caller authorization: system admin or tenant admin.
     const { data: adminRow, error: adminError } = await supabaseAdmin
@@ -126,7 +145,7 @@ serve(async (req) => {
       }
     }
 
-    // Subscription limit check.
+    // Subscription limit check: only pending/active members count against the seat cap.
     const { data: subscription, error: subError } = await supabaseAdmin
       .from('tenant_subscriptions')
       .select('max_users')
@@ -140,22 +159,29 @@ serve(async (req) => {
     const { count: memberCount, error: memberCountError } = await supabaseAdmin
       .from('tenant_memberships')
       .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenant_id);
+      .eq('tenant_id', tenant_id)
+      .in('status', ['pending', 'active']);
     if (memberCountError) throw memberCountError;
     if ((memberCount ?? 0) >= subscription.max_users) {
       return jsonResponse({ error: 'Đã đạt giới hạn số user của gói dịch vụ' }, 403);
     }
 
-    // Find user by email via Auth Admin API (auth schema is not exposed through PostgREST).
-    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (listError) throw listError;
-    const existingUser = users?.users.find((u) => u.email === normalizedEmail);
+    // Find user by email via direct auth schema query.
+    const { data: userRow, error: userRowError } = await supabaseAdmin
+      .schema('auth')
+      .from('users')
+      .select('id,email,last_sign_in_at,confirmed_at')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+    if (userRowError) throw userRowError;
 
     let targetUserId: string;
+    let isNewUser = false;
+    let emailProviderConfigured: boolean | undefined;
 
-    if (existingUser) {
+    if (userRow) {
       // Existing user: ensure not already a member of this tenant.
-      targetUserId = existingUser.id as string;
+      targetUserId = userRow.id as string;
       const { data: existingMembership, error: existingMembershipError } = await supabaseAdmin
         .from('tenant_memberships')
         .select('id')
@@ -164,7 +190,7 @@ serve(async (req) => {
         .maybeSingle();
       if (existingMembershipError) throw existingMembershipError;
       if (existingMembership) {
-        return jsonResponse({ error: 'User đã là thành viên của tenant này' }, 409);
+        return jsonResponse({ error: 'already_member' }, 409);
       }
     } else {
       // New user: create with a random temporary password (never stored or logged).
@@ -176,28 +202,53 @@ serve(async (req) => {
       });
       if (createUserError) {
         if (createUserError.message.toLowerCase().includes('already')) {
-          return jsonResponse({ error: 'Email đã được sử dụng' }, 409);
+          // ponytail: race guard - another request created the user between our query and insert.
+          // Re-query and continue as an existing user; if it is already a member we will 409 below.
+          const { data: raceUser } = await supabaseAdmin
+            .schema('auth')
+            .from('users')
+            .select('id,email,last_sign_in_at,confirmed_at')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+          if (!raceUser) {
+            throw new Error('Tạo user thất bại');
+          }
+          targetUserId = raceUser.id as string;
+          const { data: existingMembership, error: existingMembershipError } = await supabaseAdmin
+            .from('tenant_memberships')
+            .select('id')
+            .eq('tenant_id', tenant_id)
+            .eq('user_id', targetUserId)
+            .maybeSingle();
+          if (existingMembershipError) throw existingMembershipError;
+          if (existingMembership) {
+            return jsonResponse({ error: 'already_member' }, 409);
+          }
+        } else {
+          throw createUserError;
         }
-        throw createUserError;
-      }
-      const newUser = createUserData.user;
-      if (!newUser) {
-        throw new Error('Tạo user thất bại');
-      }
-      targetUserId = newUser.id;
+      } else {
+        const newUser = createUserData.user;
+        if (!newUser) {
+          throw new Error('Tạo user thất bại');
+        }
+        targetUserId = newUser.id;
+        isNewUser = true;
 
-      // Generate recovery link pointing to the tenant subdomain.
-      // ponytail: generateLink returns the link; the project assumes Supabase Auth's default
-      // email provider handles delivery. If email is not received, verify the project's
-      // Auth email provider / SMTP settings or add a custom send-email hook.
-      // In staging without email provider, we continue so the admin can set the password manually.
-      const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: normalizedEmail,
-        options: { redirectTo: `https://${tenant.subdomain}.vietsalepro.com/set-password` },
-      });
-      if (linkError) {
-        console.warn('generateLink failed for new user:', linkError.message);
+        // Generate recovery link pointing to the tenant subdomain.
+        // ponytail: generateLink returns the link; the project assumes Supabase Auth's default
+        // email provider handles delivery. If email is not received, verify the project's
+        // Auth email provider / SMTP settings or add a custom send-email hook.
+        // In staging without email provider, we continue so the admin can set the password manually.
+        const { error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: normalizedEmail,
+          options: { redirectTo: `https://${tenant.subdomain}.vietsalepro.com/set-password` },
+        });
+        emailProviderConfigured = !linkError;
+        if (linkError) {
+          console.warn('generateLink failed for new user:', linkError.message);
+        }
       }
     }
 
@@ -227,7 +278,11 @@ serve(async (req) => {
     });
     if (auditError) throw auditError;
 
-    return jsonResponse({ success: true, userId: targetUserId }, 200);
+    const response: Record<string, unknown> = { success: true, userId: targetUserId };
+    if (isNewUser) {
+      response.emailProviderConfigured = emailProviderConfigured ?? false;
+    }
+    return jsonResponse(response, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : (err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : 'Unknown error');
     return jsonResponse({ error: message }, 500);

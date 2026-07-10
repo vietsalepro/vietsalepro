@@ -1,3 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-06
-goal: P13.3 — Storage usage per tenant + backup status card (PITR/Supabase CLI).

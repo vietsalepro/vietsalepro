@@ -1,4 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-06
-goal: P7.3 — Payment confirmation + invoice lifecycle
-  (pending/paid/overdue/cancelled/expired).

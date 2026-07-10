@@ -1,4 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-06
-goal: "P15.1 — API platform: tenant_api_keys + create/revoke + auth middleware +
-  versioning (YAGNI)."

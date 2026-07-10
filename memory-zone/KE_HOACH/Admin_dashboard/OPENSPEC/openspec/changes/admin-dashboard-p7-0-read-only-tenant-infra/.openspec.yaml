@@ -1,4 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-06
-goal: "P7.0 — Read-only tenant infrastructure: status check, RLS guards,
-  TENANT_READ_ONLY error."

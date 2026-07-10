@@ -1,4 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-06
-goal: "P7.1 — Billing schema + bank/company config: invoices, invoice_items,
-  payments, bank_accounts."

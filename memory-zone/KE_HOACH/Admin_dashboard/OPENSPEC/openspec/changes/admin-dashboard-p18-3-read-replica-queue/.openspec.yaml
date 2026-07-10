@@ -1,3 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-06
-goal: P18.3 — Read replica + connection pooling + queue system for heavy ops (YAGNI).

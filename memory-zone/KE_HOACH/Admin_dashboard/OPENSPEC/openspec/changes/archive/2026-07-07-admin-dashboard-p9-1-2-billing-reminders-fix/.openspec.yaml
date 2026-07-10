@@ -1,3 +1,0 @@
-schema: admin-dashboard
-created: 2026-07-07
-goal: "P9.1.2 — Fix remaining P9.1 billing-reminders bugs: authenticated RPC grants and empty milestones validation."

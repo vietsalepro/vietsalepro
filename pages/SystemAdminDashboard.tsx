@@ -32,6 +32,7 @@ import ComplianceManager from '../components/ComplianceManager';
 import WhiteLabelManager from '../components/WhiteLabelManager';
 import ReadReplicaQueueManager from '../components/ReadReplicaQueueManager';
 import { MemberManagement } from '../components/MemberManagement';
+import { DataGrid, DataGridColumn } from '../components/DataGrid';
 import './Dashboard.css';
 import {
   Tenant,
@@ -65,6 +66,7 @@ import {
   resetMonthlyOrderCounter,
   getAllTenants,
   getTenantCredentials,
+  TenantCredentials,
   resetMemberPassword,
   getSystemOverview,
   getTopTenants,
@@ -392,6 +394,10 @@ export default function SystemAdminDashboard() {
   const [memberTenantSearchLoading, setMemberTenantSearchLoading] = useState(false);
   const [memberTenantSearchError, setMemberTenantSearchError] = useState<string | null>(null);
   const [selectedMemberTenant, setSelectedMemberTenant] = useState<Tenant | null>(null);
+  const [memberTenantPage, setMemberTenantPage] = useState(1);
+  const [memberTenantTotal, setMemberTenantTotal] = useState(0);
+  const [memberTenantRefetch, setMemberTenantRefetch] = useState(0);
+  const MEMBER_TENANT_PAGE_SIZE = 20;
   const debouncedMemberTenantSearch = useDebounce(memberTenantSearch, 300);
 
   const [overview, setOverview] = useState<SystemOverview | null>(null);
@@ -1133,26 +1139,36 @@ export default function SystemAdminDashboard() {
   }, [activeTab, loadAllTenantsForSelector]);
 
   useEffect(() => {
-    if (!debouncedMemberTenantSearch.trim()) {
-      setMemberTenantOptions([]);
-      setMemberTenantSearchError(null);
-      return;
-    }
+    setMemberTenantPage(1);
+  }, [debouncedMemberTenantSearch]);
+
+  useEffect(() => {
+    if (activeTab !== 'members') return;
     let cancelled = false;
     setMemberTenantSearchLoading(true);
     setMemberTenantSearchError(null);
-    searchTenants({ searchTerm: debouncedMemberTenantSearch, pageSize: 20 })
-      .then(res => {
-        if (!cancelled) setMemberTenantOptions(res.tenants);
+    searchTenants({
+      searchTerm: debouncedMemberTenantSearch.trim(),
+      page: memberTenantPage,
+      pageSize: MEMBER_TENANT_PAGE_SIZE,
+    })
+      .then(async (res) => {
+        if (cancelled) return;
+        const credentialMap = await getTenantCredentials(res.tenants.map((t) => t.id)).catch(() => ({} as Record<string, TenantCredentials>));
+        setMemberTenantOptions(res.tenants.map((t) => ({
+          ...t,
+          adminEmail: credentialMap[t.id]?.adminEmail,
+        })));
+        setMemberTenantTotal(res.totalCount);
       })
       .catch(err => {
-        if (!cancelled) setMemberTenantSearchError(err?.message || 'Tìm kiếm thất bại.');
+        if (!cancelled) setMemberTenantSearchError(err?.message || 'Tải danh sách cửa hàng thất bại.');
       })
       .finally(() => {
         if (!cancelled) setMemberTenantSearchLoading(false);
       });
     return () => { cancelled = true; };
-  }, [debouncedMemberTenantSearch]);
+  }, [activeTab, debouncedMemberTenantSearch, memberTenantPage, memberTenantRefetch]);
 
   const tenants = result?.tenants ?? [];
   const counts = result?.counts;
@@ -1165,6 +1181,63 @@ export default function SystemAdminDashboard() {
     { label: 'Gần giới hạn', value: overview?.nearLimit ?? 0, icon: AlertTriangle, color: 'var(--color-warning-500)' },
     { label: 'Mới tháng này', value: overview?.newThisMonth ?? 0, icon: ShoppingBag, color: 'var(--color-success-500)' },
   ], [overview]);
+
+  const selectMemberTenant = useCallback((t: Tenant) => {
+    setMemberTenantId(t.id);
+    setSelectedMemberTenant(t);
+    setMemberTenantSearchError(null);
+  }, []);
+
+  const memberTenantColumns = useMemo<DataGridColumn<Tenant>[]>(() => [
+    {
+      key: 'name',
+      label: 'Tên',
+      render: (t) => <span className="text-sm text-gray-900">{t.name}</span>,
+    },
+    {
+      key: 'subdomain',
+      label: 'Subdomain',
+      render: (t) => <span className="text-sm text-gray-600">{t.subdomain}</span>,
+    },
+    {
+      key: 'adminEmail',
+      label: 'Email admin',
+      render: (t) => <span className="text-sm text-gray-600">{t.adminEmail || '-'}</span>,
+    },
+    {
+      key: 'plan',
+      label: 'Gói',
+      render: (t) => <span className="text-sm text-gray-600 uppercase">{planLabel(t.plan)}</span>,
+    },
+    {
+      key: 'status',
+      label: 'Trạng thái',
+      render: (t) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusClass(t.status)}`}>
+          {statusLabel(t.status)}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Thao tác',
+      width: '100px',
+      align: 'right',
+      sticky: 'right',
+      render: (t) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            selectMemberTenant(t);
+          }}
+          className="px-3 py-1.5 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg"
+        >
+          Chọn
+        </button>
+      ),
+    },
+  ], [selectMemberTenant]);
 
   const tabs: TabItem[] = [
     { id: 'overview', label: 'Tổng quan', icon: Home },
@@ -1764,74 +1837,59 @@ export default function SystemAdminDashboard() {
 
     {activeTab === 'members' && (
       <div className="space-y-6">
-        {/* Tenant selector */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Chọn cửa hàng</label>
-          <div className="relative w-full md:w-1/2">
-            <input
-              type="text"
-              value={memberTenantSearch}
-              onChange={(e) => {
-                setMemberTenantSearch(e.target.value);
-                if (selectedMemberTenant) {
-                  setSelectedMemberTenant(null);
-                  setMemberTenantId('');
-                }
-              }}
-              placeholder={selectedMemberTenant ? selectedMemberTenant.name : 'Tìm kiếm cửa hàng...'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {memberTenantSearchLoading && (
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400">Đang tải...</span>
-            )}
-            {memberTenantSearch.trim() && memberTenantOptions.length > 0 && (
-              <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 max-h-60 overflow-auto shadow-lg">
-                {memberTenantOptions.map(t => (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMemberTenantId(t.id);
-                        setSelectedMemberTenant(t);
-                        setMemberTenantSearch('');
-                        setMemberTenantOptions([]);
-                        setMemberTenantSearchError(null);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
-                    >
-                      {t.name} ({t.subdomain})
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {memberTenantSearch.trim() && !memberTenantSearchLoading && memberTenantOptions.length === 0 && (
-              <p className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 p-3 text-sm text-gray-500 shadow-lg">
-                Không tìm thấy cửa hàng.
-              </p>
-            )}
-          </div>
-          {memberTenantSearchError && (
-            <p className="mt-2 text-sm text-red-600">{memberTenantSearchError}</p>
-          )}
-          {selectedMemberTenant && (
-            <div className="mt-2 text-sm text-gray-600">
-              Đã chọn: <span className="font-medium text-gray-800">{selectedMemberTenant.name} ({selectedMemberTenant.subdomain})</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setMemberTenantId('');
-                  setSelectedMemberTenant(null);
-                  setMemberTenantSearch('');
-                  setMemberTenantOptions([]);
-                }}
-                className="ml-2 text-blue-600 hover:underline"
-              >
-                Xóa
-              </button>
-            </div>
-          )}
+        {/* Tenant grid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <DataGrid
+            embedded
+            data={memberTenantOptions}
+            columns={memberTenantColumns}
+            keyExtractor={(t) => t.id}
+            loading={memberTenantSearchLoading}
+            error={memberTenantSearchError}
+            onRetry={() => setMemberTenantRefetch((n) => n + 1)}
+            onRowClick={selectMemberTenant}
+            selectedRows={memberTenantId ? [memberTenantId] : []}
+            onSelectionChange={(ids) => {
+              const id = ids[0];
+              const t = memberTenantOptions.find((x) => x.id === id);
+              if (t) selectMemberTenant(t);
+            }}
+            pagination={{
+              currentPage: memberTenantPage,
+              totalPages: Math.max(1, Math.ceil(memberTenantTotal / MEMBER_TENANT_PAGE_SIZE)),
+              totalCount: memberTenantTotal,
+              pageSize: MEMBER_TENANT_PAGE_SIZE,
+              onPageChange: setMemberTenantPage,
+              showInfo: true,
+            }}
+            toolbar={{
+              searchValue: memberTenantSearch,
+              onSearchChange: (value) => setMemberTenantSearch(value),
+              searchPlaceholder: 'Tìm theo tên hoặc subdomain...',
+              showFilter: false,
+            }}
+            emptyTitle="Không tìm thấy cửa hàng"
+            emptyDescription="Thử tìm kiếm với từ khóa khác."
+            ariaLabel="Danh sách cửa hàng"
+          />
         </div>
+        {selectedMemberTenant && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span className="font-medium text-gray-800">Đã chọn: {selectedMemberTenant.name} ({selectedMemberTenant.subdomain})</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMemberTenantId('');
+                setSelectedMemberTenant(null);
+                setMemberTenantSearch('');
+                setMemberTenantPage(1);
+              }}
+              className="text-blue-600 hover:underline"
+            >
+              Xóa
+            </button>
+          </div>
+        )}
         <MemberManagement tenantId={memberTenantId} />
       </div>
     )}

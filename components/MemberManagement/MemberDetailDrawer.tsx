@@ -186,9 +186,10 @@ export const MemberDetailDrawer: React.FC<MemberDetailDrawerProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      {/* ponytail: z-index above DataGrid sticky header (--z-sticky: 200); use --z-modal equivalent. */}
+      <div className="fixed inset-0 z-[300] bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-md bg-white shadow-xl flex flex-col"
+        className="fixed top-0 right-0 bottom-0 z-[301] w-full max-w-md bg-white shadow-xl flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="member-detail-title"

@@ -199,7 +199,7 @@ supabase db push --linked --yes
   - `app_audit_log_action_check`: cho phép `EMAIL_FAILED`
 - [ ] Email test result: **BLOCKED** — Resend domain `mail.vietsalepro.com` chưa verify. Chi tiết lỗi: `{"statusCode":403,"message":"The mail.vietsalepro.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error"}`.
 - [x] `npm run lint`: **PASS** (tsc --noEmit exit 0, no output).
-- [ ] Commit hash: ___________
+- [x] Commit hash: `d57397ec1c6809c00023255cc7dfc67af8e0fb24`
 
 ---
 

@@ -17,6 +17,8 @@ import { StatusBadge, StatusBadgeType } from './StatusBadge';
 import { useDebounce } from '../hooks/useDebounce';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useToast } from './ToastContainer';
+import { Navigate } from 'react-router-dom';
+import { useTenant } from '../hooks/useTenant';
 import {
   MemberWithEmail,
   TenantRole,
@@ -88,8 +90,11 @@ export interface MemberManagementProps {
 }
 
 export const MemberManagement: React.FC<MemberManagementProps> = ({
-  tenantId,
+  tenantId: propTenantId,
+  isTenantAdmin,
 }) => {
+  const { tenant } = useTenant();
+  const tenantId = propTenantId ?? (isTenantAdmin ? tenant?.id : undefined);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<TenantRole | ''>('');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'active' | 'inactive' | ''>('');
@@ -448,6 +453,10 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
       </div>
     </div>
   ), [search, roleFilter, statusFilter, activeFilter, tenantId, roleOptions, statusOptions, activeOptions]);
+
+  if (isTenantAdmin && tenant?.plan !== 'vip') {
+    return <Navigate to="/settings" replace />;
+  }
 
   if (!tenantId) {
     return (

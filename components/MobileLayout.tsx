@@ -6,6 +6,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
+import { useTenant } from '../hooks/useTenant';
 import { ReadOnlyBanner } from './ReadOnlyBanner';
 import InAppMessageBanner from './InAppMessageBanner';
 import './MobileLayout.css';
@@ -18,6 +19,8 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const permissions = usePermissions();
+  const { tenant } = useTenant();
+  const canAccessMembers = permissions.canManageUsers && tenant?.plan === 'vip';
 
   const menuItems = [
     { section: 'Quản lý', items: [
@@ -34,9 +37,16 @@ export function MobileLayout({ children }: MobileLayoutProps) {
       { path: '/reports', label: 'Báo cáo', icon: BarChart3, color: 'bg-pink-100 text-pink-600', requires: 'canViewReports' as const },
       { path: '/tax', label: 'Thuế', icon: Receipt, color: 'bg-amber-100 text-amber-600', requires: 'canViewReports' as const },
     ]},
+    { section: 'Tài khoản', items: [
+      { path: '/members', label: 'Quản lý thành viên', icon: Users, color: 'bg-violet-100 text-violet-600', requires: 'canManageUsers' as const },
+    ]},
   ].map(group => ({
     ...group,
-    items: group.items.filter(item => !item.requires || permissions[item.requires]),
+    items: group.items.filter(item => {
+      if (item.requires && !permissions[item.requires]) return false;
+      if (item.path === '/members') return canAccessMembers;
+      return true;
+    }),
   })).filter(group => group.items.length > 0);
 
   return (

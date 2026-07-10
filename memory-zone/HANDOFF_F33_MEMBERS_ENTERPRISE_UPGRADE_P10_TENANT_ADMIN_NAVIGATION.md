@@ -49,9 +49,9 @@ Thêm route và menu "Quản lý thành viên" cho tenant admin, VIP only.
 
 ## Tiêu chí chấp nhận
 
-- [ ] Route `/members` hoạt động cho tenant admin.
-- [ ] Menu chỉ hiện với VIP + admin.
-- [ ] Free tenant không thấy menu và bị redirect/upsell nếu truy cập trực tiếp.
+- [x] Route `/members` hoạt động cho tenant admin.
+- [x] Menu chỉ hiện với VIP + admin.
+- [x] Free tenant không thấy menu và bị redirect/upsell nếu truy cập trực tiếp.
 
 ## Verify
 

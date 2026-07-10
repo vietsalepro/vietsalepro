@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LayoutDashboard, Package, Users, Truck, ShoppingCart, ArrowDownToLine, FileText, Menu, X, LogOut, User as UserIcon, Settings as SettingsIcon, Receipt, ChevronDown, TrendingUp, Sparkles, RotateCcw, ClipboardList, Trash2, ArrowLeftRight, BookOpen, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTenant } from '../hooks/useTenant';
 import { usePermissions } from '../hooks/usePermissions';
 import './AppTopbar.css';
 
@@ -54,6 +55,13 @@ const desktopMenuGroups: MenuGroup[] = [
       { path: '/audit-log', label: 'Nhật ký hoạt động', icon: Shield, requires: 'canViewAuditLogs' },
     ],
   },
+  {
+    label: 'Thành Viên',
+    icon: Users,
+    children: [
+      { path: '/members', label: 'Quản lý thành viên', icon: Users, requires: 'canManageUsers' },
+    ],
+  },
 ];
 
 // Mobile flat menu
@@ -71,6 +79,7 @@ const mobileMenuItems: MenuItem[] = [
   { path: '/stock-ledger', label: 'Sổ kho', icon: BookOpen, requires: 'canManageInventory' },
   { path: '/reports', label: 'Báo cáo', icon: TrendingUp, requires: 'canViewReports' },
   { path: '/audit-log', label: 'Nhật ký hoạt động', icon: Shield, requires: 'canViewAuditLogs' },
+  { path: '/members', label: 'Quản lý thành viên', icon: Users, requires: 'canManageUsers' },
 ];
 
 interface DropdownGroupProps {
@@ -140,8 +149,14 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ isOpen, setIsOpen, isLocke
   const { user, signOut } = useAuth();
   const location = useLocation();
   const permissions = usePermissions();
+  const { tenant } = useTenant();
 
-  const filterMenuItems = (items: MenuItem[]) => items.filter(item => !item.requires || permissions[item.requires]);
+  const canAccessMembers = permissions.canManageUsers && tenant?.plan === 'vip';
+  const filterMenuItems = (items: MenuItem[]) => items.filter(item => {
+    if (item.requires && !permissions[item.requires]) return false;
+    if (item.path === '/members') return canAccessMembers;
+    return true;
+  });
   const visibleDesktopGroups = desktopMenuGroups
     .map(group => ({ ...group, children: filterMenuItems(group.children) }))
     .filter(group => group.children.length > 0);

@@ -5,6 +5,8 @@ import {
   FileText, Receipt, RotateCcw, TrendingUp, ShoppingCart,
   Settings as SettingsIcon, X, Check, ClipboardList
 } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
+import { useTenant } from '../hooks/useTenant';
 import './FeaturePicker.css';
 
 export interface FeatureItem {
@@ -28,6 +30,7 @@ export const ALL_FEATURES: FeatureItem[] = [
   { path: '/return-orders', label: 'Trả hàng', icon: RotateCcw, gradient: 'linear-gradient(135deg, #F87171, #EF4444)' },
   { path: '/reports', label: 'Báo cáo', icon: TrendingUp, gradient: 'linear-gradient(135deg, #F472B6, #EC4899)' },
   { path: '/settings', label: 'Cài đặt', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #94A3B8, #64748B)' },
+  { path: '/members', label: 'Quản lý thành viên', icon: Users, gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
 ];
 
 // Core features that cannot be removed from the home screen (always locked)
@@ -41,6 +44,10 @@ interface FeaturePickerProps {
 }
 
 export function FeaturePicker({ visible, onClose, currentFeatures, onToggleFeature }: FeaturePickerProps) {
+  const permissions = usePermissions();
+  const { tenant } = useTenant();
+  const canAccessMembers = permissions.canManageUsers && tenant?.plan === 'vip';
+  const availableFeatures = ALL_FEATURES.filter(f => f.path !== '/members' || canAccessMembers);
   const selectedCount = currentFeatures.length;
 
   return (
@@ -86,7 +93,7 @@ export function FeaturePicker({ visible, onClose, currentFeatures, onToggleFeatu
             {/* Grid */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="grid grid-cols-3 gap-3">
-                {ALL_FEATURES.map((feature) => {
+                {availableFeatures.map((feature) => {
                   const Icon = feature.icon;
                   const isAdded = currentFeatures.includes(feature.path);
                   const isLocked = LOCKED_FEATURES.includes(feature.path);

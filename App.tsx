@@ -39,6 +39,7 @@ import { Login } from './pages/Login';
 import { BrandManagement } from './pages/BrandManagement';
 import { CategoryManagement } from './pages/CategoryManagement';
 import { StockLedger } from './pages/StockLedger';
+import { MemberManagement } from './components/MemberManagement';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import LandingPage from './pages/LandingPage';
@@ -1543,6 +1544,7 @@ function AppContent() {
         </div>
       } />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/members" element={<MemberManagement isTenantAdmin />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </>
   );

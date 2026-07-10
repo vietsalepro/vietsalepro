@@ -51,9 +51,10 @@ import {
   DataRetentionStatus,
   TenantFeatureFlags,
   DEFAULT_TENANT_FEATURE_FLAGS,
+  CreateTenantResult,
 } from '../types/tenant';
 import {
-  createTenantWithAdmin,
+  createTenantWithCredentials,
   searchTenants,
   SearchTenantsResult,
   updateTenant,
@@ -187,6 +188,15 @@ const MONTHLY_PRICE_VIP = 69000;
 
 const isValidSubdomain = (s: string): boolean =>
   /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(s) && s.length >= 3 && s.length <= 63;
+
+const slugify = (s: string): string =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 63);
 
 export const calculateProration = (
   currentPlan: string,
@@ -335,7 +345,16 @@ export default function SystemAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', subdomain: '', plan: 'free' });
+  const [form, setForm] = useState({
+    name: '',
+    subdomain: '',
+    plan: 'free',
+    adminEmail: '',
+    adminPassword: '',
+    generatePassword: true,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [createResult, setCreateResult] = useState<CreateTenantResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState({
     searchTerm: '',
@@ -462,9 +481,22 @@ export default function SystemAdminDashboard() {
     load(page, pageSize);
   }, [load, page, pageSize]);
 
+  const handleNameChange = (value: string) => {
+    setForm(prev => {
+      const next = { ...prev, name: value };
+      if (!prev.subdomain.trim()) {
+        next.subdomain = slugify(value);
+      }
+      return next;
+    });
+  };
+
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setCreateResult(null);
     const subdomain = form.subdomain.trim().toLowerCase();
     if (!form.name.trim()) {
       setError('Vui lòng nhập tên cửa hàng.');
@@ -478,15 +510,27 @@ export default function SystemAdminDashboard() {
       setError('Vui lòng kiểm tra subdomain và đảm bảo khả dụng.');
       return;
     }
+    if (!isValidEmail(form.adminEmail)) {
+      setError('Vui lòng nhập email admin hợp lệ.');
+      return;
+    }
+    if (!form.generatePassword && form.adminPassword.length < 6) {
+      setError('Mật khẩu phải có ít nhất 6 ký tự.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await createTenantWithAdmin({
+      const result = await createTenantWithCredentials({
         name: form.name.trim(),
         subdomain,
-        plan: form.plan,
+        plan: form.plan as TenantPlan,
+        adminEmail: form.adminEmail.trim(),
+        adminPassword: form.generatePassword ? undefined : form.adminPassword,
       });
-      setForm({ name: '', subdomain: '', plan: 'free' });
-      setPage(1);
+      setCreateResult(result);
+      setForm({ name: '', subdomain: '', plan: 'free', adminEmail: '', adminPassword: '', generatePassword: true });
+      setSubdomainCheck(null);
+      setShowPassword(false);
       await load(1, pageSize);
     } catch (err: any) {
       setError(err?.message || 'Tạo cửa hàng thất bại.');
@@ -1399,7 +1443,7 @@ export default function SystemAdminDashboard() {
               <input
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => handleNameChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Ví dụ: Cửa hàng Sữa Cậu Ba"
                 required
@@ -1444,6 +1488,65 @@ export default function SystemAdminDashboard() {
                 {PLANS.map(p => <option key={p} value={p}>{planLabel(p)}</option>)}
               </select>
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email admin shop</label>
+              <input
+                type="email"
+                value={form.adminEmail}
+                onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="admin@cuahang.com"
+                required
+              />
+            </div>
+            <div className="md:col-span-2 flex items-center gap-3">
+              <input
+                id="generatePassword"
+                type="checkbox"
+                checked={form.generatePassword}
+                onChange={(e) => setForm({ ...form, generatePassword: e.target.checked, adminPassword: '' })}
+                className="h-4 w-4"
+              />
+              <label htmlFor="generatePassword" className="text-sm text-gray-700">Tự động sinh mật khẩu</label>
+            </div>
+            {!form.generatePassword && (
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu admin</label>
+                <div className="flex gap-2">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.adminPassword}
+                    onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nhập ít nhất 6 ký tự"
+                    minLength={6}
+                    required={!form.generatePassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                  >
+                    {showPassword ? 'Ẩn' : 'Hiện'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+                      let pwd = '';
+                      for (let i = 0; i < 12; i++) {
+                        pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+                      }
+                      setForm({ ...form, adminPassword: pwd });
+                      setShowPassword(true);
+                    }}
+                    className="px-3 py-2 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg"
+                  >
+                    Sinh ngẫu nhiên
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="md:col-span-4">
               <button
                 type="submit"
@@ -1459,6 +1562,44 @@ export default function SystemAdminDashboard() {
               </button>
             </div>
           </form>
+
+          {createResult && (
+            <div className="mt-6 bg-green-50 border border-green-200 p-6 rounded-xl">
+              <h3 className="text-lg font-semibold text-green-800 mb-3">Tạo cửa hàng thành công</h3>
+              <div className="space-y-2 text-sm text-gray-800">
+                <p>Link đăng nhập: <a href={getTenantUrl(createResult.tenant.subdomain)} target="_blank" rel="noreferrer" className="text-blue-600 underline">{getTenantUrl(createResult.tenant.subdomain)}</a></p>
+                <p>Email admin: <strong>{createResult.adminUser.email}</strong></p>
+                <p className="flex items-center gap-2 flex-wrap">
+                  Mật khẩu:
+                  <code className="bg-white px-2 py-1 rounded border">{createResult.initialPassword}</code>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(createResult.initialPassword);
+                        addToast({ type: 'success', message: 'Đã copy mật khẩu vào clipboard' });
+                      } catch {
+                        alert('Không thể tự động copy. Vui lòng copy thủ công.');
+                      }
+                    }}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >Copy</button>
+                </p>
+              </div>
+              <div className="mt-4 flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => handleLoginAs(createResult.tenant)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >Đăng nhập với tư cách admin</button>
+                <button
+                  type="button"
+                  onClick={() => setCreateResult(null)}
+                  className="px-4 py-2 text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+                >Đóng</button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search & filters */}

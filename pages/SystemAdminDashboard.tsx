@@ -64,6 +64,7 @@ import {
   updateTenantSubscription,
   resetMonthlyOrderCounter,
   getAllTenants,
+  getTenantCredentials,
   getTenantMembersWithEmail,
   inviteMemberByEmail,
   updateMemberRole,
@@ -354,6 +355,7 @@ export default function SystemAdminDashboard() {
     generatePassword: true,
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [visiblePasswordIds, setVisiblePasswordIds] = useState<Set<string>>(new Set());
   const [createResult, setCreateResult] = useState<CreateTenantResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [filters, setFilters] = useState({
@@ -462,7 +464,15 @@ export default function SystemAdminDashboard() {
         page: p,
         pageSize: ps,
       });
-      setResult(res);
+      const credentialMap = await getTenantCredentials(res.tenants.map((t) => t.id));
+      setResult({
+        ...res,
+        tenants: res.tenants.map((t) => ({
+          ...t,
+          adminEmail: credentialMap[t.id]?.adminEmail,
+          adminInitialPassword: credentialMap[t.id]?.adminInitialPassword,
+        })),
+      });
     } catch (err: any) {
       setResult(null);
       setError(err?.message || 'Không thể tải danh sách cửa hàng.');
@@ -1003,17 +1013,23 @@ export default function SystemAdminDashboard() {
     setError(null);
     try {
       const list = await getAllTenants();
-      const headers = ['ID', 'Tên', 'Subdomain', 'Gói', 'Trạng thái', 'Owner ID', 'Ngày tạo', 'Ngày cập nhật'];
-      const rows = list.map(t => [
-        t.id,
-        t.name,
-        t.subdomain,
-        t.plan,
-        t.status,
-        t.ownerId ?? '',
-        t.createdAt ? new Date(t.createdAt).toLocaleString('vi-VN') : '',
-        t.updatedAt ? new Date(t.updatedAt).toLocaleString('vi-VN') : '',
-      ]);
+      const credentialMap = await getTenantCredentials(list.map((t) => t.id));
+      const headers = ['ID', 'Tên', 'Subdomain', 'Gói', 'Trạng thái', 'Owner ID', 'Email admin', 'Mật khẩu', 'Ngày tạo', 'Ngày cập nhật'];
+      const rows = list.map(t => {
+        const creds = credentialMap[t.id];
+        return [
+          t.id,
+          t.name,
+          t.subdomain,
+          t.plan,
+          t.status,
+          t.ownerId ?? '',
+          creds?.adminEmail ?? '',
+          creds?.adminInitialPassword ?? '',
+          t.createdAt ? new Date(t.createdAt).toLocaleString('vi-VN') : '',
+          t.updatedAt ? new Date(t.updatedAt).toLocaleString('vi-VN') : '',
+        ];
+      });
       const csv = [headers, ...rows]
         .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\r\n');
@@ -1667,6 +1683,8 @@ export default function SystemAdminDashboard() {
                 <tr>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Tên</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Subdomain</th>
+                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Email admin</th>
+                  <th className="px-6 py-3 text-sm font-medium text-gray-600">Mật khẩu</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Gói</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Cô lập</th>
                   <th className="px-6 py-3 text-sm font-medium text-gray-600">Trạng thái</th>
@@ -1687,6 +1705,46 @@ export default function SystemAdminDashboard() {
                       <tr>
                         <td className="px-6 py-4 text-sm text-gray-900">{t.name}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{t.subdomain}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{t.adminEmail || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {t.adminInitialPassword ? (
+                            <div className="flex items-center gap-2">
+                              <code className="bg-gray-100 px-2 py-1 rounded">
+                                {visiblePasswordIds.has(t.id) ? t.adminInitialPassword : '••••••••'}
+                              </code>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVisiblePasswordIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(t.id)) next.delete(t.id);
+                                    else next.add(t.id);
+                                    return next;
+                                  });
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                              >
+                                {visiblePasswordIds.has(t.id) ? 'Ẩn' : 'Hiện'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(t.adminInitialPassword || '');
+                                    addToast({ type: 'success', message: 'Đã copy mật khẩu vào clipboard' });
+                                  } catch {
+                                    addToast({ type: 'error', message: 'Không thể tự động copy mật khẩu' });
+                                  }
+                                }}
+                                className="text-xs text-green-600 hover:text-green-800 underline"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <span className="uppercase">{planLabel(t.plan)}</span>
@@ -1785,7 +1843,7 @@ export default function SystemAdminDashboard() {
                       </tr>
                       {isExpanded && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-4 bg-gray-50">
+                          <td colSpan={8} className="px-6 py-4 bg-gray-50">
                             {usageLoading && !usage ? (
                               <p className="text-sm text-gray-600">Đang tải usage...</p>
                             ) : usage ? (
@@ -1837,7 +1895,7 @@ export default function SystemAdminDashboard() {
                 })}
                 {tenants.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                       Không tìm thấy cửa hàng nào.
                     </td>
                   </tr>

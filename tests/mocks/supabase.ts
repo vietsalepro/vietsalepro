@@ -45,6 +45,7 @@ const store: Record<string, Row[]> = {
   tenant_registration_events: [],
   processed_operations: [],
   heavy_ops_jobs: [],
+  tenant_credentials: [],
 };
 
 export const resetMockData = () => {
@@ -153,6 +154,7 @@ interface QueryState {
   operation: 'select' | 'insert' | 'update' | 'delete' | 'upsert';
   filters: Record<string, any>;
   ilikeFilters: Record<string, string>;
+  inFilters: Record<string, any[]>;
   gteFilters: Record<string, any>;
   lteFilters: Record<string, any>;
   selectColumns: string;
@@ -181,6 +183,8 @@ const executeQuery = (state: QueryState) => {
       rows = rows.filter(r => r.user_id === currentUserId || canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
+    } else if (table === 'tenant_credentials') {
+      if (!isSystemAdmin) rows = [];
     } else if (adminOnlyTables.includes(table)) {
       if (!isSystemAdmin) rows = [];
     } else if (table === 'invoice_reminder_logs') {
@@ -194,6 +198,9 @@ const executeQuery = (state: QueryState) => {
 
   for (const [field, value] of Object.entries(state.filters)) {
     rows = rows.filter(r => r[field] === value);
+  }
+  for (const [field, values] of Object.entries(state.inFilters)) {
+    rows = rows.filter(r => values.includes(r[field]));
   }
   for (const [field, pattern] of Object.entries(state.ilikeFilters)) {
     const term = pattern.replace(/^%|%$/g, '').toLowerCase();
@@ -268,6 +275,8 @@ const executeQuery = (state: QueryState) => {
       }
     } else if (table === 'tenants') {
       // allowed
+    } else if (table === 'tenant_credentials') {
+      if (!isSystemAdmin) return { data: null, error: rlsError() };
     } else if (table === 'tenant_subscriptions') {
       const row = values[0];
       if (!canAccessTenant(row.tenant_id) && !isSystemAdmin) {
@@ -345,7 +354,7 @@ const executeQuery = (state: QueryState) => {
 };
 
 const queryBuilder = (table: string): any => {
-  const state: QueryState = { table, operation: 'select', filters: {}, ilikeFilters: {}, gteFilters: {}, lteFilters: {}, selectColumns: '*', single: false };
+  const state: QueryState = { table, operation: 'select', filters: {}, ilikeFilters: {}, inFilters: {}, gteFilters: {}, lteFilters: {}, selectColumns: '*', single: false };
   const builder = {
     select: (cols: string | object = '*', options?: { count?: 'exact' | 'estimated' | 'planned'; head?: boolean }) => {
       if (typeof cols === 'string') state.selectColumns = cols;
@@ -365,6 +374,7 @@ const queryBuilder = (table: string): any => {
     upsert: (values: any) => { state.operation = 'upsert'; state.upsertValues = Array.isArray(values) ? values : [values]; return builder; },
     eq: (field: string, value: any) => { state.filters[field] = value; return builder; },
     ilike: (field: string, pattern: string) => { state.ilikeFilters[field] = pattern; return builder; },
+    in: (field: string, values: any[]) => { state.inFilters[field] = values; return builder; },
     gte: (field: string, value: any) => { state.gteFilters[field] = value; return builder; },
     lte: (field: string, value: any) => { state.lteFilters[field] = value; return builder; },
     range: (from: number, to: number) => { state.rangeStart = from; state.rangeEnd = to; return builder; },

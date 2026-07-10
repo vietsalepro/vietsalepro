@@ -6,8 +6,9 @@ vi.mock('../../lib/supabase', async () => {
   return { supabase: mockSupabase };
 });
 
-import { createTenantWithCredentials } from '../../services/tenantService';
+import { createTenantWithCredentials, getTenantCredentials } from '../../services/tenantService';
 import { supabase } from '../../lib/supabase';
+import { addMockRow, setSystemAdmin } from '../mocks/supabase';
 
 const mockTenant = (overrides: Partial<Record<string, unknown>> = {}) => ({
   id: 'tenant-1',
@@ -166,5 +167,43 @@ describe('createTenantWithCredentials', () => {
         adminEmail: 'admin@shop.com',
       })
     ).rejects.toThrow('Phản hồi tạo cửa hàng không hợp lệ');
+  });
+});
+
+describe('getTenantCredentials', () => {
+  beforeEach(() => {
+    resetMockData();
+    setSystemAdmin(true);
+  });
+
+  it('returns credentials for given tenant ids', async () => {
+    addMockRow('tenant_credentials', {
+      tenant_id: 'tenant-1',
+      admin_email: 'admin@shop.com',
+      admin_initial_password: 'secret-pass-123',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    addMockRow('tenant_credentials', {
+      tenant_id: 'tenant-2',
+      admin_email: 'admin@other.com',
+      admin_initial_password: 'other-pass-456',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    const map = await getTenantCredentials(['tenant-1', 'tenant-3']);
+
+    expect(Object.keys(map)).toHaveLength(1);
+    expect(map['tenant-1']).toEqual({
+      tenantId: 'tenant-1',
+      adminEmail: 'admin@shop.com',
+      adminInitialPassword: 'secret-pass-123',
+    });
+  });
+
+  it('returns empty map for empty input', async () => {
+    const map = await getTenantCredentials([]);
+    expect(map).toEqual({});
   });
 });

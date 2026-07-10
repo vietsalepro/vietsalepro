@@ -35,6 +35,8 @@ export const mapTenantFromDB = (row: any): Tenant => ({
   whiteLabel: row.white_label || {},
   readReplicaUrl: row.read_replica_url,
   connectionPoolConfig: row.connection_pool_config || {},
+  adminEmail: row.admin_email,
+  adminInitialPassword: row.admin_initial_password,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   archivedAt: row.archived_at,
@@ -132,6 +134,30 @@ export async function getAllTenants(): Promise<Tenant[]> {
   const { data, error } = await supabase.from('tenants').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []).map(mapTenantFromDB);
+}
+
+export interface TenantCredentials {
+  tenantId: string;
+  adminEmail: string;
+  adminInitialPassword: string;
+}
+
+export async function getTenantCredentials(tenantIds: string[]): Promise<Record<string, TenantCredentials>> {
+  if (tenantIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('tenant_credentials')
+    .select('tenant_id, admin_email, admin_initial_password')
+    .in('tenant_id', tenantIds);
+  if (error) throw error;
+  const map: Record<string, TenantCredentials> = {};
+  (data || []).forEach((row: any) => {
+    map[row.tenant_id] = {
+      tenantId: row.tenant_id,
+      adminEmail: row.admin_email,
+      adminInitialPassword: row.admin_initial_password,
+    };
+  });
+  return map;
 }
 
 export interface CreateTenantInput {

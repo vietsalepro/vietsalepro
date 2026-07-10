@@ -31,6 +31,8 @@ export interface Tenant {
   whiteLabel?: TenantWhiteLabel;
   readReplicaUrl?: string;
   connectionPoolConfig?: Record<string, any>;
+  adminEmail?: string;
+  adminInitialPassword?: string;
   createdAt?: string;
   updatedAt?: string;
   archivedAt?: string;

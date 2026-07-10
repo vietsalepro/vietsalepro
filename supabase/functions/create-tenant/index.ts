@@ -198,6 +198,14 @@ serve(async (req) => {
       });
       if (membershipError) throw membershipError;
 
+      // Store admin credentials for system admin dashboard lookup.
+      const { error: credentialsError } = await supabaseAdmin.from('tenant_credentials').insert({
+        tenant_id: tenant.id as string,
+        admin_email: adminUser.email as string,
+        admin_initial_password: initialPassword,
+      });
+      if (credentialsError) throw credentialsError;
+
       // Manual audit log (trigger not attached yet).
       const { error: auditError } = await supabaseAdmin.from('app_audit_log').insert({
         tenant_id: tenant.id as string,

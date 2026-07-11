@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { checkIsSystemAdmin, checkIsTenantOwner } from '../_shared/permissions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -259,22 +260,18 @@ serve(async (req) => {
       return jsonResponse({ error: 'Invalid token' }, 401);
     }
 
-    const { data: adminRow, error: adminError } = await supabaseAdmin
-      .from('system_admins')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (adminError) throw adminError;
-    if (!adminRow) {
-      return jsonResponse({ error: 'Only system admins can delete tenants' }, 403);
-    }
-
     const body = await req.json().catch(() => ({}));
     const tenantId = (body.tenant_id ?? body.tenantId)?.toString().trim();
     const force = body.force === true;
 
     if (!tenantId || !UUID_REGEX.test(tenantId)) {
       return jsonResponse({ error: 'tenant_id không hợp lệ' }, 400);
+    }
+
+    const isAdmin = await checkIsSystemAdmin(supabaseAdmin, user.id);
+    const isOwner = await checkIsTenantOwner(supabaseAdmin, tenantId, user.id);
+    if (!isAdmin && !isOwner) {
+      return jsonResponse({ error: 'Only system admins or tenant owners can delete tenants' }, 403);
     }
 
     // Check tenant exists

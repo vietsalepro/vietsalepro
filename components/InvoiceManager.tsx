@@ -25,11 +25,10 @@ import { applyVoucherToInvoice, getPromoCodeUsagesByInvoiceId } from '../service
 
 const statusLabel = (status: Invoice['status']) => {
   switch (status) {
-    case 'pending': return 'Chờ thanh toán';
-    case 'overdue': return 'Quá hạn';
-    case 'expired': return 'Hết hạn';
+    case 'open': return 'Chưa thanh toán';
     case 'paid': return 'Đã thanh toán';
-    case 'cancelled': return 'Đã hủy';
+    case 'void': return 'Đã hủy';
+    case 'uncollectible': return 'Không thu được';
     case 'draft': return 'Nháp';
     default: return status;
   }
@@ -38,10 +37,9 @@ const statusLabel = (status: Invoice['status']) => {
 const statusBadgeClass = (status: Invoice['status']) => {
   switch (status) {
     case 'paid': return 'bg-green-100 text-green-700';
-    case 'pending': return 'bg-amber-100 text-amber-700';
-    case 'overdue': return 'bg-red-100 text-red-700';
-    case 'expired': return 'bg-gray-200 text-gray-600';
-    case 'cancelled': return 'bg-gray-100 text-gray-500';
+    case 'open': return 'bg-amber-100 text-amber-700';
+    case 'void': return 'bg-gray-100 text-gray-500';
+    case 'uncollectible': return 'bg-red-100 text-red-700';
     case 'draft': return 'bg-blue-50 text-blue-700';
     default: return 'bg-gray-100 text-gray-700';
   }
@@ -52,8 +50,8 @@ const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString('vi-VN') :
 
 const countdownText = (dueDate: string, status: Invoice['status'], now: number) => {
   if (status === 'paid') return 'Đã thanh toán';
-  if (status === 'cancelled') return 'Đã hủy';
-  if (status === 'expired') return 'Hết hạn';
+  if (status === 'void') return 'Đã hủy';
+  if (status === 'uncollectible') return 'Không thu được';
   if (status === 'draft') return 'Nháp';
   const due = new Date(dueDate + 'T00:00:00').getTime();
   const diff = due - now;
@@ -269,11 +267,10 @@ export default function InvoiceManager() {
           className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">Tất cả trạng thái</option>
-          <option value="pending">Chờ thanh toán</option>
+          <option value="open">Chưa thanh toán</option>
           <option value="paid">Đã thanh toán</option>
-          <option value="overdue">Quá hạn</option>
-          <option value="expired">Hết hạn</option>
-          <option value="cancelled">Đã hủy</option>
+          <option value="void">Đã hủy</option>
+          <option value="uncollectible">Không thu được</option>
           <option value="draft">Nháp</option>
         </select>
       </div>
@@ -314,7 +311,7 @@ export default function InvoiceManager() {
                   </td>
                   <td className="px-3 py-3 text-gray-700">{formatDate(invoice.dueDate)}</td>
                   <td className="px-3 py-3 text-gray-700">
-                    <span className={`inline-flex items-center gap-1 ${invoice.status === 'overdue' || (invoice.status === 'pending' && new Date(invoice.dueDate + 'T00:00:00').getTime() < now) ? 'text-red-600 font-medium' : ''}`}>
+                    <span className={`inline-flex items-center gap-1 ${invoice.status === 'open' && new Date(invoice.dueDate + 'T00:00:00').getTime() < now ? 'text-red-600 font-medium' : ''}`}>
                       <Clock className="w-3.5 h-3.5" />
                       {countdownText(invoice.dueDate, invoice.status, now)}
                     </span>
@@ -342,7 +339,7 @@ export default function InvoiceManager() {
                 Chi tiết hóa đơn {selectedInvoice.invoiceNo}
               </h3>
               <div className="flex items-center gap-2">
-                {!['paid', 'cancelled', 'draft'].includes(selectedInvoice.status) && (
+                {!['paid', 'void', 'uncollectible', 'draft'].includes(selectedInvoice.status) && (
                   <button
                     onClick={handleSendReminder}
                     disabled={sendingEmail || detailLoading}
@@ -480,7 +477,7 @@ export default function InvoiceManager() {
                       <div className="text-sm text-green-700 bg-green-50 p-3 rounded-lg border border-green-100">
                         Đã áp dụng voucher cho hóa đơn này.
                       </div>
-                    ) : ['draft', 'pending'].includes(selectedInvoice.status) ? (
+                    ) : ['draft', 'open'].includes(selectedInvoice.status) ? (
                       <form onSubmit={handleApplyVoucher} className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"

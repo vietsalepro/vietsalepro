@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, Wallet, Calendar, RefreshCw } from 'lucide-react';
-import { getRevenueMetrics } from '../services/billingAutomationService';
+import { getRevenueMetrics as defaultGetRevenueMetrics } from '../services/billingAutomationService';
 import type { RevenueMetrics as RevenueMetricsData } from '../types/billing';
 
 const currency = (n: number) =>
@@ -36,7 +36,11 @@ function KpiCard({
   );
 }
 
-export default function RevenueMetrics() {
+interface RevenueMetricsProps {
+  loader?: () => Promise<RevenueMetricsData>;
+}
+
+export default function RevenueMetrics({ loader }: RevenueMetricsProps) {
   const [metrics, setMetrics] = useState<RevenueMetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +49,7 @@ export default function RevenueMetrics() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getRevenueMetrics();
+      const data = await (loader || defaultGetRevenueMetrics)();
       setMetrics(data);
     } catch (err: any) {
       setError(err?.message || 'Không thể tải chỉ số doanh thu.');
@@ -56,7 +60,8 @@ export default function RevenueMetrics() {
 
   useEffect(() => {
     load();
-  }, []);
+    // ponytail: loader changes should refresh the data.
+  }, [loader]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

@@ -46,7 +46,7 @@ describe('smoke: admin dashboard P9.2 billing automation dashboard', () => {
     const { getMockRows } = await import('../mocks/supabase');
     const invoices = getMockRows('invoices') as any[];
     const row = invoices.find(i => i.id === invoice.id);
-    if (row) row.status = 'expired';
+    if (row) row.status = 'uncollectible';
 
     const subs = getMockRows('tenant_subscriptions') as any[];
     const sub = subs.find(s => s.tenant_id === tenant.id);
@@ -54,7 +54,7 @@ describe('smoke: admin dashboard P9.2 billing automation dashboard', () => {
 
     const status = await getBillingAutomationStatus();
     expect(status.overdueInvoiceCount).toBe(1);
-    expect(status.overdueInvoices[0].status).toBe('expired');
+    expect(status.overdueInvoices[0].status).toBe('uncollectible');
     expect(status.dunningTenantCount).toBeGreaterThanOrEqual(1);
   });
 

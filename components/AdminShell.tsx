@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { AdminSidebar, SidebarSection } from './AdminSidebar';
+import { AdminDashboardHeader } from './admin/AdminDashboardHeader';
+import { AdminSettingsNav } from './admin/AdminSettingsNav';
 import './AdminShell.css';
 
 /* ─── Types ─────────────────────────────────────────── */
@@ -147,17 +149,11 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             </nav>
           )}
 
-          {/* Page header */}
-          {(pageTitle || pageDescription) && (
-            <div className="admin-shell__page-header">
-              {pageTitle && (
-                <h1 className="admin-shell__page-title">{pageTitle}</h1>
-              )}
-              {pageDescription && (
-                <p className="admin-shell__page-description">{pageDescription}</p>
-              )}
-            </div>
-          )}
+          {/* Dashboard header with account selector and user button */}
+          <AdminDashboardHeader title={pageTitle} description={pageDescription} />
+
+          {/* Settings sub-navigation on settings page */}
+          {activeSidebarItem === 'settings' && <AdminSettingsNav />}
 
           {/* Slot children */}
           {children}

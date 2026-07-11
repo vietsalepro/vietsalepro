@@ -30,7 +30,7 @@ import {
   toggleMemberActive,
   removeMember,
   resetMemberPassword,
-} from '../services/tenantService';
+} from '../services/admin/memberAdminService';
 import { MemberInviteModal } from './MemberManagement/MemberInviteModal';
 import { MemberBulkActions } from './MemberManagement/MemberBulkActions';
 import { MemberDetailDrawer } from './MemberManagement/MemberDetailDrawer';

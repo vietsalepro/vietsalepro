@@ -11,7 +11,7 @@ import {
   deleteBankAccount,
   getCompanyInfo,
   setCompanyInfo,
-} from '../services/bankAccountService';
+} from '../services/admin/billingAdminService';
 import InvoiceCreator from './InvoiceCreator';
 import InvoiceManager from './InvoiceManager';
 import InvoicePaymentConfirm from './InvoicePaymentConfirm';

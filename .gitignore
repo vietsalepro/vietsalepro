@@ -26,3 +26,6 @@ dist-ssr
 # Supabase local CLI state
 supabase/.temp/
 .vercel
+
+# Deployment backups
+backups/

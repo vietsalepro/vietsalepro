@@ -4,7 +4,8 @@ import { MasterModal } from '../MasterModal';
 import { SelectInput } from '../SelectInput';
 import { ActionButton } from '../ActionButton';
 import { TenantRole, MemberWithEmail, UsageSummary } from '../../types/tenant';
-import { bulkInviteMembers, getUsageSummary } from '../../services/tenantService';
+import { bulkInviteMembers } from '../../services/admin/memberAdminService';
+import { getUsageSummary } from '../../services/tenantService';
 
 interface MemberInviteModalProps {
   tenantId: string;

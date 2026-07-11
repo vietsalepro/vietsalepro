@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2, Lock, Mail, Store, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,13 +14,21 @@ const isAdminLoginRoute = () => {
   return host.startsWith('admin.') || pathname.startsWith('/admin');
 };
 
-export const Login = () => {
+interface LoginProps {
+  redirectTo?: string;
+}
+
+export const Login: React.FC<LoginProps> = ({ redirectTo: redirectToProp }) => {
   const { setMfaPending } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const redirectTo = redirectToProp || searchParams.get('redirectTo') || undefined;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +47,8 @@ export const Login = () => {
       const { required } = await isMfaRequired();
       if (required) {
         setMfaPending(true);
+      } else if (redirectTo) {
+        navigate(redirectTo, { replace: true });
       }
     } catch (err: any) {
       setError(err.message || 'Đăng nhập thất bại');

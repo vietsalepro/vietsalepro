@@ -26,11 +26,11 @@ describe('smoke: admin dashboard P7.3 payment confirm + lifecycle', () => {
     setSystemAdmin(true);
   });
 
-  it('xác nhận thanh toán hóa đơn pending → hóa đơn paid + tenant active + subscription ok', async () => {
+  it('xác nhận thanh toán hóa đơn open → hóa đơn paid + tenant active + subscription ok', async () => {
     const tenant = await createTenantWithAdmin({ name: 'Shop A', subdomain: 'shop-a' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
 
-    expect(invoice.status).toBe('pending');
+    expect(invoice.status).toBe('open');
 
     const payment = await confirmPayment({ invoiceId: invoice.id });
 
@@ -46,13 +46,13 @@ describe('smoke: admin dashboard P7.3 payment confirm + lifecycle', () => {
     expect(refreshedTenant?.status).toBe('active');
   });
 
-  it('xác nhận thanh toán hóa đơn expired → kích hoạt lại tenant read_only', async () => {
+  it('xác nhận thanh toán hóa đơn quá hạn → kích hoạt lại tenant read_only', async () => {
     const tenant = await createTenantWithAdmin({ name: 'Shop B', subdomain: 'shop-b' });
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 2, bonusMonths: 1 });
 
-    // Giả lập hóa đơn hết hạn và tenant bị read_only (như cron P7.5 sẽ làm)
+    // Giả lập hóa đơn quá hạn và tenant bị read_only (như cron P7.5 sẽ làm)
     const invoiceRow = getMockRows('invoices').find(i => i.id === invoice.id);
-    if (invoiceRow) invoiceRow.status = 'expired';
+    if (invoiceRow) invoiceRow.status = 'open';
     const tenantRow = getMockRows('tenants').find(t => t.id === tenant.id);
     if (tenantRow) tenantRow.status = 'read_only';
 

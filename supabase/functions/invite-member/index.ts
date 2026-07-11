@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { checkIsSystemAdmin, checkIsTenantAdmin } from '../_shared/permissions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -125,25 +126,12 @@ serve(async (req) => {
     });
     if (logError) throw logError;
 
-    // Caller authorization: system admin or tenant admin.
-    const { data: adminRow, error: adminError } = await supabaseAdmin
-      .from('system_admins')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (adminError) throw adminError;
-
-    if (!adminRow) {
-      const { data: tenantAdmin, error: tenantAdminError } = await supabaseAdmin
-        .from('tenant_memberships')
-        .select('id')
-        .eq('tenant_id', tenant_id)
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      if (tenantAdminError) throw tenantAdminError;
-      if (!tenantAdmin) {
-        return jsonResponse({ error: 'Chỉ admin của tenant hoặc system admin được mời nhân viên' }, 403);
+    // Caller authorization: system admin or tenant admin/owner.
+    const isSystemAdmin = await checkIsSystemAdmin(supabaseAdmin, user.id);
+    if (!isSystemAdmin) {
+      const isTenantAdmin = await checkIsTenantAdmin(supabaseAdmin, tenant_id, user.id);
+      if (!isTenantAdmin) {
+        return jsonResponse({ error: 'Chỉ admin/owner của tenant hoặc system admin được mời nhân viên' }, 403);
       }
     }
 

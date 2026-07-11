@@ -133,6 +133,15 @@ export async function getAllInvoices(): Promise<InvoiceWithTenant[]> {
   }));
 }
 
+export async function getAllPayments(): Promise<Payment[]> {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapPaymentFromDB);
+}
+
 export async function getInvoiceById(id: string): Promise<InvoiceDetail | null> {
   const { data: invoiceRow, error: invoiceError } = await supabase
     .from('invoices')

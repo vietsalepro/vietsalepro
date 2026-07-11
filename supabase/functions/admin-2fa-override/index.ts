@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { checkIsSystemAdmin } from '../_shared/permissions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,23 +59,14 @@ serve(async (req) => {
     }
 
     // Caller và approver đều phải là system admin
-    const { data: callerAdmin, error: callerAdminError } = await supabaseAdmin
-      .from('system_admins')
-      .select('user_id')
-      .eq('user_id', caller.id)
-      .maybeSingle();
-    if (callerAdminError) throw callerAdminError;
-    if (!callerAdmin) {
+    const [isCallerAdmin, isApproverAdmin] = await Promise.all([
+      checkIsSystemAdmin(supabaseAdmin, caller.id),
+      checkIsSystemAdmin(supabaseAdmin, approved_by_user_id),
+    ]);
+    if (!isCallerAdmin) {
       return jsonResponse({ error: 'Chỉ system admin mới được thực hiện override' }, 403);
     }
-
-    const { data: approverAdmin, error: approverAdminError } = await supabaseAdmin
-      .from('system_admins')
-      .select('user_id')
-      .eq('user_id', approved_by_user_id)
-      .maybeSingle();
-    if (approverAdminError) throw approverAdminError;
-    if (!approverAdmin) {
+    if (!isApproverAdmin) {
       return jsonResponse({ error: 'Người phê duyệt không phải system admin' }, 403);
     }
 

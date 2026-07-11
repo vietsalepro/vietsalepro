@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams, Link, Outlet } from 'react-router-dom';
 
 function MobileSharedLayout() {
@@ -63,8 +63,32 @@ import { Loader2, Package, Truck, ArrowDownToLine, Settings as SettingsIcon, Log
 import { useNewAppShell } from './features';
 import { AppError } from './utils/errors';
 import { ToastProvider } from './components/ToastContainer';
+import LoadingState from './components/LoadingState';
 
-const SystemAdminDashboard = React.lazy(() => import('./pages/SystemAdminDashboard'));
+const AdminLayout = React.lazy(() => import('./pages/admin/AdminLayout'));
+const AdminOverview = React.lazy(() => import('./pages/admin/Overview'));
+const AdminTenants = React.lazy(() => import('./pages/admin/Tenants'));
+const AdminTenantDetail = React.lazy(() => import('./pages/admin/TenantDetail'));
+const AdminMembers = React.lazy(() => import('./pages/admin/Members'));
+const AdminBilling = React.lazy(() => import('./pages/admin/Billing'));
+const AdminBillingInvoices = React.lazy(() => import('./pages/admin/BillingInvoices'));
+const AdminBillingPayments = React.lazy(() => import('./pages/admin/BillingPayments'));
+const AdminAudit = React.lazy(() => import('./pages/admin/Audit'));
+const AdminSettings = React.lazy(() => import('./pages/admin/Settings'));
+const AdminSecurity = React.lazy(() => import('./pages/admin/Security'));
+const AdminHealth = React.lazy(() => import('./pages/admin/Health'));
+const AdminAnalytics = React.lazy(() => import('./pages/admin/Analytics'));
+const AdminCompliance = React.lazy(() => import('./pages/admin/Compliance'));
+const AdminOnboarding = React.lazy(() => import('./pages/admin/Onboarding'));
+import InvitationsAccept from './pages/admin/InvitationsAccept';
+
+function AdminSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<LoadingState message="Đang tải trang quản trị..." />}>
+      {children}
+    </Suspense>
+  );
+}
 
 function CustomersWrapper(props: any) {
   const [searchParams] = useSearchParams();
@@ -1300,6 +1324,17 @@ function AppContent() {
     return <MfaChallenge />;
   }
 
+  // ponytail: route accept invitation cần truy cập bởi mọi user đã đăng nhập,
+  // không phụ thuộc system admin role hay tenant membership.
+  if (location.pathname === '/admin/invitations/accept') {
+    if (!user) return <Login redirectTo={location.pathname + location.search} />;
+    return (
+      <ToastProvider>
+        <InvitationsAccept />
+      </ToastProvider>
+    );
+  }
+
   const subdomain = getSubdomain();
   const isAdminPath = location.pathname.startsWith('/admin');
 
@@ -1309,13 +1344,26 @@ function AppContent() {
     if (!isSystemAdmin) return <TenantForbiddenPage />;
     return (
       <ToastProvider>
-        <React.Suspense fallback={
-          <div className="flex items-center justify-center h-screen bg-gray-50">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-          </div>
-        }>
-          <SystemAdminDashboard />
-        </React.Suspense>
+        <Routes>
+          <Route path="/admin" element={<Navigate to="/admin/overview" replace />} />
+          <Route path="/admin/*" element={<AdminSuspense><AdminLayout /></AdminSuspense>}>
+            <Route index element={<Navigate to="/admin/overview" replace />} />
+            <Route path="overview" element={<AdminSuspense><AdminOverview /></AdminSuspense>} />
+            <Route path="tenants" element={<AdminSuspense><AdminTenants /></AdminSuspense>} />
+            <Route path="tenants/:id" element={<AdminSuspense><AdminTenantDetail /></AdminSuspense>} />
+            <Route path="members" element={<AdminSuspense><AdminMembers /></AdminSuspense>} />
+            <Route path="billing" element={<AdminSuspense><AdminBilling /></AdminSuspense>} />
+            <Route path="billing/invoices" element={<AdminSuspense><AdminBillingInvoices /></AdminSuspense>} />
+            <Route path="billing/payments" element={<AdminSuspense><AdminBillingPayments /></AdminSuspense>} />
+            <Route path="audit" element={<AdminSuspense><AdminAudit /></AdminSuspense>} />
+            <Route path="settings" element={<AdminSuspense><AdminSettings /></AdminSuspense>} />
+            <Route path="security" element={<AdminSuspense><AdminSecurity /></AdminSuspense>} />
+            <Route path="health" element={<AdminSuspense><AdminHealth /></AdminSuspense>} />
+            <Route path="analytics" element={<AdminSuspense><AdminAnalytics /></AdminSuspense>} />
+            <Route path="compliance" element={<AdminSuspense><AdminCompliance /></AdminSuspense>} />
+            <Route path="onboarding" element={<AdminSuspense><AdminOnboarding /></AdminSuspense>} />
+          </Route>
+        </Routes>
       </ToastProvider>
     );
   }

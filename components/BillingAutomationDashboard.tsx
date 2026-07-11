@@ -53,9 +53,9 @@ const statusClass = (status: string) => {
 const invoiceStatusClass = (status: string) => {
   switch (status) {
     case 'paid': return 'bg-green-100 text-green-700';
-    case 'pending': return 'bg-amber-100 text-amber-700';
-    case 'overdue': return 'bg-orange-100 text-orange-700';
-    case 'expired': return 'bg-red-100 text-red-700';
+    case 'open': return 'bg-amber-100 text-amber-700';
+    case 'void': return 'bg-gray-100 text-gray-500';
+    case 'uncollectible': return 'bg-red-100 text-red-700';
     default: return 'bg-gray-100 text-gray-700';
   }
 };

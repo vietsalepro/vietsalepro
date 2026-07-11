@@ -571,3 +571,6 @@ verify_jwt = false
 
 [functions.send-ticket-email]
 verify_jwt = false
+
+[functions.billing-webhooks]
+verify_jwt = false

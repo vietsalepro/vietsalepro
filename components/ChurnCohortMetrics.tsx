@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Cell,
 } from 'recharts';
-import { getChurnCohortMetrics } from '../services/billingAutomationService';
+import { getChurnCohortMetrics as defaultGetChurnCohortMetrics } from '../services/billingAutomationService';
 import type { ChurnCohortMetrics as MetricsData } from '../types/billing';
 
 const currency = (n: number) => `${Math.round(n).toLocaleString('vi-VN')} ₫`;
@@ -43,7 +43,11 @@ function KpiCard({
   );
 }
 
-export default function ChurnCohortMetrics() {
+interface ChurnCohortMetricsProps {
+  loader?: () => Promise<MetricsData>;
+}
+
+export default function ChurnCohortMetrics({ loader }: ChurnCohortMetricsProps) {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +56,7 @@ export default function ChurnCohortMetrics() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getChurnCohortMetrics();
+      const data = await (loader || defaultGetChurnCohortMetrics)();
       setMetrics(data);
     } catch (err: any) {
       setError(err?.message || 'Không thể tải chỉ số churn/cohort.');
@@ -63,7 +67,7 @@ export default function ChurnCohortMetrics() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [loader]);
 
   const funnelData = useMemo(() => {
     if (!metrics) return [];

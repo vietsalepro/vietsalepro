@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { checkIsSystemAdmin } from '../_shared/permissions.ts';
 
 // Security best practices:
 // - Passwords are never logged or returned in responses
@@ -87,13 +88,8 @@ serve(async (req) => {
     }
 
     // System admin check.
-    const { data: adminRow, error: adminError } = await supabaseAdmin
-      .from('system_admins')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (adminError) throw adminError;
-    if (!adminRow) {
+    const isAdmin = await checkIsSystemAdmin(supabaseAdmin, user.id);
+    if (!isAdmin) {
       return jsonResponse({ error: 'Only system admins can create system admins' }, 403);
     }
 

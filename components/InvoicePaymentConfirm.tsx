@@ -7,11 +7,10 @@ import { getInvoicesByTenant, confirmPayment, sendBillingEmail } from '../servic
 
 const statusLabel = (status: Invoice['status']) => {
   switch (status) {
-    case 'pending': return 'Chờ thanh toán';
-    case 'overdue': return 'Quá hạn';
-    case 'expired': return 'Hết hạn';
+    case 'open': return 'Chưa thanh toán';
     case 'paid': return 'Đã thanh toán';
-    case 'cancelled': return 'Đã hủy';
+    case 'void': return 'Đã hủy';
+    case 'uncollectible': return 'Không thu được';
     case 'draft': return 'Nháp';
     default: return status;
   }
@@ -66,7 +65,7 @@ export default function InvoicePaymentConfirm() {
     [invoices, selectedInvoiceId]
   );
 
-  const canConfirm = selectedInvoice && !['paid', 'cancelled', 'draft'].includes(selectedInvoice.status);
+  const canConfirm = selectedInvoice && !['paid', 'void', 'uncollectible', 'draft'].includes(selectedInvoice.status);
 
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();

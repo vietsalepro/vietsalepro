@@ -1160,7 +1160,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
       id: uuid(),
       tenant_id: params.p_tenant_id,
       invoice_no: invoiceNo,
-      status: 'pending',
+      status: 'open',
       issue_date: today,
       due_date: addDays(today, 2),
       period_start: start,
@@ -1208,7 +1208,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
     }
     const invoice = store.invoices.find(i => i.id === params.p_invoice_id);
     if (!invoice) return { data: null, error: { code: 'PGRST116', message: 'Invoice not found' } };
-    if (['paid', 'cancelled', 'draft'].includes(invoice.status)) {
+    if (['paid', 'void', 'uncollectible', 'draft'].includes(invoice.status)) {
       return { data: null, error: { code: 'P0001', message: `Hóa đơn ở trạng thái ${invoice.status}, không thể xác nhận thanh toán` } };
     }
     const tenant = store.tenants.find(t => t.id === invoice.tenant_id);
@@ -1299,7 +1299,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
       const target = addDays(today, days);
       const pending = store.invoices
         .filter((i: any) => {
-          if (i.status !== 'pending') return false;
+          if (i.status !== 'open') return false;
           if (i.due_date !== target) return false;
           const tenant = store.tenants.find((t: any) => t.id === i.tenant_id);
           if (!tenant || tenant.status === 'archived') return false;
@@ -1329,7 +1329,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
     for (const days of config.milestones) {
       const target = addDays(today, days);
       const pending = store.invoices.filter((i: any) => {
-        if (i.status !== 'pending') return false;
+        if (i.status !== 'open') return false;
         if (i.due_date !== target) return false;
         const tenant = store.tenants.find((t: any) => t.id === i.tenant_id);
         if (!tenant || tenant.status === 'archived') return false;
@@ -1386,7 +1386,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
         };
       });
     const overdueInvoices = store.invoices
-      .filter((i: any) => ['overdue', 'expired'].includes(i.status))
+      .filter((i: any) => ['open', 'uncollectible'].includes(i.status))
       .map((i: any) => {
         const tenant = store.tenants.find((t: any) => t.id === i.tenant_id);
         return {
@@ -1415,7 +1415,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
           billing_status: sub?.billing_status || '',
         };
       });
-    const pendingInvoiceCount = store.invoices.filter((i: any) => ['pending', 'overdue', 'expired'].includes(i.status)).length;
+    const pendingInvoiceCount = store.invoices.filter((i: any) => ['open', 'uncollectible'].includes(i.status)).length;
     return {
       data: {
         expiring_soon_count: expiringSoon.length,

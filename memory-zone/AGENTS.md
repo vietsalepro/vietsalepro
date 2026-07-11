@@ -11,6 +11,12 @@
 - Tests: `npx vitest run`
 - Dev server: `npm run dev`
 
+## DB Tests (pgtap — Admin Dashboard)
+- Install pgTAP: apply migration `supabase/migrations/20260715000005_install_pgtap.sql`
+- Tests live in `supabase/tests/admin/`
+- Run locally: `npx supabase db test` (or `npx supabase test db`)
+- Files are executed alphabetically; `000_helpers.sql` sets up `tests.create_supabase_user()` and `tests.authenticate_as()`
+
 ## OpenSpec (2026-07-02)
 - OpenSpec installed with custom schema `voucher-plan` in `openspec/`.
 - Windsurf integration: `.windsurf/skills/openspec-*` and `.windsurf/workflows/opsx-*`.

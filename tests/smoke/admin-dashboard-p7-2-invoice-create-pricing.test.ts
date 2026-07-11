@@ -32,7 +32,7 @@ describe('smoke: admin dashboard P7.2 invoice create + pricing', () => {
     const invoice = await createInvoice({ tenantId: tenant.id, cycleType: 'monthly', quantity: 1, bonusMonths: 0 });
 
     expect(invoice.total).toBe(69000);
-    expect(invoice.status).toBe('pending');
+    expect(invoice.status).toBe('open');
     expect(invoice.invoiceNo).toMatch(/^INV-\d{4}-0001$/);
     expect(invoice.periodStart).toBe(today());
     expect(invoice.periodEnd).toBe(addMonths(today(), 1));

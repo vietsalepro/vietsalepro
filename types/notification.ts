@@ -37,3 +37,26 @@ export interface NotificationLogListResult {
   data: NotificationLog[];
   count: number;
 }
+
+// ============================================================
+// ADMIN REALTIME EVENTS — Sub-Phase 7.1
+// ============================================================
+
+export type AdminEventType =
+  | 'payment_failed'
+  | 'rls_violation'
+  | 'system_error'
+  | 'cron_job_failed'
+  | 'billing_reminder_sent';
+
+export type AdminEventSeverity = 'info' | 'warning' | 'error';
+
+export interface AdminEvent {
+  id: string;
+  type: AdminEventType;
+  severity: AdminEventSeverity;
+  message: string;
+  metadata?: Record<string, any>;
+  createdAt?: string;
+  read?: boolean;
+}

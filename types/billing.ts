@@ -1,5 +1,7 @@
 // ============================================================
 // BILLING TYPES — P7.1 billing schema + bank/company config
+// Sub-Phase 4.2: extended with BillingProvider abstraction + feature gating
+// Basejump reference: Section 3.6 (BillingProvider), Section 3.7 (feature gating)
 // ============================================================
 
 import type { TenantStatus } from './tenant';
@@ -29,7 +31,8 @@ export interface Invoice {
   id: string;
   tenantId: string;
   invoiceNo: string;
-  status: 'draft' | 'pending' | 'paid' | 'cancelled' | 'overdue' | 'expired';
+  // Sub-Phase 4.1 migration tightened DB constraint to Basejump status set.
+  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
   issueDate: string;
   dueDate: string;
   periodStart?: string;
@@ -346,4 +349,123 @@ export interface PromoCodeUsage {
 export interface PromoCodeUsageCounts {
   total: number;
   perTenant: Record<string, number>;
+}
+
+// ============================================================
+// SUB-PHASE 4.2: BILLING PROVIDER ABSTRACTION
+// Basejump reference: Section 3.6
+// ============================================================
+
+export type BillingProviderName = 'stripe' | 'momo' | 'vnpay' | 'bank_transfer';
+export type BillingPeriod = 'month' | 'year';
+export type SubscriptionProviderStatus = 'active' | 'trialing' | 'pending' | 'past_due' | 'cancelled';
+export type PaymentIntentStatus = 'requires_payment_method' | 'requires_action' | 'pending' | 'success' | 'canceled';
+
+export interface CreateSubscriptionInput {
+  tenantId: string;
+  planKey: string;
+  billingPeriod?: BillingPeriod;
+  successUrl?: string;
+  cancelUrl?: string;
+  customerEmail?: string;
+}
+
+export interface CreateSubscriptionResult {
+  provider: BillingProviderName;
+  providerSubscriptionId?: string;
+  checkoutUrl?: string;
+  clientSecret?: string;
+  paymentUrl?: string;
+  qrCodeUrl?: string;
+  bankTransferInstructions?: BankTransferInstructions;
+  status: SubscriptionProviderStatus;
+  message?: string;
+}
+
+export interface CancelSubscriptionInput {
+  tenantId: string;
+  providerSubscriptionId?: string;
+}
+
+export interface CancelSubscriptionResult {
+  provider: BillingProviderName;
+  status: 'cancelled' | 'active' | 'pending';
+  message?: string;
+}
+
+export interface CreatePaymentIntentInput {
+  tenantId: string;
+  invoiceId?: string;
+  amount: number;
+  currency?: string;
+  description?: string;
+  returnUrl?: string;
+  orderId?: string;
+  orderInfo?: string;
+}
+
+export interface BankTransferInstructions {
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  transferContent?: string;
+  amount: number;
+}
+
+export interface CreatePaymentIntentResult {
+  provider: BillingProviderName;
+  paymentIntentId?: string;
+  clientSecret?: string;
+  paymentUrl?: string;
+  qrCodeUrl?: string;
+  bankTransferInstructions?: BankTransferInstructions;
+  status: PaymentIntentStatus;
+  message?: string;
+}
+
+export interface WebhookPayload {
+  provider: BillingProviderName;
+  headers: Record<string, string>;
+  body: string | Record<string, unknown>;
+  signature?: string;
+}
+
+export interface WebhookResult {
+  success: boolean;
+  event?: string;
+  subscriptionId?: string;
+  invoiceId?: string;
+  tenantId?: string;
+  message?: string;
+}
+
+export interface BillingProvider {
+  readonly name: BillingProviderName;
+  createSubscription(input: CreateSubscriptionInput): Promise<CreateSubscriptionResult>;
+  cancelSubscription(input: CancelSubscriptionInput): Promise<CancelSubscriptionResult>;
+  createPaymentIntent(input: CreatePaymentIntentInput): Promise<CreatePaymentIntentResult>;
+  handleWebhook(payload: WebhookPayload): Promise<WebhookResult>;
+}
+
+// ============================================================
+// SUB-PHASE 4.2: FEATURE GATING TYPES
+// Basejump reference: Section 3.7
+// ============================================================
+
+export type FeatureKey = string;
+
+export interface PlanFeature {
+  id?: string;
+  planId: string;
+  featureKey: FeatureKey;
+  enabled: boolean;
+  limit?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CanUseFeatureOptions {
+  tenantId: string;
+  featureKey: FeatureKey;
+  currentUsage?: number;
 }

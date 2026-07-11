@@ -32,3 +32,10 @@ globalThis.ResizeObserver = vi.fn(function ResizeObserverMock(this: any) {
   this.unobserve = vi.fn();
   this.disconnect = vi.fn();
 }) as any;
+
+globalThis.IntersectionObserver = vi.fn(function IntersectionObserverMock(this: any, callback: IntersectionObserverCallback) {
+  this.observe = vi.fn();
+  this.unobserve = vi.fn();
+  this.disconnect = vi.fn();
+  this.trigger = (entries: IntersectionObserverEntry[]) => callback(entries, this);
+}) as any;

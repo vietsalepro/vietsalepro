@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { checkIsSystemAdmin } from '../_shared/permissions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,13 +76,8 @@ serve(async (req) => {
     }
 
     // System admin check.
-    const { data: adminRow, error: adminError } = await supabaseAdmin
-      .from('system_admins')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (adminError) throw adminError;
-    if (!adminRow) {
+    const isAdmin = await checkIsSystemAdmin(supabaseAdmin, user.id);
+    if (!isAdmin) {
       return jsonResponse({ error: 'Only system admins can create tenants' }, 403);
     }
 
@@ -194,7 +190,7 @@ serve(async (req) => {
       const { error: membershipError } = await supabaseAdmin.from('tenant_memberships').insert({
         tenant_id: tenant.id as string,
         user_id: adminUser.id,
-        role: 'admin',
+        role: 'owner',
       });
       if (membershipError) throw membershipError;
 

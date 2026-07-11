@@ -6,7 +6,18 @@ export type TenantStatus = 'active' | 'suspended' | 'trial' | 'pending' | 'archi
 export type TenantPlan = string;
 
 // FIX [6.4]: Add 'viewer' role (SELECT-only permission, no mutations)
-export type TenantRole = 'admin' | 'cashier' | 'inventory_manager' | 'accountant' | 'viewer';
+// Sub-Phase 3.2: Add 'owner' role to match the database tenant_memberships role enum.
+export type TenantRole = 'owner' | 'admin' | 'cashier' | 'inventory_manager' | 'accountant' | 'viewer';
+
+// Sub-Phase 5.1: admin dashboard RBAC role enum (Basejump permissions matrix)
+export type TenantRbacRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type TenantPermission =
+  | 'tenant.view' | 'tenant.update' | 'tenant.delete'
+  | 'billing.view' | 'billing.manage'
+  | 'members.view' | 'members.invite' | 'members.remove' | 'members.change_role'
+  | 'settings.view' | 'settings.update'
+  | 'audit.view'
+  | 'analytics.view';
 
 export type TenantIsolationMode = 'shared' | 'schema' | 'project';
 
@@ -75,6 +86,22 @@ export interface MemberWithEmail extends TenantMembership {
   isOwner?: boolean;
 }
 
+// Sub-Phase 5.1: Invitation flow
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
+
+export interface Invitation {
+  id: string;
+  tenantId: string;
+  email: string;
+  role: string;
+  token: string;
+  status: InvitationStatus;
+  expiresAt: string;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface SearchMembersParams {
   tenantId: string;
   search?: string;
@@ -92,10 +119,14 @@ export interface SearchMembersResult {
   totalCount: number;
 }
 
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'suspended' | 'cancelled';
+
 export interface TenantSubscription {
   id?: string;
   tenantId: string;
   plan: string;
+  planId?: string;
+  status?: SubscriptionStatus;
   maxUsers: number;
   maxProducts: number;
   maxOrdersPerMonth: number;
@@ -103,6 +134,9 @@ export interface TenantSubscription {
   currentMonthOrders: number;
   currentMonthStart: string;
   billingStatus?: string;
+  billingPeriod?: 'month' | 'year';
+  billingPeriodStart?: string;
+  billingPeriodEnd?: string;
   expiresAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -281,6 +315,21 @@ export interface SystemHealth {
   checkedAt: string;
   overall: HealthStatus;
   checks: HealthCheck[];
+}
+
+// Sub-Phase 7.1: Cron job status for health page.
+export type CronJobName = 'billing_reminders' | 'audit_log_cleanup';
+export type CronJobStatus = 'running' | 'success' | 'failed';
+
+export interface CronJobLog {
+  id: string;
+  jobName: CronJobName;
+  status: CronJobStatus;
+  startedAt: string;
+  completedAt?: string;
+  details?: Record<string, any>;
+  errorMessage?: string;
+  retryCount: number;
 }
 
 // P13.2: Error log aggregation + performance metrics

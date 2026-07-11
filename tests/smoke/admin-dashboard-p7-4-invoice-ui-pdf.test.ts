@@ -25,7 +25,7 @@ describe('smoke: admin dashboard P7.4 invoice UI + PDF', () => {
     const invoices = await getAllInvoices();
     expect(invoices.length).toBe(1);
     expect(invoices[0].id).toBe(invoice.id);
-    expect(invoices[0].status).toBe('pending');
+    expect(invoices[0].status).toBe('open');
     expect(invoices[0].tenantId).toBe(tenant.id);
     // Mock chưa hỗ trợ join tenants(name, subdomain) nên tên/subdomain có thể rỗng.
     expect(invoices[0].tenantName).toBeDefined();

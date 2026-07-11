@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "pre-commit": "npm run lint && npx vitest run && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

@@ -25,7 +25,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useToast } from './ToastContainer';
 
-export default function TwoFactorManager() {
+export default function TwoFactorManager({ className = '' }: { className?: string }) {
   const { user } = useAuth();
   const [status, setStatus] = useState<TwoFactorStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -167,7 +167,7 @@ export default function TwoFactorManager() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${className}`}>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <Shield className="w-5 h-5" />

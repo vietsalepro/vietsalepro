@@ -1283,3 +1283,18 @@ User explicitly instructed: only push the multi-tenancy branch to the remote/pro
   - Verified `read_replica_url`, `connection_pool_config` columns and all 7 new RPCs exist.
   - Verified `get_connection_pool_stats()` and `get_read_replica_status()` return expected JSON.
 
+## Basejump Admin Dashboard Enterprise Upgrade — Sub-Phase 0.1 (2026-07-11)
+
+- Goal: Stabilize build / lint / TypeScript and create reusable Admin Dashboard foundation components before the Basejump enterprise refactor.
+- Build commands:
+  - `npm run lint` — TypeScript type check (`tsc --noEmit`).
+  - `npm run build` — Vite production build.
+  - `npx vitest run` — Run test suite.
+- Foundation components (shared, placed in `components/`):
+  - `components/ErrorBoundary.tsx` — catches errors, renders fallback UI, logs to console.
+  - `components/LoadingState.tsx` — consistent loading indicator with optional message.
+  - `components/EmptyState.tsx` — empty message with optional icon/description/action.
+  - `components/SkeletonCard.tsx` — card placeholder skeleton.
+- Migration runbook: `docs/admin-dashboard/MIGRATION_RUNBOOK.md`.
+- `npm run lint` PASS · `npm run build` PASS.
+

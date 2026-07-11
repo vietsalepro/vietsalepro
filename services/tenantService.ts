@@ -541,4 +541,44 @@ export async function getStorageUsage(tenantId: string): Promise<StorageUsage> {
   return data;
 }
 
+// --- Impersonation (system admin) ---
+
+export async function startImpersonation(tenantId: string): Promise<{
+  success: boolean;
+  tenant: { id: string; name: string; subdomain: string };
+  expires_at: string;
+}> {
+  const { data, error } = await supabase.functions.invoke<{
+    success: boolean;
+    tenant: { id: string; name: string; subdomain: string };
+    expires_at: string;
+    error?: string;
+  }>('impersonate-tenant', {
+    body: { tenant_id: tenantId },
+  });
+  if (error) throw error;
+  if (!data || typeof data !== 'object' || !data.success) {
+    throw new Error(data?.error || 'Impersonate tenant thất bại');
+  }
+  return { success: data.success, tenant: data.tenant, expires_at: data.expires_at };
+}
+
+export async function endImpersonation(): Promise<{
+  success: boolean;
+  ended: number;
+}> {
+  const { data, error } = await supabase.functions.invoke<{
+    success: boolean;
+    ended: number;
+    error?: string;
+  }>('end-impersonation', {
+    body: {},
+  });
+  if (error) throw error;
+  if (!data || typeof data !== 'object' || !data.success) {
+    throw new Error(data?.error || 'Kết thúc impersonate thất bại');
+  }
+  return { success: data.success, ended: data.ended };
+}
+
 export type { TenantMembership };

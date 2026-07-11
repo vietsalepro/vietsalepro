@@ -20,6 +20,27 @@ import {
   SearchMembersResult,
 } from '../types/tenant';
 
+// --- Admin dashboard tenant types ---
+
+export interface SearchTenantsResult {
+  tenants: Tenant[];
+  totalCount: number;
+  counts: {
+    active: number;
+    suspended: number;
+    trial: number;
+    pending: number;
+    archived: number;
+    free: number;
+    vip: number;
+  };
+}
+
+export interface TenantCredentials {
+  tenantId: string;
+  adminEmail: string;
+}
+
 // --- Mappers ---
 
 export const mapTenantFromDB = (row: any): Tenant => ({
@@ -394,6 +415,41 @@ export async function updateSubscriptionLimits(
   return mapSubscriptionFromDB(data);
 }
 
+// ponytail: aliases used by the admin dashboard; reuse the same RPCs as above.
+export async function getTenantUsageSummary(tenantId: string): Promise<UsageSummary> {
+  const { data, error } = await supabase.rpc('get_tenant_usage_summary', {
+    p_tenant_id: tenantId,
+  });
+  if (error) throw error;
+  return data as UsageSummary;
+}
+
+export async function updateTenantSubscription(
+  tenantId: string,
+  input: UpdateSubscriptionInput
+): Promise<TenantSubscription> {
+  const { data, error } = await supabase.rpc('update_tenant_subscription', {
+    p_tenant_id: tenantId,
+    p_plan: input.plan,
+    p_max_users: input.maxUsers,
+    p_max_products: input.maxProducts,
+    p_max_orders_per_month: input.maxOrdersPerMonth,
+    p_billing_status: input.billingStatus,
+    p_expires_at: input.expiresAt,
+  });
+
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
+}
+
+export async function resetMonthlyOrderCounter(tenantId: string): Promise<TenantSubscription> {
+  const { data, error } = await supabase.rpc('reset_monthly_order_counter', {
+    p_tenant_id: tenantId,
+  });
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
+}
+
 // --- Tenant management (admin) ---
 
 export async function getTenantsAdmin(options: {
@@ -419,6 +475,37 @@ export async function getTenantsAdmin(options: {
   return {
     items: (data?.data ?? []).map(mapTenantFromDB),
     total: data?.total ?? 0,
+  };
+}
+
+export async function searchTenants(options: {
+  searchTerm?: string | null;
+  status?: TenantStatus | null;
+  plan?: TenantPlan | null;
+  page?: number;
+  pageSize?: number;
+}): Promise<SearchTenantsResult> {
+  const { data, error } = await supabase.rpc('search_tenants', {
+    p_search_term: options.searchTerm ?? null,
+    p_status: options.status ?? null,
+    p_plan: options.plan ?? null,
+    p_page: options.page ?? 1,
+    p_page_size: options.pageSize ?? 20,
+  });
+
+  if (error) throw error;
+  return {
+    tenants: (data?.tenants ?? []).map(mapTenantFromDB),
+    totalCount: data?.totalCount ?? 0,
+    counts: {
+      active: data?.counts?.active ?? 0,
+      suspended: data?.counts?.suspended ?? 0,
+      trial: data?.counts?.trial ?? 0,
+      pending: data?.counts?.pending ?? 0,
+      archived: data?.counts?.archived ?? 0,
+      free: data?.counts?.free ?? 0,
+      vip: data?.counts?.vip ?? 0,
+    },
   };
 }
 
@@ -557,6 +644,83 @@ export async function hardDeleteTenant(tenantId: string): Promise<void> {
   }
 }
 
+export async function softDeleteTenant(tenantId: string): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('delete_tenant_safe', {
+    p_tenant_id: tenantId,
+  });
+  if (error) throw error;
+  return mapTenantFromDB(data);
+}
+
+export async function restoreTenant(tenantId: string): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('update_tenant', {
+    p_tenant_id: tenantId,
+    p_status: 'active',
+  });
+  if (error) throw error;
+  return mapTenantFromDB(data);
+}
+
+export async function createTenantWithCredentials(input: {
+  name: string;
+  subdomain: string;
+  plan?: TenantPlan;
+  adminEmail: string;
+}): Promise<CreateTenantResult> {
+  const { data, error } = await supabase.functions.invoke<{
+    tenant?: Record<string, unknown>;
+    adminUser?: { id?: string; email?: string };
+    resetEmailSent?: boolean;
+    redirectTo?: string;
+    error?: string;
+  }>('create-tenant', {
+    body: {
+      name: input.name,
+      subdomain: input.subdomain,
+      email: input.adminEmail,
+      plan: input.plan ?? 'free',
+    },
+  });
+
+  if (error) throw new Error(error.message || 'Tạo cửa hàng thất bại');
+  if (!data || typeof data !== 'object') {
+    throw new Error('Phản hồi tạo cửa hàng không hợp lệ');
+  }
+  if (data.error) throw new Error(data.error);
+  if (!data.tenant || !data.adminUser || typeof data.resetEmailSent !== 'boolean') {
+    throw new Error('Phản hồi tạo cửa hàng không hợp lệ');
+  }
+  if (!data.adminUser.id || !data.adminUser.email) {
+    throw new Error('Phản hồi tạo cửa hàng không hợp lệ');
+  }
+
+  return {
+    tenant: mapTenantFromDB(data.tenant),
+    adminUser: { id: data.adminUser.id, email: data.adminUser.email },
+    resetEmailSent: data.resetEmailSent,
+    redirectTo: data.redirectTo,
+  };
+}
+
+export async function getTenantCredentials(tenantIds: string[]): Promise<Record<string, TenantCredentials>> {
+  if (tenantIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('tenant_credentials')
+    .select('tenant_id, admin_email')
+    .in('tenant_id', tenantIds);
+
+  if (error) throw error;
+
+  const map: Record<string, TenantCredentials> = {};
+  (data ?? []).forEach((row: any) => {
+    map[row.tenant_id] = {
+      tenantId: row.tenant_id,
+      adminEmail: row.admin_email,
+    };
+  });
+  return map;
+}
+
 // --- System analytics (requires system admin privileges) ---
 
 const mapSystemOverviewFromDB = (row: any): SystemOverview => ({
@@ -651,13 +815,21 @@ export async function getTenantBySubdomain(subdomain: string): Promise<Tenant | 
   return data ? mapTenantFromDB(data) : null;
 }
 
-export async function updateTenant(id: string, updates: Partial<Pick<Tenant, 'name' | 'settings'>>): Promise<Tenant> {
-  const { data, error } = await supabase
-    .from('tenants')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
+export async function updateTenant(
+  id: string,
+  updates: Partial<Pick<Tenant, 'name' | 'plan' | 'status' | 'isolationMode' | 'isolationSchema' | 'isolationProjectRef' | 'customDomain' | 'whiteLabel' | 'settings'>>
+): Promise<Tenant> {
+  const { data, error } = await supabase.rpc('update_tenant', {
+    p_tenant_id: id,
+    p_name: updates.name ?? null,
+    p_plan: updates.plan ?? null,
+    p_status: updates.status ?? null,
+    p_isolation_mode: updates.isolationMode ?? null,
+    p_isolation_schema: updates.isolationSchema ?? null,
+    p_isolation_project_ref: updates.isolationProjectRef ?? null,
+    p_custom_domain: updates.customDomain ?? null,
+    p_white_label: updates.whiteLabel ?? null,
+  });
 
   if (error) throw error;
   return mapTenantFromDB(data);
@@ -693,12 +865,12 @@ export async function getTenantStorageUsage(): Promise<StorageUsage> {
 
 export async function startImpersonation(tenantId: string): Promise<{
   success: boolean;
-  tenant: { id: string; name: string; subdomain: string };
+  tenant: Tenant;
   expires_at: string;
 }> {
   const { data, error } = await supabase.functions.invoke<{
     success: boolean;
-    tenant: { id: string; name: string; subdomain: string };
+    tenant: Record<string, unknown>;
     expires_at: string;
     error?: string;
   }>('impersonate-tenant', {
@@ -708,7 +880,7 @@ export async function startImpersonation(tenantId: string): Promise<{
   if (!data || typeof data !== 'object' || !data.success) {
     throw new Error(data?.error || 'Impersonate tenant thất bại');
   }
-  return { success: data.success, tenant: data.tenant, expires_at: data.expires_at };
+  return { success: data.success, tenant: mapTenantFromDB(data.tenant), expires_at: data.expires_at };
 }
 
 export async function endImpersonation(): Promise<{

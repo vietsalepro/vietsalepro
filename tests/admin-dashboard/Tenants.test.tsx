@@ -12,6 +12,13 @@ const mockedCreateTenantWithCredentials = vi.fn();
 const mockedSoftDeleteTenant = vi.fn();
 const mockedHardDeleteTenant = vi.fn();
 const mockedRestoreTenantStatus = vi.fn();
+const mockedGetTenantSubscription = vi.fn();
+const mockedUpdateTenantSubscription = vi.fn();
+const mockedGetTenantFeatureFlags = vi.fn();
+const mockedUpdateTenantFeatureFlags = vi.fn();
+const mockedDownloadTenantBackup = vi.fn();
+const mockedRestoreTenantBackup = vi.fn();
+const mockedResetDemoData = vi.fn();
 
 vi.mock('../../services/admin/tenantAdminService', async () => {
   const actual = await vi.importActual<typeof import('../../services/admin/tenantAdminService')>(
@@ -24,6 +31,8 @@ vi.mock('../../services/admin/tenantAdminService', async () => {
     softDeleteTenant: (...args: any[]) => mockedSoftDeleteTenant(...args),
     hardDeleteTenant: (...args: any[]) => mockedHardDeleteTenant(...args),
     restoreTenantStatus: (...args: any[]) => mockedRestoreTenantStatus(...args),
+    getTenantFeatureFlags: (...args: any[]) => mockedGetTenantFeatureFlags(...args),
+    updateTenantFeatureFlags: (...args: any[]) => mockedUpdateTenantFeatureFlags(...args),
   };
 });
 
@@ -35,6 +44,20 @@ vi.mock('../../services/admin/systemAdminService', async () => {
     ...actual,
     checkSubdomain: (...args: any[]) => mockedCheckSubdomain(...args),
     startImpersonation: (...args: any[]) => mockedStartImpersonation(...args),
+    downloadTenantBackup: (...args: any[]) => mockedDownloadTenantBackup(...args),
+    restoreTenantBackup: (...args: any[]) => mockedRestoreTenantBackup(...args),
+    resetDemoData: (...args: any[]) => mockedResetDemoData(...args),
+  };
+});
+
+vi.mock('../../services/admin/billingAdminService', async () => {
+  const actual = await vi.importActual<typeof import('../../services/admin/billingAdminService')>(
+    '../../services/admin/billingAdminService',
+  );
+  return {
+    ...actual,
+    getTenantSubscription: (...args: any[]) => mockedGetTenantSubscription(...args),
+    updateTenantSubscription: (...args: any[]) => mockedUpdateTenantSubscription(...args),
   };
 });
 
@@ -90,5 +113,19 @@ describe('Tenants page', () => {
     });
 
     expect(screen.getByText('Cửa hàng B')).toBeInTheDocument();
+  });
+
+  it('renders advanced tenant action buttons', async () => {
+    render(<Tenants />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Cửa hàng A')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByTitle('Chỉnh sửa subscription').length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle('Feature flags').length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle('Backup').length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle('Restore').length).toBeGreaterThan(0);
+    expect(screen.getByTitle('Export CSV')).toBeInTheDocument();
   });
 });

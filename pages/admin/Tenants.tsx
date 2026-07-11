@@ -5,6 +5,13 @@ import {
   Trash2,
   RotateCcw,
   Store,
+  CreditCard,
+  Flag,
+  Database,
+  RefreshCw,
+  FileDown,
+  Upload,
+  X,
 } from 'lucide-react';
 import { useAdminList } from '../../hooks/useAdminList';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
@@ -15,6 +22,10 @@ import {
   Tenant,
   TenantStatus,
   TenantPlan,
+  TenantSubscription,
+  UpdateSubscriptionInput,
+  TenantFeatureFlags,
+  DEFAULT_TENANT_FEATURE_FLAGS,
 } from '../../types/tenant';
 import {
   listAccounts,
@@ -22,8 +33,19 @@ import {
   softDeleteTenant,
   hardDeleteTenant,
   restoreTenantStatus,
+  getTenantFeatureFlags,
+  updateTenantFeatureFlags,
 } from '../../services/admin/tenantAdminService';
-import { checkSubdomain, startImpersonation } from '../../services/admin/systemAdminService';
+import {
+  checkSubdomain,
+  startImpersonation,
+  downloadTenantBackup,
+  restoreTenantBackup,
+  previewBackupTables,
+  validateBackup,
+  resetDemoData,
+} from '../../services/admin/systemAdminService';
+import { getTenantSubscription, updateTenantSubscription } from '../../services/admin/billingAdminService';
 
 const PLANS: TenantPlan[] = ['free', 'vip'];
 const STATUSES: TenantStatus[] = ['active', 'suspended', 'trial', 'pending', 'archived', 'read_only'];
@@ -158,6 +180,27 @@ export default function Tenants() {
   const [subdomainCheck, setSubdomainCheck] = useState<{ checking: boolean; available?: boolean; message?: string } | null>(null);
   const [createResult, setCreateResult] = useState<{ tenant: Tenant; adminUser: { email: string; id: string } } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // ponytail: advanced tenant actions moved from AdminDashboardInner (Phase B).
+  const [subTenant, setSubTenant] = useState<Tenant | null>(null);
+  const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [subscriptionSubmitting, setSubscriptionSubmitting] = useState(false);
+  const [subForm, setSubForm] = useState<Partial<UpdateSubscriptionInput>>({});
+
+  const [featureTenant, setFeatureTenant] = useState<Tenant | null>(null);
+  const [featureFlags, setFeatureFlags] = useState<TenantFeatureFlags | null>(null);
+  const [featureLoading, setFeatureLoading] = useState(false);
+  const [featureSubmitting, setFeatureSubmitting] = useState(false);
+
+  const [backingUpTenantId, setBackingUpTenantId] = useState<string | null>(null);
+  const [restoreTenant, setRestoreTenant] = useState<Tenant | null>(null);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restorePreview, setRestorePreview] = useState<{ name: string; rows: number }[] | null>(null);
+  const [restoreSubmitting, setRestoreSubmitting] = useState(false);
+
+  const [resettingTenantId, setResettingTenantId] = useState<string | null>(null);
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   const { openConfirmDialog, confirmDialog } = useConfirmDialog();
   const { addToast } = useToast();
@@ -303,6 +346,179 @@ export default function Tenants() {
       },
     });
   };
+
+  // --- Edit subscription (Task B.1) ---
+  const handleEditSubscription = async (tenant: Tenant) => {
+    setSubTenant(tenant);
+    setSubscriptionLoading(true);
+    setSubscription(null);
+    setSubForm({});
+    try {
+      const sub = await getTenantSubscription(tenant.id);
+      setSubscription(sub);
+      setSubForm({
+        plan: sub?.plan ?? tenant.plan,
+        billingStatus: (sub?.billingStatus as UpdateSubscriptionInput['billingStatus']) ?? 'ok',
+        expiresAt: sub?.expiresAt ?? null,
+        maxUsers: sub?.maxUsers,
+        maxProducts: sub?.maxProducts,
+        maxOrdersPerMonth: sub?.maxOrdersPerMonth,
+      });
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Không thể tải subscription.' });
+      setSubTenant(null);
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
+
+  const handleSaveSubscription = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subTenant) return;
+    setSubscriptionSubmitting(true);
+    try {
+      await updateTenantSubscription(subTenant.id, subForm);
+      refresh();
+      addToast({ type: 'success', message: 'Cập nhật subscription thành công.' });
+      setSubTenant(null);
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Cập nhật subscription thất bại.' });
+    } finally {
+      setSubscriptionSubmitting(false);
+    }
+  };
+
+  // --- Feature flags (Task B.2) ---
+  const handleOpenFeatureFlags = async (tenant: Tenant) => {
+    setFeatureTenant(tenant);
+    setFeatureLoading(true);
+    setFeatureFlags(null);
+    try {
+      const flags = await getTenantFeatureFlags(tenant.id);
+      setFeatureFlags(flags);
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Không thể tải feature flags.' });
+      setFeatureTenant(null);
+    } finally {
+      setFeatureLoading(false);
+    }
+  };
+
+  const handleToggleFeatureFlag = async (key: keyof TenantFeatureFlags) => {
+    if (!featureTenant || !featureFlags) return;
+    const next = { ...featureFlags, [key]: !featureFlags[key] };
+    setFeatureFlags(next);
+    setFeatureSubmitting(true);
+    try {
+      await updateTenantFeatureFlags(featureTenant.id, { [key]: next[key] });
+      addToast({ type: 'success', message: 'Cập nhật feature flag thành công.' });
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Cập nhật feature flag thất bại.' });
+      setFeatureFlags(featureFlags);
+    } finally {
+      setFeatureSubmitting(false);
+    }
+  };
+
+  // --- Backup / restore (Task B.3) ---
+  const handleBackupTenant = async (tenant: Tenant) => {
+    setBackingUpTenantId(tenant.id);
+    try {
+      await downloadTenantBackup(tenant.id);
+      addToast({ type: 'success', message: `Backup ${tenant.name} đã được tải xuống.` });
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Backup thất bại.' });
+    } finally {
+      setBackingUpTenantId(null);
+    }
+  };
+
+  const handleRestoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setRestoreFile(file);
+    if (!file) {
+      setRestorePreview(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const backup = JSON.parse(reader.result as string);
+        validateBackup(backup);
+        setRestorePreview(previewBackupTables(backup));
+      } catch (err: any) {
+        addToast({ type: 'error', message: err?.message || 'File backup không hợp lệ.' });
+        setRestorePreview(null);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleRestoreBackup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoreTenant || !restoreFile) return;
+    setRestoreSubmitting(true);
+    try {
+      const result = await restoreTenantBackup(restoreTenant.id, restoreFile);
+      addToast({ type: 'success', message: `Restore thành công: ${result.result.total_rows} dòng.` });
+      setRestoreTenant(null);
+      setRestoreFile(null);
+      setRestorePreview(null);
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Restore thất bại.' });
+    } finally {
+      setRestoreSubmitting(false);
+    }
+  };
+
+  // --- Reset demo data (Task B.4) ---
+  const handleResetDemo = (tenant: Tenant) => {
+    openConfirmDialog({
+      title: 'Reset dữ liệu demo',
+      message: `Xóa toàn bộ dữ liệu demo của cửa hàng "${tenant.name}"?`,
+      variant: 'danger',
+      onConfirm: async () => {
+        setResettingTenantId(tenant.id);
+        try {
+          const result = await resetDemoData(tenant.id);
+          addToast({ type: 'success', message: `Đã xóa ${result.totalRows} dòng dữ liệu demo.` });
+        } catch (err: any) {
+          addToast({ type: 'error', message: err?.message || 'Reset demo thất bại.' });
+        } finally {
+          setResettingTenantId(null);
+        }
+      },
+    });
+  };
+
+  // --- Export CSV (Task B.5) ---
+  const handleExportCsv = () => {
+    setExportingCsv(true);
+    try {
+      const headers = ['ID', 'Tên', 'Subdomain', 'Gói', 'Trạng thái', 'Isolation', 'Ngày tạo'];
+      const rows = tenants.map((t) => [t.id, t.name, t.subdomain, t.plan, t.status, t.isolationMode || 'shared', t.createdAt || '']);
+      const csv = [headers, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tenants-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      addToast({ type: 'success', message: 'Export CSV thành công.' });
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Export CSV thất bại.' });
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
+  const isDemoTenant = (tenant: Tenant) =>
+    tenant.name.toLowerCase().includes('demo') || tenant.subdomain.toLowerCase().includes('demo');
 
   const activeCount = tenants.filter((t) => t.status === 'active').length;
   const archivedCount = tenants.filter((t) => t.status === 'archived').length;
@@ -477,13 +693,24 @@ export default function Tenants() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800">Danh sách cửa hàng</h2>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[10, 20, 50].map((size) => <option key={size} value={size}>{size} / trang</option>)}
-          </select>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCsv}
+              disabled={exportingCsv || tenants.length === 0}
+              title="Export CSV"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <FileDown className="w-4 h-4" />
+              {exportingCsv ? 'Đang export...' : 'Export CSV'}
+            </button>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[10, 20, 50].map((size) => <option key={size} value={size}>{size} / trang</option>)}
+            </select>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -533,6 +760,45 @@ export default function Tenants() {
                         >
                           <Building2 className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => handleEditSubscription(t)}
+                          title="Chỉnh sửa subscription"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenFeatureFlags(t)}
+                          title="Feature flags"
+                          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg"
+                        >
+                          <Flag className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleBackupTenant(t)}
+                          disabled={backingUpTenantId === t.id}
+                          title="Backup"
+                          className="p-1.5 text-teal-600 hover:bg-teal-50 rounded-lg disabled:opacity-50"
+                        >
+                          <Database className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setRestoreTenant(t)}
+                          title="Restore"
+                          className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </button>
+                        {isDemoTenant(t) && (
+                          <button
+                            onClick={() => handleResetDemo(t)}
+                            disabled={resettingTenantId === t.id}
+                            title="Reset demo"
+                            className="p-1.5 text-cyan-600 hover:bg-cyan-50 rounded-lg disabled:opacity-50"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        )}
                         {t.status === 'archived' ? (
                           <button
                             onClick={() => handleRestore(t)}
@@ -572,6 +838,175 @@ export default function Tenants() {
       </div>
 
       {confirmDialog}
+
+      {/* Subscription modal */}
+      {subTenant && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800">Subscription: {subTenant.name}</h3>
+              <button onClick={() => setSubTenant(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {subscriptionLoading ? (
+              <div className="p-8 text-center text-gray-600">Đang tải...</div>
+            ) : (
+              <form onSubmit={handleSaveSubscription} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gói</label>
+                  <select
+                    value={subForm.plan || 'free'}
+                    onChange={(e) => setSubForm({ ...subForm, plan: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {PLANS.map((p) => <option key={p} value={p}>{planLabel(p)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Billing status</label>
+                  <select
+                    value={subForm.billingStatus || 'ok'}
+                    onChange={(e) => setSubForm({ ...subForm, billingStatus: e.target.value as UpdateSubscriptionInput['billingStatus'] })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ok">OK</option>
+                    <option value="past_due">Quá hạn</option>
+                    <option value="suspended">Tạm dừng</option>
+                    <option value="cancelled">Đã hủy</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hết hạn</label>
+                  <input
+                    type="date"
+                    value={subForm.expiresAt ? subForm.expiresAt.slice(0, 10) : ''}
+                    onChange={(e) => setSubForm({ ...subForm, expiresAt: e.target.value ? `${e.target.value}T00:00:00Z` : null })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max users</label>
+                    <input
+                      type="number"
+                      value={subForm.maxUsers ?? ''}
+                      onChange={(e) => setSubForm({ ...subForm, maxUsers: e.target.value ? Number(e.target.value) : undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max products</label>
+                    <input
+                      type="number"
+                      value={subForm.maxProducts ?? ''}
+                      onChange={(e) => setSubForm({ ...subForm, maxProducts: e.target.value ? Number(e.target.value) : undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max orders/tháng</label>
+                    <input
+                      type="number"
+                      value={subForm.maxOrdersPerMonth ?? ''}
+                      onChange={(e) => setSubForm({ ...subForm, maxOrdersPerMonth: e.target.value ? Number(e.target.value) : undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setSubTenant(null)} className="px-4 py-2 text-gray-700 bg-white border rounded-lg hover:bg-gray-50">Hủy</button>
+                  <button type="submit" disabled={subscriptionSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60">
+                    {subscriptionSubmitting ? 'Đang lưu...' : 'Lưu'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Feature flags modal */}
+      {featureTenant && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800">Feature flags: {featureTenant.name}</h3>
+              <button onClick={() => setFeatureTenant(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {featureLoading ? (
+              <div className="p-8 text-center text-gray-600">Đang tải...</div>
+            ) : (
+              <div className="p-6 space-y-3">
+                {featureFlags && Object.keys(DEFAULT_TENANT_FEATURE_FLAGS).map((key) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700 capitalize">{key}</span>
+                    <button
+                      onClick={() => handleToggleFeatureFlag(key as keyof TenantFeatureFlags)}
+                      disabled={featureSubmitting}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${featureFlags[key as keyof TenantFeatureFlags] ? 'bg-blue-600' : 'bg-gray-200'} disabled:opacity-50`}
+                      aria-pressed={featureFlags[key as keyof TenantFeatureFlags]}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${featureFlags[key as keyof TenantFeatureFlags] ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex justify-end pt-2">
+                  <button onClick={() => setFeatureTenant(null)} className="px-4 py-2 text-gray-700 bg-white border rounded-lg hover:bg-gray-50">Đóng</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Restore modal */}
+      {restoreTenant && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-800">Restore backup: {restoreTenant.name}</h3>
+              <button
+                onClick={() => { setRestoreTenant(null); setRestoreFile(null); setRestorePreview(null); }}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleRestoreBackup} className="p-6 space-y-4">
+              <input type="file" accept=".json,application/json" onChange={handleRestoreFileChange} className="w-full text-sm" />
+              {restorePreview && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr><th className="px-3 py-2 text-left">Bảng</th><th className="px-3 py-2 text-right">Dòng</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {restorePreview.map((p) => (
+                        <tr key={p.name}><td className="px-3 py-2">{p.name}</td><td className="px-3 py-2 text-right">{p.rows}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setRestoreTenant(null); setRestoreFile(null); setRestorePreview(null); }}
+                  className="px-4 py-2 text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button type="submit" disabled={restoreSubmitting || !restoreFile} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-60">
+                  {restoreSubmitting ? 'Đang restore...' : 'Restore'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

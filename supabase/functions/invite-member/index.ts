@@ -86,8 +86,9 @@ serve(async (req) => {
     if (!tenant) {
       return jsonResponse({ error: 'Tenant không tồn tại' }, 404);
     }
-    if (tenant.status !== 'active') {
-      return jsonResponse({ error: 'Tenant không hoạt động' }, 403);
+    // FIX [4.8]: Allow trial tenants to invite members (đồng bộ với trigger check_tenant_limits)
+    if (!['active', 'trial'].includes(tenant.status)) {
+      return jsonResponse({ error: 'Tenant không hoạt động hoặc đã hết hạn dùng thử' }, 403);
     }
 
     // Rate limiting: IP (10/min) and tenant (50/hour).
@@ -177,6 +178,7 @@ serve(async (req) => {
     let targetUserId: string;
     let isNewUser = false;
     let emailProviderConfigured: boolean | undefined;
+    let existingUserLink: string | null = null;
 
     if (userRow) {
       // Existing user: ensure not already a member of this tenant.
@@ -191,6 +193,18 @@ serve(async (req) => {
       if (existingMembership) {
         return jsonResponse({ error: 'already_member' }, 409);
       }
+
+      // FIX [4.5]: Generate recovery link for existing user so they can set password / login
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email: normalizedEmail,
+        options: { redirectTo: `https://${tenant.subdomain}.vietsalepro.com/login` },
+      });
+      if (linkError) {
+        console.warn('generateLink failed for existing user:', linkError.message);
+      }
+      // Store the link to return in response (used by internal reset flow)
+      existingUserLink = linkData?.properties?.action_link ?? null;
     } else {
       // New user: create with a random temporary password (never stored or logged).
       const tempPassword = crypto.randomUUID();
@@ -280,6 +294,9 @@ serve(async (req) => {
     const response: Record<string, unknown> = { success: true, userId: targetUserId };
     if (isNewUser) {
       response.emailProviderConfigured = emailProviderConfigured ?? false;
+    }
+    if (existingUserLink) {
+      response.existingUserLink = existingUserLink;
     }
     return jsonResponse(response, 200);
   } catch (err) {

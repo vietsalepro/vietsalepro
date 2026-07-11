@@ -148,15 +148,16 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // Assign system admin role via RPC
-    const { error: rpcError } = await supabaseAdmin.rpc('add_system_admin', {
-      p_user_id: newUserId,
-    });
+    // FIX [3.6]: Assign system admin role via direct insert (service_role bypass RLS)
+    // Using RPC with SECURITY DEFINER fails because service-role client has auth.uid() = null
+    const { error: insertError } = await supabaseAdmin
+      .from('system_admins')
+      .insert({ user_id: newUserId });
 
-    if (rpcError) {
+    if (insertError) {
       // Rollback: delete the user if admin assignment fails
       await supabaseAdmin.auth.admin.deleteUser(newUserId);
-      return jsonResponse({ error: 'Failed to assign system admin role: ' + rpcError.message }, 500);
+      return jsonResponse({ error: 'Failed to assign system admin role: ' + insertError.message }, 500);
     }
 
     // Audit logging (security: never log password)

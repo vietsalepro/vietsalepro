@@ -144,11 +144,12 @@ serve(async (req) => {
     const maxOrdersPerMonth =
       (limits?.max_orders_per_month as number) ?? (plan === 'vip' ? 999999 : 300);
 
-    // Create admin user.
+    // FIX [4.6]: Create admin user with email_confirm: false so invite link can be sent
+    const normalizedEmail = email.trim().toLowerCase();
     const { data: createUserData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password: tempPassword,
-      email_confirm: true,
+      email_confirm: false,
     });
     if (createUserError) {
       if (createUserError.message.toLowerCase().includes('already')) {
@@ -164,6 +165,8 @@ serve(async (req) => {
     let tenant: Record<string, unknown>;
     let redirectTo: string | undefined;
     let linkError: { message?: string } | null = null;
+    let setupLink: string | null = null;
+    let linkGenerated = false;
     try {
       const { data: tenantData, error: tenantError } = await supabaseAdmin
         .from('tenants')
@@ -219,12 +222,14 @@ serve(async (req) => {
       // Trigger a password reset/setup email so the admin can set their own password.
       // ponytail: the temporary password is never returned; Supabase Auth sends the link when an email provider is configured.
       redirectTo = `https://${tenant.subdomain as string}.vietsalepro.com/set-password`;
-      const { error: generateError } = await supabaseAdmin.auth.admin.generateLink({
+      const { data: linkData, error: generateError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'invite',
         email: adminUser.email as string,
         options: { redirectTo },
       });
       linkError = generateError ?? null;
+      linkGenerated = !generateError && !!linkData?.properties?.action_link;
+      setupLink = linkData?.properties?.action_link ?? null;
 
       if (linkError) {
         console.error('Failed to send tenant admin reset email:', linkError);
@@ -251,8 +256,9 @@ serve(async (req) => {
           email: adminUser.email,
           created_at: adminUser.created_at,
         },
-        resetEmailSent: !linkError,
-        redirectTo: !linkError ? redirectTo : undefined,
+        resetEmailSent: linkGenerated,
+        redirectTo: linkGenerated ? redirectTo : undefined,
+        setupLink: setupLink,  // MỚI: trả link về UI để hiển thị
       },
       201
     );

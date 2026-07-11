@@ -274,9 +274,10 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
         <select
           value={m.role}
           onChange={(e) => handleRoleChange(m.userId, e.target.value as TenantRole, m.email)}
-          disabled={busyUserId === m.userId}
-          className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+          disabled={busyUserId === m.userId || m.isOwner}
+          className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
           onClick={(e) => e.stopPropagation()}
+          title={m.isOwner ? 'Không thể đổi vai trò của chủ sở hữu' : undefined}
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>{roleLabel(r)}</option>
@@ -303,12 +304,14 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
             e.stopPropagation();
             handleToggleActive(m.userId, !m.isActive);
           }}
-          disabled={busyUserId === m.userId}
+          disabled={busyUserId === m.userId || m.isOwner}
           className={[
             'inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors',
             m.isActive ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100',
+            m.isOwner ? 'opacity-50 cursor-not-allowed' : '',
           ].join(' ')}
           aria-label={m.isActive ? 'Vô hiệu hóa' : 'Kích hoạt'}
+          title={m.isOwner ? 'Không thể thay đổi trạng thái của chủ sở hữu' : (m.isActive ? 'Vô hiệu hóa' : 'Kích hoạt')}
         >
           {m.isActive ? <Power size={18} /> : <PowerOff size={18} />}
         </button>
@@ -367,9 +370,9 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
               size="sm"
               icon={<Trash2 size={16} />}
               onClick={() => handleRemoveMember(m.userId, m.email)}
-              disabled={isBusy}
+              disabled={isBusy || m.isOwner}
               aria-label="Xóa"
-              title="Xóa"
+              title={m.isOwner ? 'Không thể xóa chủ sở hữu' : 'Xóa'}
             />
           </div>
         );

@@ -139,10 +139,27 @@ serve(async (req) => {
       return jsonResponse({ error: 'User không thuộc tenant này' }, 403);
     }
 
-    // Choose recovery vs invite based on whether the user has ever signed in.
-    const hasSignedIn = !!targetUser.last_sign_in_at;
-    const type = hasSignedIn ? 'recovery' : 'invite';
-    const path = hasSignedIn ? 'reset-password' : 'set-password';
+    // FIX [4.7]: Use email_confirmed_at instead of last_sign_in_at to determine link type
+    // - If user has confirmed email → use 'recovery' (reset password)
+    // - If user hasn't confirmed email → use 'invite' (set password lần đầu)
+    let isEmailConfirmed = false;
+    try {
+      const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.getUserById(targetUser.id);
+      if (!authUserError && authUserData?.user) {
+        isEmailConfirmed = !!authUserData.user.email_confirmed_at;
+      } else {
+        // Fallback to last_sign_in_at if getUserById fails
+        console.warn('Failed to get auth user details, falling back to last_sign_in_at:', authUserError?.message);
+        isEmailConfirmed = !!targetUser.last_sign_in_at;
+      }
+    } catch (e) {
+      // Fallback: if user has ever signed in, use recovery
+      console.warn('Error checking email_confirmed_at, falling back to last_sign_in_at:', e);
+      isEmailConfirmed = !!targetUser.last_sign_in_at;
+    }
+
+    const type = isEmailConfirmed ? 'recovery' : 'invite';
+    const path = isEmailConfirmed ? 'reset-password' : 'set-password';
     const redirectTo = `https://${tenant.subdomain}.vietsalepro.com/${path}`;
 
     // ponytail: Supabase Auth default email provider sends the link. generateLink only

@@ -143,7 +143,9 @@ npx vitest run    # Unit + integration tests
 
 - Edge Function: `supabase/functions/admin-health-check/index.ts`.
 - Exercises key RPCs with the service role and returns `{ ok, checkedAt, checks }`.
-- Monitoring: configure Uptime Robot to ping the endpoint every 5 minutes.
+- Production URL: `https://rsialbfjswnrkzcxarnj.supabase.co/functions/v1/admin-health-check`
+- Staging URL: `https://shbmzvfcenbybvyzclem.supabase.co/functions/v1/admin-health-check`
+- Monitoring: configure Uptime Robot to ping the production endpoint every 5 minutes.
 - Alert channel: email `vietsalepro86@gmail.com` (update in Uptime Robot dashboard).
 - Alert when `ok: false`.
 
@@ -183,7 +185,7 @@ Workflow steps:
 - [ ] `npm run audit:rpc` PASS
 - [ ] Smoke test on staging PASS
 - [ ] Recent production backup available
-- [ ] Deploy production only after staging tests PASS (prefer low-traffic window, e.g. 2–5 AM user timezone)
+- [ ] Deploy production only after staging tests PASS (timing decided by owner — see Component Ownership below).
 
 ---
 
@@ -191,12 +193,12 @@ Workflow steps:
 
 | Component | Owner | Contact | Notes |
 |-----------|-------|---------|-------|
-| Admin Dashboard UI | admin | vietsalepro86@gmail.com | React/Vite SPA under `pages/admin/`, `components/admin/` |
-| RPC Functions | admin | vietsalepro86@gmail.com | `supabase/migrations/`, `RPC_CONTRACTS.md` |
-| Edge Functions | admin | vietsalepro86@gmail.com | `supabase/functions/` |
-| Supabase Project | admin | vietsalepro86@gmail.com | migrations, backups, monitoring |
-| Feature Flags | admin | vietsalepro86@gmail.com | `tenants.settings->features`, `useAdminFeatureFlags` |
-| Audit & Compliance | admin | vietsalepro86@gmail.com | `app_audit_log`, GDPR RPCs |
+| Admin Dashboard UI | VietSale Pro | vietsalepro86@gmail.com | React/Vite SPA under `pages/admin/`, `components/admin/` |
+| RPC Functions | VietSale Pro | vietsalepro86@gmail.com | `supabase/migrations/`, `RPC_CONTRACTS.md` |
+| Edge Functions | VietSale Pro | vietsalepro86@gmail.com | `supabase/functions/` |
+| Supabase Project | VietSale Pro | vietsalepro86@gmail.com | migrations, backups, monitoring |
+| Feature Flags | VietSale Pro | vietsalepro86@gmail.com | `tenants.settings->features`, `useAdminFeatureFlags` |
+| Audit & Compliance | VietSale Pro | vietsalepro86@gmail.com | `app_audit_log`, GDPR RPCs |
 
 > Owner/contact managed by AI Agent. Update manually when team structure changes.
 

@@ -96,3 +96,107 @@ npx vitest run    # Unit + integration tests
 
 - Advanced enterprise features (optional after production launch).
 - **Verification**: `npm run build` PASS, feature-specific tests PASS.
+
+---
+
+## Phase 5 — Long-term Hardening (ongoing)
+
+### RPC Contract Compliance
+
+- Canonical contract: `docs/admin-dashboard/RPC_CONTRACTS.md`.
+- Audit script: `scripts/audit-rpc-contracts.ts` (run via `npm run audit:rpc`).
+- CI runs the audit after every build.
+- When adding a new RPC used by the admin dashboard, update the contract and the audit script will keep code and docs in sync.
+
+### Explicit Function Grants
+
+- Every migration that creates a public function must include:
+
+  ```sql
+  REVOKE ALL ON FUNCTION public.xxx(...) FROM PUBLIC;
+  GRANT EXECUTE ON FUNCTION public.xxx(...) TO authenticated;
+  GRANT EXECUTE ON FUNCTION public.xxx(...) TO service_role;
+  ```
+
+- Backfill migration: `supabase/migrations/20250711000001_phase_5_long_term_explicit_grants.sql`.
+- Audit query: `scripts/audit-grants.sql`.
+- `supabase/config.toml` must not set `auto_expose_new_tables = true`.
+
+### Defensive Service Mapping
+
+- Service layer never trusts backend shape blindly.
+- Shared helpers: `utils/service.ts` (`normalizeRpcArray`, `normalizeRpcPaginated`, `normalizeRpcObject`).
+- Applied to `services/tenantService.ts`, `services/systemAdminService.ts`, `services/auditService.ts`.
+
+### Feature Flags
+
+- Admin dashboard feature gates are stored in `tenants.settings->features`:
+  - `adminGdprEnabled`
+  - `adminAuditRealtimeEnabled`
+  - `adminAdvancedAnalyticsEnabled`
+  - `adminImpersonationEnabled`
+  - `adminReadReplicaQueueEnabled`
+- Hook: `hooks/useAdminFeatureFlags.ts`.
+- Migration: `supabase/migrations/20250711000002_phase_5_long_term_admin_feature_flags.sql`.
+
+### Health Check Endpoint
+
+- Edge Function: `supabase/functions/admin-health-check/index.ts`.
+- Exercises key RPCs with the service role and returns `{ ok, checkedAt, checks }`.
+- Monitoring: configure Uptime Robot to ping the endpoint every 5 minutes.
+- Alert channel: email `vietsalepro86@gmail.com` (update in Uptime Robot dashboard).
+- Alert when `ok: false`.
+
+---
+
+## Multi-Environment Deployment Workflow
+
+Projects:
+
+- **Staging**: `shbmzvfcenbybvyzclem`
+- **Production**: `rsialbfjswnrkzcxarnj`
+
+```
+local dev → supabase migration up / test
+    ↓
+staging  → supabase db push --project-ref shbmzvfcenbybvyzclem
+    ↓
+production → supabase db push --project-ref rsialbfjswnrkzcxarnj (only after staging PASS)
+```
+
+Workflow steps:
+
+1. Run local verification: `npm run lint`, `npm run build`, `npx vitest run`, `npm run audit:rpc`.
+2. Apply migrations to staging via Supabase CLI/MCP.
+3. Run pgtap smoke tests on staging (`npx supabase db test` or `execute_sql` health checks).
+4. Call the `admin-health-check` edge function on staging and confirm `ok: true`.
+5. Only after staging PASS, apply the same migrations to production.
+6. Deploy/redeploy `admin-health-check` edge function on production if needed.
+7. Re-run health-check on production and configure Uptime Robot to ping it every 5 minutes.
+
+### Production Deploy Checklist
+
+- [ ] `npm run lint` PASS
+- [ ] `npm run build` PASS
+- [ ] `npx vitest run` PASS
+- [ ] `npx supabase db test` PASS (pgtap)
+- [ ] `npm run audit:rpc` PASS
+- [ ] Smoke test on staging PASS
+- [ ] Recent production backup available
+- [ ] Deploy production only after staging tests PASS (prefer low-traffic window, e.g. 2–5 AM user timezone)
+
+---
+
+## Component Ownership
+
+| Component | Owner | Contact | Notes |
+|-----------|-------|---------|-------|
+| Admin Dashboard UI | admin | vietsalepro86@gmail.com | React/Vite SPA under `pages/admin/`, `components/admin/` |
+| RPC Functions | admin | vietsalepro86@gmail.com | `supabase/migrations/`, `RPC_CONTRACTS.md` |
+| Edge Functions | admin | vietsalepro86@gmail.com | `supabase/functions/` |
+| Supabase Project | admin | vietsalepro86@gmail.com | migrations, backups, monitoring |
+| Feature Flags | admin | vietsalepro86@gmail.com | `tenants.settings->features`, `useAdminFeatureFlags` |
+| Audit & Compliance | admin | vietsalepro86@gmail.com | `app_audit_log`, GDPR RPCs |
+
+> Owner/contact managed by AI Agent. Update manually when team structure changes.
+

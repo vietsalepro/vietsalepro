@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { normalizeRpcObject } from '../utils/service';
 
 export interface RateLimitLog {
   id: string;
@@ -65,7 +66,7 @@ export async function getSystemAdmins(): Promise<SystemAdmin[]> {
 export async function addSystemAdmin(userId: string): Promise<SystemAdmin> {
   const { data, error } = await supabase.rpc('add_system_admin', { p_user_id: userId });
   if (error) throw error;
-  return mapSystemAdmin(data);
+  return normalizeRpcObject(data, mapSystemAdmin);
 }
 
 export async function removeSystemAdmin(userId: string): Promise<void> {
@@ -139,7 +140,7 @@ const mapLockedEmail = (row: any): LockedEmail => ({
 export async function getTenantSecuritySettings(tenantId: string): Promise<SecuritySettings> {
   const { data, error } = await supabase.rpc('get_tenant_security_settings', { p_tenant_id: tenantId });
   if (error) throw error;
-  return mapSecuritySettings(data);
+  return normalizeRpcObject(data, mapSecuritySettings);
 }
 
 export async function updateTenantIpAllowlist(tenantId: string, allowedIps: string[]): Promise<void> {

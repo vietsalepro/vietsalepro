@@ -437,7 +437,7 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
                 <p className="text-gray-500">Chưa có dữ liệu tăng trưởng.</p>
               ) : (
                 <div className="dashboard-v2__chart dashboard-v2__chart--md">
-                  <ResponsiveContainer width="100%" height="100%" minHeight={256}>
+                  <ResponsiveContainer width="100%" height="100%" minHeight={256} minWidth={0}>
                     <BarChart data={growth}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
@@ -493,7 +493,7 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
                             </div>
                           </td>
                           <td className="px-6 py-4"><span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700">{planLabel(t.plan)}</span></td>
-                          <td className="px-6 py-4 text-sm text-gray-700">{t.ordersThisMonth.toLocaleString()}</td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{(t.ordersThisMonth ?? 0).toLocaleString()}</td>
                           <td className="px-6 py-4 text-sm text-gray-700">{t.userCount} / {t.productCount}</td>
                         </tr>
                       ))}

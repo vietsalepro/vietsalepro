@@ -838,6 +838,7 @@ const rpc = async (name: string, params: Record<string, any>) => {
       return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem top tenants' } };
     }
     const limit = params.p_limit ?? 10;
+    const offset = params.p_offset ?? 0;
     const rows = store.tenants
       .filter(t => t.status !== 'archived')
       .map(t => {
@@ -855,8 +856,48 @@ const rpc = async (name: string, params: Record<string, any>) => {
         };
       })
       .sort((a, b) => b.ordersThisMonth - a.ordersThisMonth || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      .slice(0, limit);
-    return { data: { data: rows, count: rows.length }, error: null };
+      .slice(offset, offset + limit);
+    return { data: { data: rows, count: store.tenants.filter(t => t.status !== 'archived').length }, error: null };
+  }
+
+  if (name === 'get_tenants_admin') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được gọi get_tenants_admin' } };
+    }
+    const limit = params.p_limit ?? 20;
+    const offset = ((params.p_page ?? 1) - 1) * limit;
+    const search = (params.p_search ?? '').toLowerCase();
+    const statusFilter = params.p_status ?? 'all';
+    const planFilter = params.p_plan ?? 'all';
+    const sortBy = params.p_sort_by ?? 'created_at';
+    const sortOrder = params.p_sort_order ?? 'desc';
+
+    let rows = store.tenants.filter(t => t.status !== 'archived');
+    if (statusFilter !== 'all') rows = rows.filter(t => t.status === statusFilter);
+    if (planFilter !== 'all') rows = rows.filter(t => t.plan === planFilter);
+    if (search) {
+      rows = rows.filter(t =>
+        t.name.toLowerCase().includes(search) ||
+        t.subdomain.toLowerCase().includes(search)
+      );
+    }
+
+    const total = rows.length;
+    const sortMult = sortOrder === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      let av: any = a[sortBy];
+      let bv: any = b[sortBy];
+      if (sortBy === 'created_at' || sortBy === 'updated_at' || sortBy === 'archived_at') {
+        av = av ? new Date(av).getTime() : 0;
+        bv = bv ? new Date(bv).getTime() : 0;
+      }
+      if (typeof av === 'string' && typeof bv === 'string') {
+        return sortMult * av.localeCompare(bv);
+      }
+      return sortMult * (av > bv ? 1 : av < bv ? -1 : 0);
+    });
+    rows = rows.slice(offset, offset + limit);
+    return { data: { data: rows, total }, error: null };
   }
 
   if (name === 'get_tenant_growth') {

@@ -9547,15 +9547,27 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION "public"."get_top_tenants"("p_limit" integer DEFAULT 10) RETURNS json
+CREATE OR REPLACE FUNCTION "public"."get_top_tenants"(
+  "p_limit" integer DEFAULT 10,
+  "p_offset" integer DEFAULT 0
+) RETURNS json
     LANGUAGE "plpgsql" STABLE
+    SECURITY INVOKER
+    SET search_path = public
     AS $$
+DECLARE
+  v_total INTEGER;
+  v_result JSON;
 BEGIN
   IF NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'Chỉ system admin mới được xem top tenants' USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  RETURN (
+  SELECT COUNT(*) INTO v_total
+  FROM public.tenants
+  WHERE status <> 'archived';
+
+  v_result := (
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
     FROM (
       SELECT
@@ -9577,7 +9589,13 @@ BEGIN
       WHERE ten.status <> 'archived'
       ORDER BY s.current_month_orders DESC NULLS LAST, ten.created_at DESC
       LIMIT p_limit
+      OFFSET p_offset
     ) t
+  );
+
+  RETURN json_build_object(
+    'data', v_result,
+    'count', COALESCE(v_total, 0)
   );
 END;
 $$;

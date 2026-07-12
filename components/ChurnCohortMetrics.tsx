@@ -132,7 +132,7 @@ export default function ChurnCohortMetrics({ loader }: ChurnCohortMetricsProps) 
                 {funnelData.length === 0 ? (
                   <p className="text-gray-500">Chưa có dữ liệu funnel.</p>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={funnelData} layout="vertical" margin={{ left: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                       <XAxis type="number" hide />
@@ -166,7 +166,7 @@ export default function ChurnCohortMetrics({ loader }: ChurnCohortMetricsProps) 
                 {cohortChart.data.length === 0 ? (
                   <p className="text-gray-500">Chưa có dữ liệu cohort.</p>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <LineChart data={cohortChart.data}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis

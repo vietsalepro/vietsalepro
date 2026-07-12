@@ -278,6 +278,7 @@ export interface DataRetentionStatus {
 }
 
 // P8.2: Tenant-scoped feature flags stored in tenants.settings->features
+// Phase 5 long-term hardening: admin dashboard feature gates default to OFF.
 export interface TenantFeatureFlags {
   pos?: boolean;
   inventory?: boolean;
@@ -287,6 +288,11 @@ export interface TenantFeatureFlags {
   promotions?: boolean;
   invoicing?: boolean;
   lotTracking?: boolean;
+  adminGdprEnabled?: boolean;
+  adminAuditRealtimeEnabled?: boolean;
+  adminAdvancedAnalyticsEnabled?: boolean;
+  adminImpersonationEnabled?: boolean;
+  adminReadReplicaQueueEnabled?: boolean;
 }
 
 export const DEFAULT_TENANT_FEATURE_FLAGS: Required<TenantFeatureFlags> = {
@@ -298,6 +304,11 @@ export const DEFAULT_TENANT_FEATURE_FLAGS: Required<TenantFeatureFlags> = {
   promotions: true,
   invoicing: true,
   lotTracking: true,
+  adminGdprEnabled: false,
+  adminAuditRealtimeEnabled: false,
+  adminAdvancedAnalyticsEnabled: false,
+  adminImpersonationEnabled: false,
+  adminReadReplicaQueueEnabled: false,
 };
 
 // P13.1: System health dashboard

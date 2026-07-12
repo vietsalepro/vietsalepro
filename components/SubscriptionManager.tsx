@@ -57,6 +57,12 @@ export default function SubscriptionManager() {
           setSelectedTenantId(tenantsResult.items[0].id);
         }
       })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('SubscriptionManager load error:', err);
+          addToast({ type: 'error', message: err?.message || 'Không thể tải dữ liệu đăng ký.' });
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);

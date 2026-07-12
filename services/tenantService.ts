@@ -8,6 +8,7 @@ import {
   TenantStatus,
   TenantPlan,
   UsageSummary,
+  UsageMetric,
   UpdateSubscriptionInput,
   SystemOverview,
   TopTenant,
@@ -15,10 +16,17 @@ import {
   TenantFeatureFlags,
   DEFAULT_TENANT_FEATURE_FLAGS,
   StorageUsage,
+  StorageTable,
+  TenantStorageUsage,
   CreateTenantResult,
   SearchMembersParams,
   SearchMembersResult,
 } from '../types/tenant';
+import {
+  normalizeRpcArray,
+  normalizeRpcObject,
+  normalizeRpcPaginated,
+} from '../utils/service';
 
 // --- Admin dashboard tenant types ---
 
@@ -96,6 +104,70 @@ const mapSubscriptionFromDB = (row: any): TenantSubscription => ({
   currentMonthStart: row.current_month_start,
   currentMonthOrders: row.current_month_orders,
   updatedAt: row.updated_at,
+});
+
+// --- Defensive mappers (Phase 5 long-term hardening) ---
+
+const mapUsageMetricFromDB = (row: any): UsageMetric => ({
+  current: row?.current ?? 0,
+  max: row?.max ?? 0,
+  percent: row?.percent ?? 0,
+});
+
+const mapUsageSummaryFromDB = (row: any): UsageSummary => ({
+  tenantId: row?.tenantId ?? row?.tenant_id ?? '',
+  plan: row?.plan ?? '',
+  billingStatus: row?.billingStatus ?? row?.billing_status,
+  expiresAt: row?.expiresAt ?? row?.expires_at,
+  users: {
+    ...mapUsageMetricFromDB(row?.users),
+    monthStart: row?.users?.monthStart ?? row?.users?.month_start,
+  },
+  products: {
+    ...mapUsageMetricFromDB(row?.products),
+    monthStart: row?.products?.monthStart ?? row?.products?.month_start,
+  },
+  orders: {
+    ...mapUsageMetricFromDB(row?.orders),
+    monthStart: row?.orders?.monthStart ?? row?.orders?.month_start,
+  },
+});
+
+const mapTopTenantFromDB = (row: any): TopTenant => ({
+  id: row?.id,
+  name: row?.name ?? '',
+  subdomain: row?.subdomain ?? '',
+  status: row?.status ?? 'active',
+  plan: row?.plan ?? '',
+  createdAt: row?.createdAt ?? row?.created_at,
+  ordersThisMonth: row?.ordersThisMonth ?? row?.orders_this_month ?? 0,
+  userCount: row?.userCount ?? row?.user_count ?? 0,
+  productCount: row?.productCount ?? row?.product_count ?? 0,
+});
+
+const mapTenantGrowthPointFromDB = (row: any): TenantGrowthPoint => ({
+  month: row?.month ?? '',
+  count: row?.count ?? 0,
+});
+
+const mapStorageTableFromDB = (row: any): StorageTable => ({
+  name: row?.name ?? '',
+  rowCount: row?.row_count ?? 0,
+  bytes: row?.bytes ?? 0,
+});
+
+const mapTenantStorageUsageFromDB = (row: any): TenantStorageUsage => ({
+  id: row?.id ?? '',
+  name: row?.name ?? '',
+  subdomain: row?.subdomain ?? '',
+  bytes: row?.bytes ?? 0,
+  tables: (row?.tables ?? []).map(mapStorageTableFromDB),
+});
+
+const mapStorageUsageFromDB = (row: any): StorageUsage => ({
+  checkedAt: row?.checkedAt ?? row?.checked_at ?? new Date().toISOString(),
+  totalDatabaseBytes: row?.totalDatabaseBytes ?? row?.total_database_bytes ?? 0,
+  tenants: (row?.tenants ?? []).map(mapTenantStorageUsageFromDB),
 });
 
 const parseFunctionError = async (error: any): Promise<string> => {
@@ -398,7 +470,7 @@ export async function getUsageSummary(tenantId: string): Promise<UsageSummary> {
     p_tenant_id: tenantId,
   });
   if (error) throw error;
-  return data;
+  return normalizeRpcObject(data, mapUsageSummaryFromDB);
 }
 
 export async function updateSubscriptionLimits(
@@ -426,7 +498,7 @@ export async function getTenantUsageSummary(tenantId: string): Promise<UsageSumm
     p_tenant_id: tenantId,
   });
   if (error) throw error;
-  return data as UsageSummary;
+  return normalizeRpcObject(data, mapUsageSummaryFromDB);
 }
 
 export async function updateTenantSubscription(
@@ -520,7 +592,17 @@ export async function getMemberWithEmail(tenantId: string, userId: string): Prom
     p_user_id: userId,
   });
   if (error) throw error;
-  return data ? { ...data, role: data.role as TenantRole, status: data.status } : null;
+  if (!data) return null;
+  return {
+    ...mapMembershipFromDB(data),
+    email: data.email,
+    invitedByEmail: data.invited_by_email,
+    invitedAt: data.invited_at,
+    acceptedAt: data.accepted_at,
+    lastSignInAt: data.last_sign_in_at,
+    confirmedAt: data.confirmed_at,
+    isOwner: data.is_owner ?? false,
+  };
 }
 
 export async function searchMembers(params: SearchMembersParams): Promise<SearchMembersResult> {
@@ -785,7 +867,7 @@ export async function getTopTenants(options: {
     p_offset: options.offset ?? 0,
   });
   if (error) throw error;
-  return { data: data?.data ?? [], count: data?.count ?? 0 };
+  return normalizeRpcPaginated(data, mapTopTenantFromDB);
 }
 
 export async function getTenantGrowth(options: {
@@ -795,7 +877,7 @@ export async function getTenantGrowth(options: {
     p_months: options.months ?? 12,
   });
   if (error) throw error;
-  return data ?? [];
+  return normalizeRpcArray(data, mapTenantGrowthPointFromDB);
 }
 
 // --- Tenant CRUD for regular flow ---
@@ -927,7 +1009,7 @@ export async function getStorageUsage(tenantId: string): Promise<StorageUsage> {
     p_tenant_id: tenantId,
   });
   if (error) throw error;
-  return data;
+  return normalizeRpcObject(data, mapStorageUsageFromDB);
 }
 
 export async function getTenantStorageUsage(): Promise<StorageUsage> {
@@ -935,7 +1017,7 @@ export async function getTenantStorageUsage(): Promise<StorageUsage> {
     p_tenant_id: null,
   });
   if (error) throw error;
-  return data;
+  return normalizeRpcObject(data, mapStorageUsageFromDB);
 }
 
 // --- Impersonation (system admin) ---

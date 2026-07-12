@@ -22,6 +22,7 @@ import {
   downloadGdprExport,
 } from '../services/admin/complianceAdminService';
 import { useAuth } from '../contexts/AuthContext';
+import { isSystemAdmin } from '../lib/permissions';
 import FraudRetentionPanel from './FraudRetentionPanel';
 
 const TERMS_TYPES: TermsType[] = ['tos', 'privacy', 'gdpr', 'cookie', 'custom'];
@@ -36,6 +37,7 @@ const GDPR_STATUS_LABELS: Record<string, string> = {
 
 export default function ComplianceManager() {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(false);
   const [selectedTenantId, setSelectedTenantId] = useState('');
@@ -106,6 +108,7 @@ export default function ComplianceManager() {
   };
 
   const loadGdprRequests = async () => {
+    if (isAdmin === false) return;
     setGdprLoading(true);
     setGdprError(null);
     try {
@@ -124,9 +127,18 @@ export default function ComplianceManager() {
 
   useEffect(() => {
     loadTenants();
-    loadGdprRequests();
+    let cancelled = false;
+    isSystemAdmin().then((admin) => {
+      if (!cancelled) setIsAdmin(admin);
+    });
+    return () => { cancelled = true; };
     // ponytail: initial GDPR load on mount; page changes reload separately.
   }, []);
+
+  useEffect(() => {
+    loadGdprRequests();
+    // ponytail: load GDPR only after admin role is known to avoid 403.
+  }, [isAdmin]);
 
   useEffect(() => {
     setTermsPage(1);
@@ -194,6 +206,10 @@ export default function ComplianceManager() {
 
   const handleGdprSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      setGdprError('Chỉ system admin mới được tạo yêu cầu GDPR.');
+      return;
+    }
     const userId = gdprForm.userId.trim();
     if (!userId) {
       setGdprError('Vui lòng nhập User ID.');
@@ -254,6 +270,12 @@ export default function ComplianceManager() {
       {(exportError || termsError || gdprError) && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">
           {exportError || termsError || gdprError}
+        </div>
+      )}
+
+      {isAdmin === false && (
+        <div className="bg-amber-50 text-amber-800 p-4 rounded-lg border border-amber-100">
+          Chỉ system admin mới có quyền quản lý GDPR.
         </div>
       )}
 

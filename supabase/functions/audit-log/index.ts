@@ -63,7 +63,7 @@ serve(async (req) => {
         return jsonResponse({ error: 'table_name is required' }, 400);
       }
       if (!action || !AUDIT_ACTIONS.has(action)) {
-        return jsonResponse({ error: 'action must be one of INSERT, UPDATE, DELETE, LOGIN, LOGOUT, EXPORT' }, 400);
+        return jsonResponse({ error: 'action must be one of INSERT, UPDATE, DELETE, LOGIN, LOGOUT, EXPORT, IMPERSONATE, IMPERSONATE_END' }, 400);
       }
 
       const rawIp = ip_address || getClientIp(req);

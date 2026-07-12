@@ -120,19 +120,28 @@ $$;
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.get_top_tenants(
-  p_limit INTEGER DEFAULT 10
+  p_limit INTEGER DEFAULT 10,
+  p_offset INTEGER DEFAULT 0
 )
 RETURNS JSON
 LANGUAGE plpgsql
 STABLE
 SECURITY INVOKER
+SET search_path = public
 AS $$
+DECLARE
+  v_total INTEGER;
+  v_result JSON;
 BEGIN
   IF NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'Chỉ system admin mới được xem top tenants' USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  RETURN (
+  SELECT COUNT(*) INTO v_total
+  FROM public.tenants
+  WHERE status <> 'archived';
+
+  v_result := (
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
     FROM (
       SELECT
@@ -147,17 +156,33 @@ BEGIN
         COALESCE(pc.count, 0) AS product_count
       FROM public.tenants ten
       LEFT JOIN public.tenant_subscriptions s ON s.tenant_id = ten.id
-      LEFT JOIN (SELECT tenant_id, COUNT(*) AS count FROM public.tenant_memberships GROUP BY tenant_id) uc
-        ON uc.tenant_id = ten.id
-      LEFT JOIN (SELECT tenant_id, COUNT(*) AS count FROM public.products GROUP BY tenant_id) pc
-        ON pc.tenant_id = ten.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*) AS count
+        FROM public.tenant_memberships
+        GROUP BY tenant_id
+      ) uc ON uc.tenant_id = ten.id
+      LEFT JOIN (
+        SELECT tenant_id, COUNT(*) AS count
+        FROM public.products
+        GROUP BY tenant_id
+      ) pc ON pc.tenant_id = ten.id
       WHERE ten.status <> 'archived'
       ORDER BY s.current_month_orders DESC NULLS LAST, ten.created_at DESC
       LIMIT p_limit
+      OFFSET p_offset
     ) t
+  );
+
+  RETURN json_build_object(
+    'data', v_result,
+    'count', COALESCE(v_total, 0)
   );
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.get_top_tenants(INTEGER, INTEGER) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_top_tenants(INTEGER, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_top_tenants(INTEGER, INTEGER) TO service_role;
 
 -- ============================================================
 -- 3. RPC tăng trưởng tenant theo tháng

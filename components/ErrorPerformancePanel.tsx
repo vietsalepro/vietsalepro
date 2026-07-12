@@ -107,7 +107,7 @@ export default function ErrorPerformancePanel() {
                 <p className="text-sm text-gray-500">Không có lỗi trong 24 giờ qua.</p>
               ) : (
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <BarChart data={errorChartData} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="source" tick={{ fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={60} />

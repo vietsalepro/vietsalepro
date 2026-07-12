@@ -56,7 +56,12 @@ export function useAdminRealtime(options: UseAdminRealtimeOptions = {}): UseAdmi
           onEventRef.current?.(event);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
+          // ponytail: realtime cần đúng env / bật Realtime ở Supabase; log một lần, không spam console.
+          console.warn('Admin realtime subscription failed:', status, err?.message);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

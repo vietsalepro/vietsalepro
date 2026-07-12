@@ -44,6 +44,8 @@ interface WriteAuditLogOptions {
  * ponytail: ip_address/user_agent được điền từ Edge Function headers khi không truyền;
  * client có thể truyền user_agent nếu cần, còn IP để Edge Function tự lấy.
  */
+const VALID_AUDIT_ACTIONS = new Set<string>(['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'IMPERSONATE', 'IMPERSONATE_END']);
+
 export async function writeAuditLog(
   action: AuditAction,
   tableName: string,
@@ -52,6 +54,12 @@ export async function writeAuditLog(
   const tenantId = getCurrentTenantId();
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id ?? null;
+
+  // ponytail: skip audit-log calls with missing required fields to avoid Edge Function 400.
+  if (!tenantId || !tableName || !action || !VALID_AUDIT_ACTIONS.has(action)) {
+    console.warn('audit-log skipped: missing required fields', { tenantId, tableName, action });
+    return;
+  }
 
   const body = {
     type: 'audit',
@@ -125,6 +133,6 @@ export async function getAuditLogs(
 
   return {
     data: (data || []).map(mapAuditLogFromDB),
-    count,
+    count: count ?? 0,
   };
 }

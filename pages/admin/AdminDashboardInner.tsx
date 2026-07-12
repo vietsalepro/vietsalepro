@@ -536,7 +536,7 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
                             </tr>
                           ))}
                           {(overview?.nearLimitTenants ?? []).map(t => {
-                            const maxPercent = Math.max(t.userPercent, t.productPercent, t.orderPercent);
+                            const maxPercent = Math.max(t.userPercent ?? 0, t.productPercent ?? 0, t.orderPercent ?? 0);
                             return (
                               <tr key={`limit-${t.id}`}>
                                 <td className="px-6 py-4">

@@ -105,4 +105,30 @@ describe('AdminDashboardInner overview tab', () => {
     // ponytail: regression guard — undefined ordersThisMonth should fall back to 0.
     expect(within(row!).getByText('0')).toBeInTheDocument();
   });
+
+  it('renders near-limit tenants without NaN when percent fields are undefined', async () => {
+    mockedGetSystemOverview.mockResolvedValue({
+      ...mockOverview,
+      nearLimitTenants: [
+        {
+          id: 't-2',
+          name: 'Store B',
+          subdomain: 'store-b',
+          userPercent: undefined as unknown as number,
+          productPercent: undefined as unknown as number,
+          orderPercent: undefined as unknown as number,
+        },
+      ],
+    });
+
+    render(<AdminDashboardInner activeTab="overview" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Store B')).toBeInTheDocument();
+    });
+
+    // ponytail: regression guard — undefined percent fields should fall back to 0, not NaN.
+    expect(screen.getByText('>80% (0%)')).toBeInTheDocument();
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+  });
 });

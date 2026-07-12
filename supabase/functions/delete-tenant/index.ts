@@ -50,15 +50,19 @@ async function softDeleteTenant(supabaseAdmin: any, tenantId: string, userId: st
   if (deactivateError) throw deactivateError;
 
   // 3. Audit log
-  await supabaseAdmin.from('app_audit_log').insert({
+  // ponytail: use standard CRUD action to satisfy app_audit_log CHECK constraint.
+  const { error: auditError } = await supabaseAdmin.from('app_audit_log').insert({
     tenant_id: tenantId,
     user_id: userId,
     table_name: 'tenants',
     record_id: tenantId,
-    action: 'TENANT_SOFT_DELETE',
+    action: 'UPDATE',
     new_data: { status: 'archived', archived_at: now },
     ip_address: ip,
   });
+  if (auditError) {
+    console.error('Failed to write soft-delete audit log', auditError);
+  }
 
   return { success: true, action: 'soft_delete', tenantId };
 }
@@ -191,15 +195,19 @@ async function hardDeleteTenant(supabaseAdmin: any, tenantId: string, userId: st
   }
 
   // 6. Audit log for hard delete
-  await supabaseAdmin.from('app_audit_log').insert({
+  // ponytail: use standard CRUD action to satisfy app_audit_log CHECK constraint.
+  const { error: auditError } = await supabaseAdmin.from('app_audit_log').insert({
     tenant_id: tenantId,
     user_id: userId,
     table_name: 'tenants',
     record_id: tenantId,
-    action: 'TENANT_HARD_DELETE',
+    action: 'DELETE',
     new_data: { hard_deleted: true, storageDeleted, authDeleted },
     ip_address: ip,
   });
+  if (auditError) {
+    console.error('Failed to write hard-delete audit log', auditError);
+  }
 
   return jsonResponse(
     {
@@ -243,12 +251,15 @@ serve(async (req) => {
       return jsonResponse({ error: 'Rate limit exceeded: 10 requests per minute' }, 429);
     }
 
+    // ponytail: rate-limit logging must not block the actual tenant delete.
     const { error: logError } = await supabaseAdmin.from('rate_limit_logs').insert({
       ip_address: ip,
       action: 'delete_tenant',
       window_start: new Date().toISOString(),
     });
-    if (logError) throw logError;
+    if (logError) {
+      console.error('Failed to write rate_limit_logs entry:', logError);
+    }
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {

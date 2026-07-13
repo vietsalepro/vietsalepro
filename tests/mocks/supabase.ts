@@ -2299,6 +2299,26 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     };
   }
 
+  if (name === 'send-sms') {
+    const { to, body: messageBody, test } = body;
+    const recipients = Array.isArray(to) ? to : [to];
+    if (!recipients.length || !messageBody) {
+      return { data: { error: 'to và body không được để trống' }, error: null };
+    }
+    return {
+      data: {
+        success: true,
+        id: `sms-${uuid()}`,
+        ids: recipients.map(() => `sms-${uuid()}`),
+        to: recipients,
+        body: messageBody,
+        provider: 'twilio',
+        test: !!test,
+      },
+      error: null,
+    };
+  }
+
   if (name === 'send-ticket-email') {
     const { ticket_id, event, to, reply_id } = body;
     const ticket = store.support_tickets?.find(t => t.id === ticket_id);

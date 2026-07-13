@@ -57,7 +57,8 @@ export async function writeAuditLog(
 
   // ponytail: skip audit-log calls with missing required fields to avoid Edge Function 400.
   if (!tenantId || !tableName || !action || !VALID_AUDIT_ACTIONS.has(action)) {
-    console.warn('audit-log skipped: missing required fields', { tenantId, tableName, action });
+    // ponytail: admin subdomain has no tenantId; warn spam hides real issues, use debug log.
+    console.debug('audit-log skipped: missing required fields', { tenantId, tableName, action });
     return;
   }
 

@@ -1,5 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import {
+  buildResourceMetrics,
+  fetchSupabaseMetrics,
+  parseProjectRef,
+  sleep,
+  type ResourceMetrics,
+} from '../_shared/systemHealth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +29,11 @@ interface HealthCheck {
   detail?: string;
 }
 
+interface HealthMetrics extends ResourceMetrics {
+  activeConnections: number | null;
+  edgeFunctionStatus: HealthStatus | null;
+}
+
 const overallStatus = (checks: HealthCheck[]): HealthStatus => {
   if (checks.some(c => c.status === 'down')) return 'down';
   if (checks.some(c => c.status === 'degraded')) return 'degraded';
@@ -37,6 +49,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const secretApiKey = Deno.env.get('SUPABASE_SECRET_API_KEY');
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -73,7 +86,7 @@ serve(async (req) => {
       if (error) {
         checks.push({ name: 'Database', status: 'down', latencyMs, message: error.message });
       } else {
-        const status = latencyMs > 2000 ? 'degraded' : 'healthy';
+        const status: HealthStatus = latencyMs > 2000 ? 'degraded' : 'healthy';
         checks.push({ name: 'Database', status, latencyMs, detail: `Truy vấn thành công` });
       }
     } catch (err) {
@@ -88,7 +101,7 @@ serve(async (req) => {
       if (error) {
         checks.push({ name: 'Storage', status: 'down', latencyMs, message: error.message });
       } else {
-        const status = latencyMs > 2000 ? 'degraded' : 'healthy';
+        const status: HealthStatus = latencyMs > 2000 ? 'degraded' : 'healthy';
         checks.push({ name: 'Storage', status, latencyMs, detail: `${buckets?.length ?? 0} buckets` });
       }
     } catch (err) {
@@ -97,26 +110,60 @@ serve(async (req) => {
 
     // Edge Functions health: try invoking an existing lightweight function
     const edgeStart = Date.now();
+    let edgeStatus: HealthStatus = 'unknown';
     try {
       const { data, error } = await supabaseAdmin.functions.invoke('check-subdomain', {
         body: { subdomain: 'health-check' },
       });
       const latencyMs = Date.now() - edgeStart;
       if (error) {
-        // Function responded but reported an error; still reachable
+        edgeStatus = 'degraded';
         checks.push({ name: 'Edge Functions', status: 'degraded', latencyMs, message: error.message });
       } else {
-        const status = latencyMs > 3000 ? 'degraded' : 'healthy';
-        checks.push({ name: 'Edge Functions', status, latencyMs, detail: data?.available !== undefined ? 'Phản hồi OK' : 'Phản hồi bất thường' });
+        edgeStatus = latencyMs > 3000 ? 'degraded' : 'healthy';
+        checks.push({ name: 'Edge Functions', status: edgeStatus, latencyMs, detail: data?.available !== undefined ? 'Phản hồi OK' : 'Phản hồi bất thường' });
       }
     } catch (err) {
+      edgeStatus = 'down';
       checks.push({ name: 'Edge Functions', status: 'down', latencyMs: Date.now() - edgeStart, message: err instanceof Error ? err.message : 'Lỗi không xác định' });
     }
+
+    // Resource metrics from Supabase Metrics API (best-effort)
+    let resourceMetrics: ResourceMetrics = { cpuPercent: null, memoryPercent: null, diskPercent: null };
+    const projectRef = parseProjectRef(supabaseUrl);
+    if (projectRef && secretApiKey) {
+      try {
+        const sample1 = await fetchSupabaseMetrics(projectRef, secretApiKey, fetch, { timeoutMs: 10000 });
+        await sleep(1000);
+        const sample2 = await fetchSupabaseMetrics(projectRef, secretApiKey, fetch, { timeoutMs: 10000 });
+        resourceMetrics = buildResourceMetrics(sample1, sample2);
+      } catch {
+        // Metrics API is optional; failures leave the fields null.
+      }
+    }
+
+    // Active connections via existing RPC
+    let activeConnections: number | null = null;
+    try {
+      const { data, error } = await supabaseAdmin.rpc('get_connection_pool_stats') as { data: { active?: number } | null; error: Error | null };
+      if (!error && data && typeof data.active === 'number') {
+        activeConnections = data.active;
+      }
+    } catch {
+      // Best-effort; leave null on failure.
+    }
+
+    const metrics: HealthMetrics = {
+      ...resourceMetrics,
+      activeConnections,
+      edgeFunctionStatus: edgeStatus,
+    };
 
     return jsonResponse({
       checkedAt: new Date().toISOString(),
       overall: overallStatus(checks),
       checks,
+      metrics,
     }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

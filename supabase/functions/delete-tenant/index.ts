@@ -163,10 +163,7 @@ async function hardDeleteTenant(supabaseAdmin: any, tenantId: string, userId: st
     const adminIds = new Set((systemAdmins || []).map((a) => a.user_id));
 
     for (const userId of userIds) {
-      if (adminIds.has(userId)) {
-        console.log('Skipping auth delete for system admin', userId);
-        continue;
-      }
+      if (adminIds.has(userId)) continue;
 
       const [{ count: otherMemberships }, { count: otherOwnerships }] = await Promise.all([
         supabaseAdmin
@@ -179,10 +176,7 @@ async function hardDeleteTenant(supabaseAdmin: any, tenantId: string, userId: st
           .eq('owner_id', userId),
       ]);
 
-      if (otherMemberships || otherOwnerships) {
-        console.log('Skipping auth delete: user still linked to other tenants', userId);
-        continue;
-      }
+      if (otherMemberships || otherOwnerships) continue;
 
       const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
       if (authDeleteError) {

@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import SubdomainManagerPanel from '../../components/admin/SubdomainManagerPanel';
 import CustomDomainPanel from '../../components/admin/CustomDomainPanel';
 import LicenseManagerPanel from '../../components/admin/LicenseManagerPanel';
+import SecuritySettingsPanel from '../../components/admin/SecuritySettingsPanel';
 import { getAccount } from '../../services/admin/tenantAdminService';
 import { Tenant } from '../../types/tenant';
 
@@ -98,6 +99,8 @@ export default function TenantDetail() {
       {tenant.plan === 'vip' && <CustomDomainPanel tenant={tenant} onUpdated={handleUpdated} />}
 
       <LicenseManagerPanel tenant={tenant} />
+
+      <SecuritySettingsPanel tenant={tenant} />
     </div>
   );
 }

@@ -42,6 +42,84 @@ const mapAdminAuditLogFromDB = (row: any): AdminAuditLogEntry => ({
   createdAt: row.created_at,
 });
 
+// ponytail: cap export to avoid browser memory blow-up on huge audit tables.
+// Ceiling: 10k rows; for larger exports add server-side streaming/Edge Function.
+const MAX_EXPORT_ROWS = 10000;
+
+export type AdminAuditExportFormat = 'csv' | 'json';
+
+export interface AdminAuditExportOptions extends AdminAuditLogFilter {
+  format: AdminAuditExportFormat;
+}
+
+export interface AdminAuditExportResult {
+  blob: Blob;
+  filename: string;
+}
+
+const CSV_HEADER_KEYS = [
+  'id',
+  'tenantId',
+  'actorId',
+  'action',
+  'entityType',
+  'entityId',
+  'oldData',
+  'newData',
+  'ipAddress',
+  'createdAt',
+] as const;
+
+const CSV_HEADER_LABELS = [
+  'id',
+  'tenant_id',
+  'actor_id',
+  'action',
+  'entity_type',
+  'entity_id',
+  'old_data',
+  'new_data',
+  'ip_address',
+  'created_at',
+];
+
+function escapeCsvCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function formatAuditLogsAsCsv(rows: AdminAuditLogEntry[]): string {
+  const lines = [CSV_HEADER_LABELS.join(',')];
+  for (const row of rows) {
+    lines.push(CSV_HEADER_KEYS.map((key) => escapeCsvCell(row[key])).join(','));
+  }
+  return lines.join('\n');
+}
+
+export async function exportAuditLogs(
+  options: AdminAuditExportOptions
+): Promise<AdminAuditExportResult> {
+  const { format, ...filter } = options;
+  const { data } = await getAdminAuditLogs({ ...filter, limit: MAX_EXPORT_ROWS, offset: 0 });
+  const dateSuffix = new Date().toISOString().slice(0, 10);
+
+  if (format === 'csv') {
+    return {
+      blob: new Blob([formatAuditLogsAsCsv(data)], { type: 'text/csv;charset=utf-8;' }),
+      filename: `audit-log-${dateSuffix}.csv`,
+    };
+  }
+
+  return {
+    blob: new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+    filename: `audit-log-${dateSuffix}.json`,
+  };
+}
+
 export async function getAdminAuditLogs(
   options: AdminAuditLogFilter & { limit?: number; offset?: number } = {}
 ): Promise<{ data: AdminAuditLogEntry[]; count: number | null }> {

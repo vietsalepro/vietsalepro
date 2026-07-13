@@ -18,6 +18,7 @@ const store: Record<string, Row[]> = {
   orders: [],
   users: [],
   app_audit_log: [],
+  audit_log: [],
   rate_limit_logs: [],
   system_admins: [],
   system_settings: [],

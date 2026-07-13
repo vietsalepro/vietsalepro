@@ -6,6 +6,7 @@ import {
   AdminAuditLogEntry,
   AdminAuditAction,
 } from '../../services/admin/auditAdminService';
+import AuditExportPanel from '../../components/admin/AuditExportPanel';
 import { listAccounts } from '../../services/admin/tenantAdminService';
 import { Tenant } from '../../types/tenant';
 
@@ -277,6 +278,19 @@ export default function Audit() {
           />
         </div>
       </div>
+
+      {/* Export */}
+      <AuditExportPanel
+        filters={{
+          tenantId: filters.tenantId || null,
+          actorId: filters.actorId || null,
+          action: filters.action || null,
+          entityType: filters.entityType || null,
+          entityId: filters.entityId || null,
+          dateFrom: filters.dateFrom || null,
+          dateTo: filters.dateTo || null,
+        }}
+      />
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

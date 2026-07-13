@@ -26,7 +26,7 @@ import {
   updateTicketReplyTemplate,
   deleteTicketReplyTemplate,
   sendTicketUpdateEmail,
-} from '../services/ticketService';
+} from '../services/admin/supportService';
 import { getAllTenants } from '../services/tenantService';
 import { getSystemAdmins } from '../services/systemAdminService';
 import { Tenant } from '../types/tenant';
@@ -85,6 +85,17 @@ const priorityClass = (priority?: SupportTicketPriority) => {
     case 'urgent': return 'bg-red-100 text-red-700';
     default: return 'bg-gray-100 text-gray-700';
   }
+};
+
+const slaStatus = (ticket?: SupportTicket): { label: string; className: string } => {
+  if (ticket?.status === 'resolved' || ticket?.status === 'closed') {
+    return { label: 'Hoàn tất', className: 'bg-green-100 text-green-700' };
+  }
+  if (!ticket?.slaTargetAt) return { label: 'Không SLA', className: 'bg-gray-100 text-gray-600' };
+  const remaining = new Date(ticket.slaTargetAt).getTime() - Date.now();
+  if (remaining < 0) return { label: 'Quá hạn', className: 'bg-red-100 text-red-700' };
+  if (remaining < 60 * 60 * 1000) return { label: '< 1 giờ', className: 'bg-red-50 text-red-700' };
+  return { label: 'Trong hạn', className: 'bg-green-50 text-green-700' };
 };
 
 const formatDate = (d?: string) => (d ? new Date(d).toLocaleString('vi-VN') : '-');
@@ -514,6 +525,10 @@ export default function TicketInbox() {
                 <div className="flex items-center gap-2 mt-2 text-xs">
                   <span className={`px-2 py-0.5 rounded-full ${priorityClass(ticket.priority)}`}>{priorityLabel(ticket.priority)}</span>
                   <span className="text-gray-500">{categoryLabel(ticket.category)}</span>
+                  {(() => {
+                    const s = slaStatus(ticket);
+                    return <span className={`px-2 py-0.5 rounded-full ${s.className}`}>{s.label}</span>;
+                  })()}
                   <span className="text-gray-400 ml-auto">{formatDate(ticket.createdAt)}</span>
                 </div>
                 <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
@@ -552,6 +567,10 @@ export default function TicketInbox() {
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-1 rounded-full ${statusClass(selectedTicket.status)}`}>{statusLabel(selectedTicket.status)}</span>
                   <span className={`text-xs px-2 py-1 rounded-full ${priorityClass(selectedTicket.priority)}`}>{priorityLabel(selectedTicket.priority)}</span>
+                  {(() => {
+                    const s = slaStatus(selectedTicket);
+                    return <span className={`text-xs px-2 py-1 rounded-full ${s.className}`}>{s.label}</span>;
+                  })()}
                 </div>
               </div>
 
@@ -600,6 +619,9 @@ export default function TicketInbox() {
                       <span><Tag className="w-3 h-3 inline mr-1" />{categoryLabel(selectedTicket.category)}</span>
                       <span><Clock className="w-3 h-3 inline mr-1" />Tạo: {formatDate(selectedTicket.createdAt)}</span>
                       <span><Clock className="w-3 h-3 inline mr-1" />Cập nhật: {formatDate(selectedTicket.updatedAt)}</span>
+                      {selectedTicket.slaTargetAt && (
+                        <span><Clock className="w-3 h-3 inline mr-1" />SLA: {formatDate(selectedTicket.slaTargetAt)}</span>
+                      )}
                     </div>
                   </div>
 

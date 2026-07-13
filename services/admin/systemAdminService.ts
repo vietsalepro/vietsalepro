@@ -27,7 +27,10 @@ export {
 } from '../systemAdminService';
 
 export {
-  checkSubdomain,
+  checkSubdomainAvailability as checkSubdomain,
+} from './tenantAdminService';
+
+export {
   getDataRetentionStatus,
   getDefaultPlanLimits,
   getMaintenanceMode,

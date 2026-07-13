@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import { ToastProvider } from '../../components/ToastContainer';
 import Tenants from '../../pages/admin/Tenants';
 import { Tenant } from '../../types/tenant';
 
 const mockedListAccounts = vi.fn();
-const mockedCheckSubdomain = vi.fn();
 const mockedStartImpersonation = vi.fn();
 const mockedCreateTenantWithCredentials = vi.fn();
 const mockedSoftDeleteTenant = vi.fn();
@@ -42,7 +42,6 @@ vi.mock('../../services/admin/systemAdminService', async () => {
   );
   return {
     ...actual,
-    checkSubdomain: (...args: any[]) => mockedCheckSubdomain(...args),
     startImpersonation: (...args: any[]) => mockedStartImpersonation(...args),
     downloadTenantBackup: (...args: any[]) => mockedDownloadTenantBackup(...args),
     restoreTenantBackup: (...args: any[]) => mockedRestoreTenantBackup(...args),
@@ -62,7 +61,9 @@ vi.mock('../../services/admin/billingAdminService', async () => {
 });
 
 const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ToastProvider>{children}</ToastProvider>
+  <MemoryRouter>
+    <ToastProvider>{children}</ToastProvider>
+  </MemoryRouter>
 );
 
 const mockTenants: Tenant[] = [
@@ -127,5 +128,15 @@ describe('Tenants page', () => {
     expect(screen.getAllByTitle('Backup').length).toBeGreaterThan(0);
     expect(screen.getAllByTitle('Restore').length).toBeGreaterThan(0);
     expect(screen.getByTitle('Export CSV')).toBeInTheDocument();
+  });
+
+  it('renders subdomain management button for each tenant', async () => {
+    render(<Tenants />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Cửa hàng A')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByTitle('Quản lý subdomain').length).toBe(mockTenants.length);
   });
 });

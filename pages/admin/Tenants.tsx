@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Building2,
   Archive,
@@ -12,6 +13,7 @@ import {
   FileDown,
   Upload,
   X,
+  Globe,
 } from 'lucide-react';
 import { useAdminList } from '../../hooks/useAdminList';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
@@ -35,9 +37,9 @@ import {
   restoreTenantStatus,
   getTenantFeatureFlags,
   updateTenantFeatureFlags,
+  checkSubdomainAvailability,
 } from '../../services/admin/tenantAdminService';
 import {
-  checkSubdomain,
   startImpersonation,
   downloadTenantBackup,
   restoreTenantBackup,
@@ -46,12 +48,10 @@ import {
   resetDemoData,
 } from '../../services/admin/systemAdminService';
 import { getTenantSubscription, updateTenantSubscription } from '../../services/admin/billingAdminService';
+import { isValidSubdomainFormat } from '../../utils/subdomain';
 
 const PLANS: TenantPlan[] = ['free', 'vip'];
 const STATUSES: TenantStatus[] = ['active', 'suspended', 'trial', 'pending', 'archived', 'read_only'];
-
-const isValidSubdomain = (s: string): boolean =>
-  /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(s) && s.length >= 3 && s.length <= 63;
 
 const slugify = (s: string): string =>
   s
@@ -204,6 +204,7 @@ export default function Tenants() {
 
   const { openConfirmDialog, confirmDialog } = useConfirmDialog();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
@@ -219,13 +220,13 @@ export default function Tenants() {
 
   const handleCheckSubdomain = async () => {
     const subdomain = form.subdomain.trim();
-    if (!isValidSubdomain(subdomain)) {
-      setSubdomainCheck({ checking: false, available: false, message: 'Subdomain không hợp lệ.' });
+    if (!isValidSubdomainFormat(subdomain)) {
+      setSubdomainCheck({ checking: false, available: false, message: 'Subdomain không hợp lệ hoặc thuộc danh sách dự trữ.' });
       return;
     }
     setSubdomainCheck({ checking: true });
     try {
-      const res = await checkSubdomain(subdomain);
+      const res = await checkSubdomainAvailability(subdomain);
       setSubdomainCheck({ checking: false, available: res.available, message: res.available ? 'Subdomain khả dụng.' : (res.error || 'Subdomain đã được sử dụng.') });
     } catch (err: any) {
       setSubdomainCheck({ checking: false, available: false, message: err?.message || 'Không thể kiểm tra subdomain.' });
@@ -239,8 +240,8 @@ export default function Tenants() {
       addToast({ type: 'error', message: 'Vui lòng nhập tên cửa hàng.' });
       return;
     }
-    if (!isValidSubdomain(subdomain)) {
-      addToast({ type: 'error', message: 'Subdomain không hợp lệ.' });
+    if (!isValidSubdomainFormat(subdomain)) {
+      addToast({ type: 'error', message: 'Subdomain không hợp lệ hoặc thuộc danh sách dự trữ.' });
       return;
     }
     if (subdomainCheck?.available !== true) {
@@ -617,7 +618,7 @@ export default function Tenants() {
               disabled={
                 submitting
                 || !form.name.trim()
-                || !isValidSubdomain(form.subdomain.trim())
+                || !isValidSubdomainFormat(form.subdomain.trim())
                 || subdomainCheck?.available !== true
               }
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
@@ -788,6 +789,13 @@ export default function Tenants() {
                           className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg"
                         >
                           <Upload className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/admin/tenants/${t.id}`)}
+                          title="Quản lý subdomain"
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+                        >
+                          <Globe className="w-4 h-4" />
                         </button>
                         {isDemoTenant(t) && (
                           <button

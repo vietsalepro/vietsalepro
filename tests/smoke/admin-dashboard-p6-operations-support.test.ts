@@ -17,8 +17,8 @@ import {
   setDefaultPlanLimits,
   getMaintenanceMode,
   setMaintenanceMode,
-  checkSubdomain,
 } from '../../services/operationsService';
+import { checkSubdomain } from '../../services/admin/systemAdminService';
 import { createTenantWithAdmin, getTenantUsageSummary } from '../../services/tenantService';
 
 // ponytail: smoke test P6 operations & support. Dùng mock in-memory để xác minh

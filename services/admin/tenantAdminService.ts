@@ -1,6 +1,10 @@
 import { supabase } from '../../lib/supabase';
 import { Tenant, TenantStatus, TenantRole, TenantMembership } from '../../types/tenant';
 import {
+  normalizeSubdomain,
+  isValidSubdomainFormat,
+} from '../../utils/subdomain';
+import {
   mapTenantFromDB,
   getAllTenants as getAllTenantsBase,
   searchTenants as searchTenantsBase,
@@ -127,6 +131,44 @@ export async function createAccount(input: {
   ownerId?: string;
 }): Promise<Tenant> {
   return createTenantWithAdminBase(input);
+}
+
+export interface SubdomainAvailabilityResult {
+  available: boolean;
+  error?: string;
+}
+
+export async function checkSubdomainAvailability(subdomain: string): Promise<SubdomainAvailabilityResult> {
+  const s = normalizeSubdomain(subdomain);
+  if (!isValidSubdomainFormat(s)) {
+    return { available: false, error: 'Subdomain không hợp lệ hoặc thuộc danh sách dự trữ.' };
+  }
+
+  const { data, error } = await supabase.functions.invoke<{ available: boolean; error?: string }>('check-subdomain', {
+    body: { subdomain: s },
+  });
+
+  if (error) throw error;
+  if (!data || typeof data !== 'object' || typeof data.available !== 'boolean') {
+    throw new Error(data?.error || 'Phản hồi kiểm tra subdomain không hợp lệ');
+  }
+
+  return { available: data.available, error: data.error };
+}
+
+export async function setTenantSubdomain(tenantId: string, subdomain: string): Promise<Tenant> {
+  const s = normalizeSubdomain(subdomain);
+  if (!isValidSubdomainFormat(s)) {
+    throw new Error('Subdomain không hợp lệ hoặc thuộc danh sách dự trữ.');
+  }
+
+  const { data, error } = await supabase.rpc('set_tenant_subdomain', {
+    p_tenant_id: tenantId,
+    p_subdomain: s,
+  });
+
+  if (error) throw error;
+  return mapTenantFromDB(data);
 }
 
 // ponytail: re-export tenant-scoped admin helpers used by the admin dashboard.

@@ -124,6 +124,7 @@ Bảng dưới đây được sinh tự động từ các file `services/**/*.ts
 | `gdpr_delete_user_data` | `services/admin/complianceAdminService.ts` |
 | `gdpr_export_user_data` | `services/admin/complianceAdminService.ts` |
 | `generate_2fa_backup_codes` | `services/twoFactorService.ts` |
+| `generate_tenant_license` | `services/admin/licenseService.ts` |
 | `get_admin_login_alerts` | `services/loginHistoryService.ts` |
 | `get_admin_login_history` | `services/loginHistoryService.ts` |
 | `get_billing_automation_status` | `services/billingAutomationService.ts` |
@@ -219,4 +220,5 @@ Bảng dưới đây được sinh tự động từ các file `services/**/*.ts
 | `update_tenant_subscription` | `services/tenantService.ts` |
 | `update_tenant_webhook` | `services/webhookService.ts` |
 | `validate_promo_code` | `services/promotionService.ts` |
+| `validate_tenant_license` | `services/admin/licenseService.ts` |
 | `verify_2fa_backup_code` | `services/twoFactorService.ts` |

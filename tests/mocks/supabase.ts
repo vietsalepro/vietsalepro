@@ -46,6 +46,7 @@ const store: Record<string, Row[]> = {
   processed_operations: [],
   heavy_ops_jobs: [],
   tenant_credentials: [],
+  licenses: [],
 };
 
 export const resetMockData = () => {
@@ -185,6 +186,8 @@ const executeQuery = (state: QueryState) => {
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_credentials') {
+      if (!isSystemAdmin) rows = [];
+    } else if (table === 'licenses') {
       if (!isSystemAdmin) rows = [];
     } else if (adminOnlyTables.includes(table)) {
       if (!isSystemAdmin) rows = [];

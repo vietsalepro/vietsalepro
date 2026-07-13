@@ -29,6 +29,7 @@ export interface SupportTicket {
   assignedTo?: string;
   resolvedAt?: string;
   closedAt?: string;
+  slaTargetAt?: string;
   createdAt?: string;
   updatedAt?: string;
   replyCount?: number;
@@ -54,6 +55,7 @@ export type UpdateSupportTicketInput = Partial<
     | 'assignedTo'
     | 'resolvedAt'
     | 'closedAt'
+    | 'slaTargetAt'
   >
 >;
 

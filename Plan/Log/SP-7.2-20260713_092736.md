@@ -19,6 +19,7 @@
    - Displays the configured custom domain (read-only).
    - Generates a verification token / TXT record.
    - Verifies the domain and shows success/error status.
+   - Integrated into `pages/admin/TenantDetail.tsx` for VIP tenants.
 4. Added service helpers in `services/admin/tenantAdminService.ts`:
    - `requestCustomDomainVerification`, `verifyCustomDomain`, `isValidCustomDomain`.
 5. Updated `types/tenant.ts` and `services/tenantService.ts` to expose `customDomainVerifiedAt` (verification token is **not** exposed in the client DTO).

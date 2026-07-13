@@ -139,20 +139,16 @@ async function hardDeleteTenant(supabaseAdmin: any, tenantId: string, userId: st
     }
   }
 
-  // 3. Set session variable to bypass guardrail trigger during cascade
-  await supabaseAdmin.rpc('set_config', { 
-    p_name: 'app.hard_delete_tenant', 
-    p_value: 'true' 
-  }).catch(() => {});
-
-  // 4. Delete the tenant row. ON DELETE CASCADE removes business tables.
+  // 3. Delete the tenant row. ON DELETE CASCADE removes business tables.
+  // ponytail: trg_tenants_before_delete sets app.hard_delete_tenant so the
+  // tenant_memberships guardrail does not block the cascade.
   const { error: deleteTenantError } = await supabaseAdmin
     .from('tenants')
     .delete()
     .eq('id', tenantId);
   if (deleteTenantError) throw deleteTenantError;
 
-  // 5. Delete auth users that were created for this tenant and have no other tenant.
+  // 4. Delete auth users that were created for this tenant and have no other tenant.
   let authDeleted = 0;
   let authFailures = 0;
   if (userIds.size > 0) {

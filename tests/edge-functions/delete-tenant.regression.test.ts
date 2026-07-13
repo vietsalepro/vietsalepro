@@ -41,4 +41,17 @@ describe('delete-tenant Edge Function regression', () => {
   it('does not throw on rate_limit_logs insert failure', () => {
     expect(source).not.toContain('if (logError) throw logError;');
   });
+
+  it('does not call the redundant set_config RPC', () => {
+    // ponytail: trg_tenants_before_delete now sets app.hard_delete_tenant; the
+    // old RPC call also crashed because supabase-js PostgrestBuilder lacks .catch().
+    expect(source).not.toContain("rpc('set_config'");
+  });
+
+  it('does not chain .catch on an awaited supabase RPC builder', () => {
+    const awaitedRpcCatch = source.match(
+      /await\s+supabase(?:Admin)?\.rpc\([\s\S]*?\)\.catch\(/g
+    );
+    expect(awaitedRpcCatch).toBeNull();
+  });
 });

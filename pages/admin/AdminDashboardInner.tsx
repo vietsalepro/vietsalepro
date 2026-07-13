@@ -436,7 +436,7 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
               ) : growth.length === 0 ? (
                 <p className="text-gray-500">Chưa có dữ liệu tăng trưởng.</p>
               ) : (
-                <div className="dashboard-v2__chart dashboard-v2__chart--md">
+                <div className="w-full h-64">
                   <ResponsiveContainer width="100%" height="100%" minHeight={256} minWidth={0}>
                     <BarChart data={growth}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

@@ -132,3 +132,25 @@ describe('AdminDashboardInner overview tab', () => {
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });
+
+describe('AdminDashboardInner chart container', () => {
+  beforeEach(() => {
+    mockedGetSystemOverview.mockResolvedValue(mockOverview);
+    mockedGetTopTenants.mockResolvedValue({ data: [mockTopTenant], count: 1 });
+    mockedGetTenantGrowth.mockResolvedValue([{ month: '2026-07', count: 1 }]);
+    mockedGetRateLimitLogs.mockResolvedValue({ data: [], count: 0 });
+    mockedGetAdminLoginHistory.mockResolvedValue({ data: [], count: 0 });
+    mockedGetAdminLoginAlerts.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders growth chart inside an explicitly sized container', async () => {
+    render(<AdminDashboardInner activeTab="overview" />);
+    const chartWrapper = await screen.findByText(/Tăng trưởng tenant mới/i);
+    const container = chartWrapper.nextElementSibling;
+    expect(container).toHaveClass('w-full', 'h-64');
+  });
+});

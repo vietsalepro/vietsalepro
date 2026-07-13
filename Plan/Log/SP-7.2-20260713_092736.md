@@ -27,10 +27,12 @@
    - `tests/edge-functions/domain-verification.test.ts`
    - `tests/services/tenantAdminService.custom-domain.test.ts`
    - `tests/admin-dashboard/CustomDomainPanel.test.tsx`
-7. Ran `npm run lint`, `npm run test -- run`, and `npm run build` — all green (350 tests passed).
-8. Performed pre-commit code review with the independent reviewer subagent; passed.
-9. Updated `Plan/PLAN_AdminDashboard_SubPhases.md` status for SP-7.2 to `Done`.
-10. Copied artifacts to `Plan/EdgeFunction/verify-domain.ts` and `Plan/Migration/20260719000001_sp_7_2_custom_domain_verification.sql`.
+7. Ran `npm run lint`, `npm run test -- run`, `npm run build`, and `npm run audit:rpc` — all green (350 tests passed).
+8. Ran `npm run pre-commit` end-to-end — passed.
+9. Performed pre-commit code review with the independent reviewer subagent; passed.
+10. Updated `Plan/PLAN_AdminDashboard_SubPhases.md` status for SP-7.2 to `Done`.
+11. Copied artifacts to `Plan/EdgeFunction/verify-domain.ts` and `Plan/Migration/20260719000001_sp_7_2_custom_domain_verification.sql`.
+12. Synced `docs/admin-dashboard/RPC_CONTRACTS.md` with the `set_tenant_subdomain` RPC used by SP-7.1 so `audit:rpc` passes.
 
 ## Migration / Edge Function artifacts
 

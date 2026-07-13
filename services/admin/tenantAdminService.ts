@@ -5,6 +5,9 @@ import {
   isValidSubdomainFormat,
 } from '../../utils/subdomain';
 import {
+  isValidDomain as isValidCustomDomain,
+} from '../../supabase/functions/_shared/domain-verification';
+import {
   mapTenantFromDB,
   getAllTenants as getAllTenantsBase,
   searchTenants as searchTenantsBase,
@@ -169,6 +172,52 @@ export async function setTenantSubdomain(tenantId: string, subdomain: string): P
 
   if (error) throw error;
   return mapTenantFromDB(data);
+}
+
+export interface CustomDomainVerificationRequest {
+  token: string;
+  txtRecord: string;
+}
+
+export interface CustomDomainVerificationResult {
+  verified: boolean;
+  message?: string;
+}
+
+export { isValidCustomDomain };
+
+export async function requestCustomDomainVerification(
+  tenantId: string
+): Promise<CustomDomainVerificationRequest> {
+  const { data, error } = await supabase.functions.invoke<{ token: string; txtRecord: string; error?: string }>(
+    'verify-domain',
+    { body: { tenant_id: tenantId, action: 'token' } }
+  );
+
+  if (error) throw error;
+  if (!data || data.error || typeof data.token !== 'string' || typeof data.txtRecord !== 'string') {
+    throw new Error(data?.error || 'Phản hồi yêu cầu token không hợp lệ');
+  }
+
+  return { token: data.token, txtRecord: data.txtRecord };
+}
+
+export async function verifyCustomDomain(
+  tenantId: string,
+  domain: string
+): Promise<CustomDomainVerificationResult> {
+  const { data, error } = await supabase.functions.invoke<{
+    verified: boolean;
+    message?: string;
+    error?: string;
+  }>('verify-domain', { body: { tenant_id: tenantId, domain, action: 'verify' } });
+
+  if (error) throw error;
+  if (!data || data.error || typeof data.verified !== 'boolean') {
+    throw new Error(data?.error || 'Phản hồi xác minh domain không hợp lệ');
+  }
+
+  return { verified: data.verified, message: data.message };
 }
 
 // ponytail: re-export tenant-scoped admin helpers used by the admin dashboard.

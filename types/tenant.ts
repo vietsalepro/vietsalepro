@@ -40,6 +40,7 @@ export interface Tenant {
   isolationSchema?: string;
   isolationProjectRef?: string;
   customDomain?: string;
+  customDomainVerifiedAt?: string;
   whiteLabel?: TenantWhiteLabel;
   readReplicaUrl?: string;
   connectionPoolConfig?: Record<string, any>;

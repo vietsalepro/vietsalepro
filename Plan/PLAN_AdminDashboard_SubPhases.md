@@ -79,7 +79,7 @@ Backup → Implement → Test → Code Review → Commit/Push → Staging Migrat
 | SP-6.2 | SMS service integration | 6 | SMS Service | Pending |
 | SP-6.3 | Support ticket system | 6 | Support | Done |
 | SP-7.1 | Subdomain availability check | 7 | Subdomain Management | Done |
-| SP-7.2 | Custom domain verification | 7 | Custom Domain | Partial |
+| SP-7.2 | Custom domain verification | 7 | Custom Domain | Done |
 | SP-7.3 | License management | 7 | License | Pending |
 | SP-7.4 | Rate limiting & security settings | 7 | System Settings / Security | Done |
 | SP-7.5 | Advanced audit export | 7 | Audit Log | Partial |

@@ -63,6 +63,7 @@ export const mapTenantFromDB = (row: any): Tenant => ({
   isolationSchema: row.isolation_schema,
   isolationProjectRef: row.isolation_project_ref,
   customDomain: row.custom_domain,
+  customDomainVerifiedAt: row.custom_domain_verified_at,
   whiteLabel: row.white_label || {},
   readReplicaUrl: row.read_replica_url,
   connectionPoolConfig: row.connection_pool_config || {},

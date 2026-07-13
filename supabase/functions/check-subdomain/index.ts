@@ -7,8 +7,13 @@ const corsHeaders = {
 };
 
 const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app']);
+const SUBDOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
+
+function isValidSubdomain(s: string): boolean {
+  return s.length >= 3 && s.length <= 63 && SUBDOMAIN_REGEX.test(s) && !RESERVED_SUBDOMAINS.has(s);
+}
 
 const getClientIp = (req: Request): string => {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -41,9 +46,9 @@ serve(async (req) => {
 
     const rawIp = getClientIp(req);
     const ip = isValidIp(rawIp) ? rawIp : '0.0.0.0';
-    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const windowStart = new Date(Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS).toISOString();
 
-    // Rate limiting: 10 requests per minute per IP.
+    // Rate limiting: 10 requests per fixed minute window per IP.
     const { count, error: countError } = await supabaseAdmin
       .from('rate_limit_logs')
       .select('*', { count: 'exact', head: true })
@@ -59,7 +64,7 @@ serve(async (req) => {
     const { error: logError } = await supabaseAdmin.from('rate_limit_logs').insert({
       ip_address: ip,
       action: 'check_subdomain',
-      window_start: new Date().toISOString(),
+      window_start: windowStart,
     });
     if (logError) throw logError;
 
@@ -80,17 +85,17 @@ serve(async (req) => {
     }
 
     const s = subdomain.trim().toLowerCase();
-    if (s.length < 3 || s.length > 63) {
-      return jsonResponse({ error: 'Subdomain phải dài 3-63 ký tự', available: false }, 400);
-    }
-    if (!/^[a-z0-9-]+$/.test(s) || s.startsWith('-') || s.endsWith('-')) {
+    if (!isValidSubdomain(s)) {
+      if (s.length < 3 || s.length > 63) {
+        return jsonResponse({ error: 'Subdomain phải dài 3-63 ký tự', available: false }, 400);
+      }
+      if (RESERVED_SUBDOMAINS.has(s)) {
+        return jsonResponse({ available: false, error: `Subdomain "${s}" thuộc danh sách dự trữ` }, 400);
+      }
       return jsonResponse(
         { error: 'Subdomain chỉ được chứa chữ thường, số và dấu gạch ngang, không được bắt đầu/kết thúc bằng gạch ngang', available: false },
         400
       );
-    }
-    if (RESERVED_SUBDOMAINS.has(s)) {
-      return jsonResponse({ available: false }, 200);
     }
 
     // FIX [6.6]: Exclude archived tenants from subdomain uniqueness check

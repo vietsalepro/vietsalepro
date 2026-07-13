@@ -18,6 +18,7 @@ const store: Record<string, Row[]> = {
   orders: [],
   users: [],
   app_audit_log: [],
+  audit_log: [],
   rate_limit_logs: [],
   system_admins: [],
   system_settings: [],
@@ -46,6 +47,7 @@ const store: Record<string, Row[]> = {
   processed_operations: [],
   heavy_ops_jobs: [],
   tenant_credentials: [],
+  licenses: [],
 };
 
 export const resetMockData = () => {
@@ -185,6 +187,8 @@ const executeQuery = (state: QueryState) => {
     } else if (table === 'tenant_subscriptions') {
       rows = rows.filter(r => canAccessTenant(r.tenant_id));
     } else if (table === 'tenant_credentials') {
+      if (!isSystemAdmin) rows = [];
+    } else if (table === 'licenses') {
       if (!isSystemAdmin) rows = [];
     } else if (adminOnlyTables.includes(table)) {
       if (!isSystemAdmin) rows = [];
@@ -578,6 +582,31 @@ const rpc = async (name: string, params: Record<string, any>) => {
       tenant.connection_pool_config = params.p_connection_pool_config;
     }
 
+    tenant.updated_at = new Date().toISOString();
+    return { data: tenant, error: null };
+  }
+
+  if (name === 'set_tenant_subdomain') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật subdomain tenant' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const s = (params.p_subdomain || '').trim().toLowerCase();
+    const reserved = ['admin', 'www', 'api', 'app'];
+    if (s.length < 3 || s.length > 63) {
+      return { data: null, error: { code: '22023', message: 'Subdomain phải dài 3-63 ký tự' } };
+    }
+    if (!/^[a-z0-9-]+$/.test(s) || s.startsWith('-') || s.endsWith('-')) {
+      return { data: null, error: { code: '22023', message: 'Subdomain không hợp lệ' } };
+    }
+    if (reserved.includes(s)) {
+      return { data: null, error: { code: '22023', message: `Subdomain "${s}" thuộc danh sách dự trữ` } };
+    }
+    if (store.tenants.some(t => t.id !== tenant.id && t.subdomain === s && t.status !== 'archived')) {
+      return { data: null, error: { code: '23505', message: 'Subdomain đã được sử dụng' } };
+    }
+    tenant.subdomain = s;
     tenant.updated_at = new Date().toISOString();
     return { data: tenant, error: null };
   }
@@ -2248,11 +2277,15 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
     const { subdomain } = body;
     const s = (subdomain || '').trim().toLowerCase();
     const reserved = ['admin', 'www', 'api', 'app'];
+    const SUBDOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
     if (!s) return { data: { available: false, error: 'Subdomain không được để trống' }, error: null };
-    if (s.length < 3 || s.length > 63) return { data: { available: false, error: 'Subdomain phải dài 3-63 ký tự' }, error: null };
-    if (!/^[a-z0-9-]+$/.test(s) || s.startsWith('-') || s.endsWith('-')) return { data: { available: false, error: 'Subdomain không hợp lệ' }, error: null };
-    if (reserved.includes(s)) return { data: { available: false }, error: null };
-    const existing = store.tenants.find(t => t.subdomain === s);
+    if (s.length < 3 || s.length > 63 || !SUBDOMAIN_REGEX.test(s)) {
+      return { data: { available: false, error: 'Subdomain phải dài 3-63 ký tự, chỉ chứa chữ thường, số và dấu gạch ngang, không bắt đầu/kết thúc bằng gạch ngang' }, error: null };
+    }
+    if (reserved.includes(s)) {
+      return { data: { available: false, error: `Subdomain "${s}" thuộc danh sách dự trữ` }, error: null };
+    }
+    const existing = store.tenants.find(t => t.subdomain === s && t.status !== 'archived');
     return { data: { available: !existing }, error: null };
   }
 
@@ -2293,6 +2326,26 @@ const functionsInvoke = async (name: string, { body }: { body: any }) => {
         to: recipients,
         template_key,
         subject: template.subject.replace(/\{\{\s*brand_name\s*\}\}/g, brandName),
+        test: !!test,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'send-sms') {
+    const { to, body: messageBody, test } = body;
+    const recipients = Array.isArray(to) ? to : [to];
+    if (!recipients.length || !messageBody) {
+      return { data: { error: 'to và body không được để trống' }, error: null };
+    }
+    return {
+      data: {
+        success: true,
+        id: `sms-${uuid()}`,
+        ids: recipients.map(() => `sms-${uuid()}`),
+        to: recipients,
+        body: messageBody,
+        provider: 'twilio',
         test: !!test,
       },
       error: null,

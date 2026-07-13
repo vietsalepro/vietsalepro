@@ -97,7 +97,7 @@ serve(async (req) => {
         console.error('Backup status fetch failed:', err);
       }
     } else {
-      console.log('SUPABASE_PROJECT_REF or SUPABASE_MANAGEMENT_TOKEN not set; backup status unavailable');
+      console.error('SUPABASE_PROJECT_REF or SUPABASE_MANAGEMENT_TOKEN not set; backup status unavailable');
     }
 
     return jsonResponse({

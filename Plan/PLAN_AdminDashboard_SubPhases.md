@@ -76,14 +76,14 @@ Backup → Implement → Test → Code Review → Commit/Push → Staging Migrat
 | SP-5.6 | Database maintenance panel | 5 | Database Maintenance | Partial |
 | SP-5.7 | Storage Management panel | 5 | Storage | Partial |
 | SP-6.1 | Email service integration | 6 | Email Service | Done |
-| SP-6.2 | SMS service integration | 6 | SMS Service | Pending |
+| SP-6.2 | SMS service integration | 6 | SMS Service | Done |
 | SP-6.3 | Support ticket system | 6 | Support | Done |
 | SP-7.1 | Subdomain availability check | 7 | Subdomain Management | Done |
-| SP-7.2 | Custom domain verification | 7 | Custom Domain | Partial |
-| SP-7.3 | License management | 7 | License | Pending |
+| SP-7.2 | Custom domain verification | 7 | Custom Domain | Done |
+| SP-7.3 | License management | 7 | License | Done |
 | SP-7.4 | Rate limiting & security settings | 7 | System Settings / Security | Done |
-| SP-7.5 | Advanced audit export | 7 | Audit Log | Partial |
-| SP-C.3 | Documentation of open-source references | Cross-cutting | Compliance | Pending |
+| SP-7.5 | Advanced audit export | 7 | Audit Log | Done |
+| SP-C.3 | Documentation of open-source references | Cross-cutting | Compliance | Done |
 
 > **Chú thích Status:** `Done` = đã có page/service/migration khớp tính năng; `Partial` = có nền tảng nhưng UI/flow chưa hoàn chỉnh; `Pending` = chưa triển khai.
 

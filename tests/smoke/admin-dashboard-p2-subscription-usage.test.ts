@@ -13,7 +13,7 @@ vi.mock('../../lib/supabase', async () => {
 
 import {
   createTenantWithAdmin,
-  getTenantUsageSummary,
+  getUsageSummary,
   updateTenantSubscription,
   resetMonthlyOrderCounter,
 } from '../../services/tenantService';
@@ -41,7 +41,7 @@ describe('smoke: admin dashboard P2 subscription & usage', () => {
     const tenant = await seedTenant();
     addMockRow('products', { name: 'P1', code: 'P1', tenant_id: tenant.id });
 
-    const usage = await getTenantUsageSummary(tenant.id);
+    const usage = await getUsageSummary(tenant.id);
     expect(usage.tenantId).toBe(tenant.id);
     expect(usage.plan).toBe('free');
     expect(usage.users.current).toBe(1);
@@ -55,7 +55,7 @@ describe('smoke: admin dashboard P2 subscription & usage', () => {
     for (let i = 0; i < 41; i++) {
       addMockRow('products', { name: `P${i}`, code: `P${i}`, tenant_id: tenant.id });
     }
-    const usage = await getTenantUsageSummary(tenant.id);
+    const usage = await getUsageSummary(tenant.id);
     expect(usage.products.percent).toBeGreaterThanOrEqual(80);
   });
 
@@ -100,6 +100,6 @@ describe('smoke: admin dashboard P2 subscription & usage', () => {
   it('non-system admin bị từ chối xem usage', async () => {
     const tenant = await seedTenant();
     setSystemAdmin(false);
-    await expect(getTenantUsageSummary(tenant.id)).rejects.toThrow();
+    await expect(getUsageSummary(tenant.id)).rejects.toThrow();
   });
 });

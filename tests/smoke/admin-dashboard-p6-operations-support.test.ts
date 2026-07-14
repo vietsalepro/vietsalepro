@@ -19,7 +19,7 @@ import {
   setMaintenanceMode,
 } from '../../services/operationsService';
 import { checkSubdomain } from '../../services/admin/systemAdminService';
-import { createTenantWithAdmin, getTenantUsageSummary } from '../../services/tenantService';
+import { createTenantWithAdmin, getUsageSummary } from '../../services/tenantService';
 
 // ponytail: smoke test P6 operations & support. Dùng mock in-memory để xác minh
 // data retention, default plan limits, maintenance mode, và subdomain check.
@@ -106,7 +106,7 @@ describe('smoke: admin dashboard P6 operations & support', () => {
     await setDefaultPlanLimits('free', { maxUsers: 3, maxProducts: 200, maxOrdersPerMonth: 1000 });
     const tenant = await createTenantWithAdmin({ name: 'Shop B', subdomain: 'shop-b', plan: 'free' });
 
-    const usage = await getTenantUsageSummary(tenant.id);
+    const usage = await getUsageSummary(tenant.id);
     expect(usage.users.max).toBe(3);
     expect(usage.products.max).toBe(200);
     expect(usage.orders.max).toBe(1000);

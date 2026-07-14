@@ -493,15 +493,6 @@ export async function updateSubscriptionLimits(
   return mapSubscriptionFromDB(data);
 }
 
-// ponytail: aliases used by the admin dashboard; reuse the same RPCs as above.
-export async function getTenantUsageSummary(tenantId: string): Promise<UsageSummary> {
-  const { data, error } = await supabase.rpc('get_tenant_usage_summary', {
-    p_tenant_id: tenantId,
-  });
-  if (error) throw error;
-  return normalizeRpcObject(data, mapUsageSummaryFromDB);
-}
-
 export async function updateTenantSubscription(
   tenantId: string,
   input: UpdateSubscriptionInput

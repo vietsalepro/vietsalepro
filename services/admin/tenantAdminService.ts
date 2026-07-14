@@ -235,7 +235,6 @@ export {
   getTenantById,
   getTenantBySubdomain,
   getTenantCredentials,
-  getTenantUsageSummary,
   getTenantFeatureFlags,
   updateTenantFeatureFlags,
   getTopTenants,

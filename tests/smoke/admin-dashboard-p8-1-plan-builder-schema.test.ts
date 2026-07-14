@@ -17,7 +17,7 @@ import {
   updatePlan,
   deletePlan,
 } from '../../services/planService';
-import { createTenantWithAdmin, getTenantUsageSummary, updateTenantSubscription } from '../../services/tenantService';
+import { createTenantWithAdmin, getUsageSummary, updateTenantSubscription } from '../../services/tenantService';
 import { getDefaultPlanLimits, setDefaultPlanLimits } from '../../services/operationsService';
 
 // ponytail: smoke test P8.1 plan builder schema. CRUD plans + migrate Free/VIP sang bảng.
@@ -115,7 +115,7 @@ describe('smoke: admin dashboard P8.1 plan builder schema', () => {
     await createPlan({ key: 'pro', name: 'Pro', maxUsers: 7, maxProducts: 700, maxOrdersPerMonth: 7000 });
     const tenant = await createTenantWithAdmin({ name: 'Pro Shop', subdomain: 'pro-shop-2', plan: 'pro' });
 
-    const usage = await getTenantUsageSummary(tenant.id);
+    const usage = await getUsageSummary(tenant.id);
     expect(usage.plan).toBe('pro');
     expect(usage.users.max).toBe(7);
     expect(usage.products.max).toBe(700);
@@ -130,7 +130,7 @@ describe('smoke: admin dashboard P8.1 plan builder schema', () => {
     const tenant = await createTenantWithAdmin({ name: 'Shop', subdomain: 'shop-limits', plan: 'free' });
 
     await updateTenantSubscription(tenant.id, { plan: 'pro' });
-    const usage = await getTenantUsageSummary(tenant.id);
+    const usage = await getUsageSummary(tenant.id);
     expect(usage.plan).toBe('pro');
     expect(usage.users.max).toBe(7);
     expect(usage.products.max).toBe(700);

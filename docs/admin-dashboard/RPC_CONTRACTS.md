@@ -17,8 +17,7 @@ Tài liệu này liệt kê các Supabase RPC functions được gọi bởi adm
 | `delete_tenant_safe` | Lưu trữ (soft-delete) tenant | `p_tenant_id` | `Tenant` | `services/tenantService.ts` |
 | `get_current_user_tenants` | Lấy tenants của user hiện tại | — | `Tenant[]` | `services/tenantService.ts` |
 | `get_tenant_usage_summary` | Tổng hợp usage của tenant | `p_tenant_id` | `UsageSummary` | `services/tenantService.ts` |
-| `admin_update_subscription` | Cập nhật subscription (admin) | `p_tenant_id`, `p_plan`, `p_max_users`, ... | `TenantSubscription` | `services/tenantService.ts` |
-| `update_tenant_subscription` | Cập nhật subscription | `p_tenant_id`, `p_plan`, `p_max_users`, ... | `TenantSubscription` | `services/tenantService.ts` |
+| `update_tenant_subscription` | Cập nhật subscription | `p_tenant_id`, `p_plan`, `p_max_users`, `p_max_products`, `p_max_orders_per_month`, `p_max_storage_gb`, `p_billing_status`, `p_expires_at` | `TenantSubscription` | `services/tenantService.ts` |
 | `reset_monthly_order_counter` | Reset counter đơn hàng tháng | `p_tenant_id` | `TenantSubscription` | `services/tenantService.ts` |
 | `get_tenant_feature_flags` | Lấy feature flags | `p_tenant_id` | `TenantFeatureFlags` | `services/tenantService.ts` |
 | `update_tenant_feature_flags` | Cập nhật feature flags | `p_tenant_id`, `p_features` | `TenantFeatureFlags` | `services/tenantService.ts` |
@@ -96,7 +95,6 @@ Bảng dưới đây được sinh tự động từ các file `services/**/*.ts
 |-----|----------------------|
 | `accept_invitation` | `services/admin/memberAdminService.ts` |
 | `add_system_admin` | `services/systemAdminService.ts` |
-| `admin_update_subscription` | `services/tenantService.ts` |
 | `apply_voucher_to_invoice` | `services/promotionService.ts` |
 | `bulk_update_tenants` | `services/maintenanceService.ts` |
 | `can_use_feature` | `lib/permissions.ts` |

@@ -478,13 +478,13 @@ export async function updateSubscriptionLimits(
   tenantId: string,
   input: UpdateSubscriptionInput
 ): Promise<TenantSubscription> {
-  const { data, error } = await supabase.rpc('admin_update_subscription', {
+  const { data, error } = await supabase.rpc('update_tenant_subscription', {
     p_tenant_id: tenantId,
     p_plan: input.plan,
     p_max_users: input.maxUsers,
     p_max_products: input.maxProducts,
     p_max_orders_per_month: input.maxOrdersPerMonth,
-    p_max_storage_gb: input.maxStorageGb,
+    p_max_storage_gb: input.maxStorageGb ?? null,
     p_billing_status: input.billingStatus,
     p_expires_at: input.expiresAt,
   });
@@ -512,6 +512,7 @@ export async function updateTenantSubscription(
     p_max_users: input.maxUsers,
     p_max_products: input.maxProducts,
     p_max_orders_per_month: input.maxOrdersPerMonth,
+    p_max_storage_gb: input.maxStorageGb ?? null,
     p_billing_status: input.billingStatus,
     p_expires_at: input.expiresAt,
   });

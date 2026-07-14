@@ -589,38 +589,44 @@ export async function searchTenants(options: {
 }
 
 export async function getMemberWithEmail(tenantId: string, userId: string): Promise<MemberWithEmail | null> {
-  const { data, error } = await supabase.rpc('get_member_with_email', {
+  // ponytail: canonical get_tenant_members_with_email returns the full tenant member list;
+  // filter client-side to preserve the single-member contract without adding a one-off RPC.
+  const { data, error } = await supabase.rpc('get_tenant_members_with_email', {
     p_tenant_id: tenantId,
-    p_user_id: userId,
   });
   if (error) throw error;
   if (!data) return null;
+  const row = (data as any[]).find((m: any) => m.user_id === userId);
+  if (!row) return null;
   return {
-    ...mapMembershipFromDB(data),
-    email: data.email,
-    invitedByEmail: data.invited_by_email,
-    invitedAt: data.invited_at,
-    acceptedAt: data.accepted_at,
-    lastSignInAt: data.last_sign_in_at,
-    confirmedAt: data.confirmed_at,
-    isOwner: data.is_owner ?? false,
+    ...mapMembershipFromDB(row),
+    email: row.email,
+    invitedByEmail: row.invited_by_email,
+    invitedAt: row.invited_at,
+    acceptedAt: row.accepted_at,
+    lastSignInAt: row.last_sign_in_at,
+    confirmedAt: row.confirmed_at,
+    isOwner: row.is_owner ?? false,
   };
 }
 
 export async function searchMembers(params: SearchMembersParams): Promise<SearchMembersResult> {
-  const { data, error } = await supabase.rpc('search_members_by_email', {
+  const { data, error } = await supabase.rpc('search_tenant_members', {
     p_tenant_id: params.tenantId,
-    p_query: params.search ?? '',
+    p_search: params.search ?? null,
+    p_role: params.role ?? null,
+    p_status: params.status ?? null,
+    p_is_active: params.isActive ?? null,
+    p_sort_by: params.sortBy ?? 'created_at',
+    p_sort_dir: params.sortDir ?? 'desc',
     p_page: params.page ?? 1,
-    p_limit: params.pageSize ?? 20,
-    p_role_filter: params.role ?? 'all',
-    p_status_filter: params.status ?? 'all',
+    p_page_size: params.pageSize ?? 20,
   });
 
   if (error) throw error;
   return {
-    members: (data?.members ?? []).map(mapMembershipFromDB),
-    totalCount: data?.total ?? 0,
+    members: (data?.items ?? []).map(mapMembershipFromDB),
+    totalCount: data?.total_count ?? 0,
   };
 }
 

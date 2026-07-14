@@ -22,9 +22,7 @@ Tài liệu này liệt kê các Supabase RPC functions được gọi bởi adm
 | `get_tenant_feature_flags` | Lấy feature flags | `p_tenant_id` | `TenantFeatureFlags` | `services/tenantService.ts` |
 | `update_tenant_feature_flags` | Cập nhật feature flags | `p_tenant_id`, `p_features` | `TenantFeatureFlags` | `services/tenantService.ts` |
 | `get_tenant_members_with_email` | Lấy members kèm email | `p_tenant_id` | `MemberWithEmail[]` | `services/tenantService.ts` |
-| `search_tenant_members` | Tìm members trong tenant | `p_tenant_id`, `p_search`, `p_role`, `p_status`, `p_page`, `p_page_size` | `SearchMembersResult` | `services/tenantService.ts` |
-| `search_members_by_email` | Tìm members theo email | `p_tenant_id`, `p_query`, `p_page`, `p_page_size` | `SearchMembersResult` | `services/tenantService.ts` |
-| `get_member_with_email` | Lấy một member kèm email | `p_tenant_id`, `p_user_id` | `MemberWithEmail` | `services/tenantService.ts` |
+| `search_tenant_members` | Tìm members trong tenant | `p_tenant_id`, `p_search`, `p_role`, `p_status`, `p_is_active`, `p_sort_by`, `p_sort_dir`, `p_page`, `p_page_size` | `SearchMembersResult` | `services/tenantService.ts` |
 | `update_tenant_member_role` | Cập nhật role member | `p_tenant_id`, `p_user_id`, `p_role` | `TenantMembership` | `services/tenantService.ts` |
 | `toggle_tenant_member_active` | Bật/tắt trạng thái member | `p_tenant_id`, `p_user_id`, `p_is_active` | `TenantMembership` | `services/tenantService.ts` |
 | `remove_tenant_member` | Xóa member khỏi tenant | `p_tenant_id`, `p_user_id` | — | `services/tenantService.ts` |
@@ -145,7 +143,6 @@ Bảng dưới đây được sinh tự động từ các file `services/**/*.ts
 | `get_login_attempts` | `services/systemAdminService.ts` |
 | `get_maintenance_mode` | `services/operationsService.ts` |
 | `get_maintenance_windows` | `services/maintenanceService.ts` |
-| `get_member_with_email` | `services/tenantService.ts` |
 | `get_pending_billing_reminders` | `services/billingReminderService.ts` |
 | `get_plan_by_key` | `services/planService.ts` |
 | `get_plans` | `services/planService.ts` |
@@ -191,7 +188,6 @@ Bảng dưới đây được sinh tự động từ các file `services/**/*.ts
 | `revoke_tenant_api_key` | `services/apiKeyService.ts` |
 | `run_data_retention` | `services/fraudRetentionService.ts` |
 | `run_fraud_detection` | `services/fraudRetentionService.ts` |
-| `search_members_by_email` | `services/tenantService.ts` |
 | `search_tenant_members` | `services/tenantService.ts` |
 | `search_tenants` | `services/tenantService.ts` |
 | `send_billing_reminders` | `services/billingReminderService.ts` |

@@ -1,12 +1,19 @@
-// Audit that admin-dashboard RPC contracts stay in sync with the service code.
+// Audit that every service-layer RPC call is defined in the canonical migration chain.
 // Run: npx tsx scripts/audit-rpc-contracts.ts
+//
+// ponytail: Only two SQL identifier formats are supported:
+//   CREATE [OR REPLACE] FUNCTION public.name(...)
+//   CREATE [OR REPLACE] FUNCTION "public"."name"(...)
+// If a future migration introduces another quoting style, extend the regex below.
 
 import fs from 'fs';
 import path from 'path';
 
-const CONTRACT_PATH = path.resolve('docs/admin-dashboard/RPC_CONTRACTS.md');
-const CODE_DIRS = ['services', 'lib'];
-const EXCLUDED_FILES = ['services/supabaseService.ts'];
+const MIGRATIONS_DIR = path.resolve('supabase/migrations');
+const CODE_DIRS = ['services', 'lib', 'utils'];
+
+const FN_RE = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+"?public"?\."?([a-z_][a-z_0-9]*)"?\s*\(/gi;
+const RPC_RE = /supabase\.rpc\('([a-z_0-9]+)'/g;
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -21,17 +28,13 @@ function walk(dir: string): string[] {
   return out;
 }
 
-function extractContractRpcs(markdown: string): Set<string> {
+function extractMigrationRpcs(): Set<string> {
   const names = new Set<string>();
-  for (const line of markdown.split(/\r?\n/)) {
-    if (!line.trim().startsWith('|')) continue;
-    // Match the first back-ticked value in a table row: | `rpc_name` | ...
-    const match = /^\|\s*`([^`\s]+)`/.exec(line);
-    if (!match) continue;
-    const name = match[1].trim();
-    // Skip markdown table headers/separators and non-identifier text.
-    if (/^[a-z_][a-z_0-9]*$/.test(name)) {
-      names.add(name);
+  for (const entry of fs.readdirSync(MIGRATIONS_DIR, { withFileTypes: true })) {
+    if (entry.isDirectory() || !entry.name.endsWith('.sql')) continue;
+    const text = fs.readFileSync(path.join(MIGRATIONS_DIR, entry.name), 'utf-8');
+    for (const m of text.matchAll(FN_RE)) {
+      names.add(m[1]);
     }
   }
   return names;
@@ -40,12 +43,10 @@ function extractContractRpcs(markdown: string): Set<string> {
 function extractCodeRpcs(filePaths: string[]): { names: Set<string>; byFile: Map<string, string[]> } {
   const names = new Set<string>();
   const byFile = new Map<string, string[]>();
-  const rx = /supabase\.rpc\('([a-z_0-9]+)'/g;
-
   for (const p of filePaths) {
     const text = fs.readFileSync(p, 'utf-8');
     const fileNames: string[] = [];
-    for (const m of text.matchAll(rx)) {
+    for (const m of text.matchAll(RPC_RE)) {
       names.add(m[1]);
       fileNames.push(m[1]);
     }
@@ -55,49 +56,33 @@ function extractCodeRpcs(filePaths: string[]): { names: Set<string>; byFile: Map
 }
 
 function main(): number {
-  if (!fs.existsSync(CONTRACT_PATH)) {
-    console.error(`Contract file not found: ${CONTRACT_PATH}`);
+  if (!fs.existsSync(MIGRATIONS_DIR)) {
+    console.error(`Migrations directory not found: ${MIGRATIONS_DIR}`);
     return 1;
   }
 
-  const contractMarkdown = fs.readFileSync(CONTRACT_PATH, 'utf-8');
-  const contractNames = extractContractRpcs(contractMarkdown);
+  const migrationRpcs = extractMigrationRpcs();
+  const codeFiles = CODE_DIRS.flatMap(walk);
+  const { names: codeRpcs, byFile } = extractCodeRpcs(codeFiles);
 
-  const codeFiles = CODE_DIRS
-    .flatMap(walk)
-    .filter((p) => !EXCLUDED_FILES.includes(p.replace(/\\/g, '/')));
+  const missingFromMigrations = [...codeRpcs].filter((n) => !migrationRpcs.has(n)).sort();
 
-  const { names: codeNames, byFile } = extractCodeRpcs(codeFiles);
-
-  const missingFromContract = [...codeNames].filter((n) => !contractNames.has(n)).sort();
-  const staleInContract = [...contractNames].filter((n) => !codeNames.has(n)).sort();
-
-  console.log(`Contract RPCs : ${contractNames.size}`);
-  console.log(`Code RPCs     : ${codeNames.size}`);
+  console.log(`Migration RPCs: ${migrationRpcs.size}`);
+  console.log(`Code RPCs      : ${codeRpcs.size}`);
   console.log('');
 
-  if (missingFromContract.length === 0 && staleInContract.length === 0) {
-    console.log('RPC contracts and service code are in sync.');
+  if (missingFromMigrations.length === 0) {
+    console.log('All service-layer RPC calls are defined in the canonical migration chain.');
     return 0;
   }
 
-  if (missingFromContract.length) {
-    console.error(`RPCs found in code but missing from contract (${missingFromContract.length}):`);
-    for (const name of missingFromContract) {
-      const files = [...byFile.entries()]
-        .filter(([, list]) => list.includes(name))
-        .map(([f]) => f.replace(/\\/g, '/'));
-      console.error(`  - ${name}  (${files.join(', ')})`);
-    }
+  console.error(`RPCs found in code but missing from migrations (${missingFromMigrations.length}):`);
+  for (const name of missingFromMigrations) {
+    const files = [...byFile.entries()]
+      .filter(([, list]) => list.includes(name))
+      .map(([f]) => f.replace(/\\/g, '/'));
+    console.error(`  - ${name}  (${files.join(', ')})`);
   }
-
-  if (staleInContract.length) {
-    console.error(`RPCs listed in contract but not found in code (${staleInContract.length}):`);
-    for (const name of staleInContract) {
-      console.error(`  - ${name}`);
-    }
-  }
-
   return 1;
 }
 

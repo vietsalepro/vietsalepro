@@ -9,6 +9,9 @@ let currentUserId: string | null = null;
 let currentTenantId: string | null = null;
 let isSystemAdmin = false;
 let simulateBillingReminderFailure = false;
+let orderCodeCounter = 0;
+let returnOrderCodeCounter = 0;
+let supplierExchangeCodeCounter = 0;
 
 const store: Record<string, Row[]> = {
   tenants: [],
@@ -48,6 +51,43 @@ const store: Record<string, Row[]> = {
   heavy_ops_jobs: [],
   tenant_credentials: [],
   licenses: [],
+  invitations: [],
+  partners: [],
+  integrations: [],
+  tenant_api_keys: [],
+  tenant_webhooks: [],
+  webhook_deliveries: [],
+  gdpr_requests: [],
+  terms_acceptance: [],
+  gdpr_deletion_logs: [],
+  notification_logs: [],
+  login_attempts: [],
+  admin_login_history: [],
+  admin_2fa_backup_codes: [],
+  categories: [],
+  brands: [],
+  product_lots: [],
+  inventory_counts: [],
+  inventory_count_items: [],
+  stock_movements: [],
+  customers: [],
+  customer_payment_ledger: [],
+  order_items: [],
+  return_orders: [],
+  return_order_items: [],
+  point_history: [],
+  rewards: [],
+  // Recovery Wave-03 — H4/H5/H6 stores
+  suppliers: [],
+  supplier_payment_ledger: [],
+  import_receipts: [],
+  import_items: [],
+  supplier_exchanges: [],
+  supplier_exchange_return_items: [],
+  supplier_exchange_received_items: [],
+  // Recovery Wave-04 — H7/H8 stores
+  disposals: [],
+  disposal_items: [],
 };
 
 export const resetMockData = () => {
@@ -55,6 +95,9 @@ export const resetMockData = () => {
   currentUserId = null;
   currentTenantId = null;
   isSystemAdmin = false;
+  orderCodeCounter = 0;
+  returnOrderCodeCounter = 0;
+  supplierExchangeCodeCounter = 0;
 
   // ponytail: seed system settings giống migration P6 để các test operations có dữ liệu mặc định.
   store.system_settings.push(
@@ -412,7 +455,7 @@ const queryBuilder = (table: string): any => {
   return builder;
 };
 
-const rpc = async (name: string, params: Record<string, any>) => {
+const rpc = async (name: string, params: Record<string, any>): Promise<{ data: any; error: any }> => {
   if (name === 'create_tenant_with_admin') {
     const planKey = params.p_plan ?? 'free';
     const plan = getPlan(planKey);
@@ -1656,6 +1699,225 @@ const rpc = async (name: string, params: Record<string, any>) => {
     return { data: { id: params.p_id, deleted: true }, error: null };
   }
 
+  if (name === 'list_partners') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem danh sách partner' } };
+    }
+    const rows = store.partners
+      .slice()
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        website: p.website,
+        contactEmail: p.contact_email,
+        logoUrl: p.logo_url,
+        status: p.status,
+        createdBy: p.created_by,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+      }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'create_partner') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo partner' } };
+    }
+    if (!params.p_name || String(params.p_name).trim().length === 0) {
+      return { data: null, error: { code: '23514', message: 'Tên partner không được để trống' } };
+    }
+    const now = new Date().toISOString();
+    const row = {
+      id: uuid(),
+      name: String(params.p_name).trim(),
+      slug: (params.p_slug && String(params.p_slug).trim()) || null,
+      description: (params.p_description && String(params.p_description).trim()) || null,
+      website: (params.p_website && String(params.p_website).trim()) || null,
+      contact_email: (params.p_contact_email && String(params.p_contact_email).trim()) || null,
+      logo_url: (params.p_logo_url && String(params.p_logo_url).trim()) || null,
+      status: 'active',
+      created_by: currentUserId,
+      created_at: now,
+      updated_at: now,
+    };
+    store.partners.push(row);
+    return {
+      data: {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        website: row.website,
+        contactEmail: row.contact_email,
+        logoUrl: row.logo_url,
+        status: row.status,
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'update_partner') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật partner' } };
+    }
+    const row = store.partners.find((p: any) => p.id === params.p_partner_id);
+    if (!row) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_name !== null && params.p_name !== undefined) row.name = String(params.p_name).trim();
+    if (params.p_slug !== null && params.p_slug !== undefined) row.slug = String(params.p_slug).trim() || null;
+    if (params.p_description !== null && params.p_description !== undefined) row.description = String(params.p_description).trim() || null;
+    if (params.p_website !== null && params.p_website !== undefined) row.website = String(params.p_website).trim() || null;
+    if (params.p_contact_email !== null && params.p_contact_email !== undefined) row.contact_email = String(params.p_contact_email).trim() || null;
+    if (params.p_logo_url !== null && params.p_logo_url !== undefined) row.logo_url = String(params.p_logo_url).trim() || null;
+    if (params.p_status !== null && params.p_status !== undefined) row.status = params.p_status;
+    row.updated_at = new Date().toISOString();
+    return {
+      data: {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        website: row.website,
+        contactEmail: row.contact_email,
+        logoUrl: row.logo_url,
+        status: row.status,
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'delete_partner') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa partner' } };
+    }
+    const idx = store.partners.findIndex((p: any) => p.id === params.p_partner_id);
+    if (idx < 0) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const id = store.partners[idx].id;
+    store.partners.splice(idx, 1);
+    return { data: { id, deleted: true }, error: null };
+  }
+
+  if (name === 'list_integrations') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem danh sách integration' } };
+    }
+    const rows = store.integrations
+      .slice()
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((i: any) => {
+        const partner = store.partners.find((p: any) => p.id === i.partner_id);
+        return {
+          id: i.id,
+          partnerId: i.partner_id,
+          name: i.name,
+          slug: i.slug,
+          description: i.description,
+          category: i.category,
+          status: i.status,
+          documentationUrl: i.documentation_url,
+          partnerName: partner?.name ?? null,
+          createdBy: i.created_by,
+          createdAt: i.created_at,
+          updatedAt: i.updated_at,
+        };
+      });
+    return { data: rows, error: null };
+  }
+
+  if (name === 'create_integration') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo integration' } };
+    }
+    if (!params.p_name || String(params.p_name).trim().length === 0) {
+      return { data: null, error: { code: '23514', message: 'Tên integration không được để trống' } };
+    }
+    if (params.p_partner_id && !store.partners.some((p: any) => p.id === params.p_partner_id)) {
+      return { data: null, error: { code: '23514', message: `Không tìm thấy partner: ${params.p_partner_id}` } };
+    }
+    const now = new Date().toISOString();
+    const row = {
+      id: uuid(),
+      partner_id: params.p_partner_id || null,
+      name: String(params.p_name).trim(),
+      slug: (params.p_slug && String(params.p_slug).trim()) || null,
+      description: (params.p_description && String(params.p_description).trim()) || null,
+      category: (params.p_category && String(params.p_category).trim()) || null,
+      status: params.p_status ?? 'active',
+      documentation_url: (params.p_documentation_url && String(params.p_documentation_url).trim()) || null,
+      created_by: currentUserId,
+      created_at: now,
+      updated_at: now,
+    };
+    store.integrations.push(row);
+    return {
+      data: {
+        id: row.id,
+        partnerId: row.partner_id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        category: row.category,
+        status: row.status,
+        documentationUrl: row.documentation_url,
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'update_integration') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật integration' } };
+    }
+    const row = store.integrations.find((i: any) => i.id === params.p_integration_id);
+    if (!row) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_partner_id !== null && params.p_partner_id !== undefined) row.partner_id = params.p_partner_id;
+    if (params.p_name !== null && params.p_name !== undefined) row.name = String(params.p_name).trim();
+    if (params.p_slug !== null && params.p_slug !== undefined) row.slug = String(params.p_slug).trim() || null;
+    if (params.p_description !== null && params.p_description !== undefined) row.description = String(params.p_description).trim() || null;
+    if (params.p_category !== null && params.p_category !== undefined) row.category = String(params.p_category).trim() || null;
+    if (params.p_status !== null && params.p_status !== undefined) row.status = params.p_status;
+    if (params.p_documentation_url !== null && params.p_documentation_url !== undefined) row.documentation_url = String(params.p_documentation_url).trim() || null;
+    row.updated_at = new Date().toISOString();
+    return {
+      data: {
+        id: row.id,
+        partnerId: row.partner_id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        category: row.category,
+        status: row.status,
+        documentationUrl: row.documentation_url,
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'delete_integration') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa integration' } };
+    }
+    const idx = store.integrations.findIndex((i: any) => i.id === params.p_integration_id);
+    if (idx < 0) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const id = store.integrations[idx].id;
+    store.integrations.splice(idx, 1);
+    return { data: { id, deleted: true }, error: null };
+  }
+
   if (name === 'reset_demo_data') {
     if (!isSystemAdmin) {
       return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được reset demo data' } };
@@ -2063,6 +2325,4161 @@ const rpc = async (name: string, params: Record<string, any>) => {
     member.is_active = isActive;
     member.updated_at = new Date().toISOString();
     return { data: member, error: null };
+  }
+
+  // P15: API keys + webhooks
+  if (name === 'create_tenant_api_key') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo API key' } };
+    }
+    const tenant = store.tenants.find((t: any) => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const pName = params.p_name ? String(params.p_name).trim() : '';
+    if (!pName) {
+      return { data: null, error: { code: '23514', message: 'Tên API key không được để trống' } };
+    }
+    const now = new Date().toISOString();
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const row = {
+      id: uuid(),
+      tenant_id: params.p_tenant_id,
+      name: pName,
+      api_key_hash: `sha256-${token}`,
+      api_key_preview: token.slice(-4),
+      version: params.p_version ?? 1,
+      status: 'active',
+      created_by: currentUserId,
+      revoked_at: null,
+      revoked_by: null,
+      last_used_at: null,
+      created_at: now,
+      updated_at: now,
+    };
+    store.tenant_api_keys.push(row);
+    return {
+      data: {
+        id: row.id,
+        tenantId: row.tenant_id,
+        name: row.name,
+        apiKey: token,
+        apiKeyPreview: row.api_key_preview,
+        version: row.version,
+        status: row.status,
+        createdAt: row.created_at,
+        lastUsedAt: row.last_used_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'create_tenant_webhook') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo webhook' } };
+    }
+    const tenant = store.tenants.find((t: any) => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const pName = params.p_name ? String(params.p_name).trim() : '';
+    if (!pName) {
+      return { data: null, error: { code: '23514', message: 'Tên webhook không được để trống' } };
+    }
+    const pUrl = params.p_url ? String(params.p_url).trim() : '';
+    if (!pUrl) {
+      return { data: null, error: { code: '23514', message: 'URL webhook không được để trống' } };
+    }
+    if (!/^https?:\/\//.test(pUrl)) {
+      return { data: null, error: { code: '23514', message: 'URL webhook phải bắt đầu bằng http:// hoặc https://' } };
+    }
+    const now = new Date().toISOString();
+    const row = {
+      id: uuid(),
+      tenant_id: params.p_tenant_id,
+      name: pName,
+      url: pUrl,
+      events: params.p_events ?? ['*'],
+      secret: params.p_secret ?? null,
+      status: 'active',
+      created_by: currentUserId,
+      created_at: now,
+      updated_at: now,
+    };
+    store.tenant_webhooks.push(row);
+    return {
+      data: {
+        id: row.id,
+        tenantId: row.tenant_id,
+        name: row.name,
+        url: row.url,
+        events: row.events,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'delete_tenant_webhook') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa webhook' } };
+    }
+    const idx = store.tenant_webhooks.findIndex((w: any) => w.id === params.p_webhook_id);
+    if (idx < 0) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const id = store.tenant_webhooks[idx].id;
+    store.tenant_webhooks.splice(idx, 1);
+    return { data: { id, deleted: true }, error: null };
+  }
+
+  if (name === 'list_tenant_api_keys') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem API key' } };
+    }
+    const rows = store.tenant_api_keys
+      .filter((k: any) => k.tenant_id === params.p_tenant_id)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((k: any) => ({
+        id: k.id,
+        tenantId: k.tenant_id,
+        name: k.name,
+        apiKeyPreview: k.api_key_preview,
+        version: k.version,
+        status: k.status,
+        createdBy: k.created_by,
+        revokedAt: k.revoked_at,
+        revokedBy: k.revoked_by,
+        lastUsedAt: k.last_used_at,
+        createdAt: k.created_at,
+        updatedAt: k.updated_at,
+      }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'list_tenant_webhooks') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem webhook' } };
+    }
+    const rows = store.tenant_webhooks
+      .filter((w: any) => w.tenant_id === params.p_tenant_id)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((w: any) => ({
+        id: w.id,
+        tenantId: w.tenant_id,
+        name: w.name,
+        url: w.url,
+        events: w.events,
+        status: w.status,
+        createdBy: w.created_by,
+        createdAt: w.created_at,
+        updatedAt: w.updated_at,
+      }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'list_webhook_deliveries') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem delivery log' } };
+    }
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const all = store.webhook_deliveries
+      .filter((d: any) => d.webhook_id === params.p_webhook_id)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const rows = all.slice(offset, offset + limit).map((d: any) => ({
+      id: d.id,
+      webhookId: d.webhook_id,
+      tenantId: d.tenant_id,
+      eventType: d.event_type,
+      payload: d.payload,
+      idempotencyKey: d.idempotency_key,
+      status: d.status,
+      httpStatus: d.http_status,
+      responseBody: d.response_body,
+      errorMessage: d.error_message,
+      attemptCount: d.attempt_count,
+      maxAttempts: d.max_attempts,
+      attemptedAt: d.attempted_at,
+      deliveredAt: d.delivered_at,
+      nextRetryAt: d.next_retry_at,
+      attemptLog: d.attempt_log,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at,
+    }));
+    return { data: { data: rows, count: all.length }, error: null };
+  }
+
+  if (name === 'retry_webhook_delivery') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được retry webhook' } };
+    }
+    const row = store.webhook_deliveries.find(
+      (d: any) => d.id === params.p_delivery_id && ['failed', 'exhausted'].includes(d.status)
+    );
+    if (!row) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const now = new Date().toISOString();
+    row.status = 'pending';
+    row.next_retry_at = now;
+    row.updated_at = now;
+    return {
+      data: { id: row.id, status: row.status, attemptCount: row.attempt_count, nextRetryAt: row.next_retry_at },
+      error: null,
+    };
+  }
+
+  if (name === 'revoke_tenant_api_key') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được thu hồi API key' } };
+    }
+    const row = store.tenant_api_keys.find((k: any) => k.id === params.p_key_id);
+    if (!row) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const now = new Date().toISOString();
+    row.status = 'revoked';
+    row.revoked_at = now;
+    row.revoked_by = currentUserId;
+    row.updated_at = now;
+    return { data: row, error: null };
+  }
+
+  if (name === 'trigger_webhook_event') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được trigger webhook event' } };
+    }
+    if (!params.p_tenant_id || !params.p_event_type) {
+      return { data: null, error: { code: '23514', message: 'Thiếu tenant_id hoặc event_type' } };
+    }
+    const webhooks = store.tenant_webhooks.filter(
+      (w: any) =>
+        w.tenant_id === params.p_tenant_id &&
+        w.status === 'active' &&
+        (w.events.includes('*') || w.events.includes(params.p_event_type))
+    );
+    if (webhooks.length === 0) {
+      return { data: { enqueued: 0, deliveries: [] }, error: null };
+    }
+    const now = new Date().toISOString();
+    const rootKey = params.p_idempotency_key || `${params.p_tenant_id}:${params.p_event_type}:${uuid()}`;
+    const deliveries: any[] = [];
+    for (const webhook of webhooks) {
+      const idempotencyKey = `${rootKey}:${webhook.id}`;
+      if (store.webhook_deliveries.some((d: any) => d.idempotency_key === idempotencyKey)) continue;
+      const row = {
+        id: uuid(),
+        webhook_id: webhook.id,
+        tenant_id: params.p_tenant_id,
+        event_type: params.p_event_type,
+        payload: params.p_payload ?? {},
+        idempotency_key: idempotencyKey,
+        status: 'pending',
+        http_status: null,
+        response_body: null,
+        error_message: null,
+        attempt_count: 0,
+        max_attempts: 5,
+        attempted_at: null,
+        delivered_at: null,
+        next_retry_at: now,
+        attempt_log: [],
+        created_at: now,
+        updated_at: now,
+      };
+      store.webhook_deliveries.push(row);
+      deliveries.push({ id: row.id, webhook_id: row.webhook_id, idempotency_key: row.idempotency_key, status: row.status });
+    }
+    return { data: { enqueued: deliveries.length, deliveries }, error: null };
+  }
+
+  if (name === 'update_tenant_webhook') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được cập nhật webhook' } };
+    }
+    const row = store.tenant_webhooks.find((w: any) => w.id === params.p_webhook_id);
+    if (!row) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_name !== null && params.p_name !== undefined) row.name = String(params.p_name).trim();
+    if (params.p_url !== null && params.p_url !== undefined) row.url = String(params.p_url).trim();
+    if (params.p_events !== null && params.p_events !== undefined) row.events = params.p_events;
+    if (params.p_secret !== null && params.p_secret !== undefined) row.secret = params.p_secret;
+    if (params.p_status !== null && params.p_status !== undefined) row.status = params.p_status;
+    row.updated_at = new Date().toISOString();
+    return {
+      data: {
+        id: row.id,
+        tenantId: row.tenant_id,
+        name: row.name,
+        url: row.url,
+        events: row.events,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+      error: null,
+    };
+  }
+
+  // P17.3 + P17.4: GDPR requests, terms acceptance, tenant/user data export/deletion
+  if (name === 'record_terms_acceptance') {
+    if (!params.p_user_id) {
+      return { data: null, error: { code: '23514', message: 'Thiếu user_id' } };
+    }
+    if (
+      params.p_terms_type !== null &&
+      params.p_terms_type !== undefined &&
+      !['tos', 'privacy', 'gdpr', 'cookie', 'custom'].includes(params.p_terms_type)
+    ) {
+      return { data: null, error: { code: '23514', message: 'terms_type không hợp lệ' } };
+    }
+    const user = store.users.find((u: any) => u.id === params.p_user_id);
+    if (!user) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    if (params.p_user_id !== currentUserId && !isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Không được ghi nhận chấp thuận điều khoản cho người khác' } };
+    }
+    const now = new Date().toISOString();
+    const trimmedType = typeof params.p_terms_type === 'string' ? params.p_terms_type.trim() : '';
+    const trimmedVersion = typeof params.p_terms_version === 'string' ? params.p_terms_version.trim() : '';
+    const trimmedIp = typeof params.p_ip_address === 'string' ? params.p_ip_address.trim() : '';
+    const trimmedUa = typeof params.p_user_agent === 'string' ? params.p_user_agent.trim() : '';
+    const row = {
+      id: uuid(),
+      user_id: params.p_user_id,
+      tenant_id: params.p_tenant_id ?? null,
+      terms_version: trimmedVersion || '1.0',
+      terms_type: trimmedType || 'tos',
+      ip_address: trimmedIp || null,
+      user_agent: trimmedUa || null,
+      metadata: params.p_metadata ?? {},
+      accepted_at: now,
+      created_at: now,
+      updated_at: now,
+    };
+    store.terms_acceptance.push(row);
+    return { data: row.id, error: null };
+  }
+
+  if (name === 'get_terms_acceptances') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem terms acceptance log' } };
+    }
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const all = store.terms_acceptance
+      .filter(
+        (a: any) =>
+          (params.p_tenant_id === null || params.p_tenant_id === undefined || a.tenant_id === params.p_tenant_id) &&
+          (params.p_terms_type === null || params.p_terms_type === undefined || a.terms_type === params.p_terms_type)
+      )
+      .sort((a: any, b: any) => new Date(b.accepted_at).getTime() - new Date(a.accepted_at).getTime());
+    const data = all.slice(offset, offset + limit).map((a: any) => ({
+      id: a.id,
+      user_id: a.user_id,
+      tenant_id: a.tenant_id,
+      terms_version: a.terms_version,
+      terms_type: a.terms_type,
+      accepted_at: a.accepted_at,
+      ip_address: a.ip_address,
+      user_agent: a.user_agent,
+      metadata: a.metadata,
+      created_at: a.created_at,
+    }));
+    return { data: { data, count: all.length }, error: null };
+  }
+
+  if (name === 'export_tenant_data') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được export dữ liệu tenant' } };
+    }
+    if (!params.p_tenant_id) {
+      return { data: null, error: { code: '23514', message: 'Thiếu tenant_id' } };
+    }
+    const tenant = store.tenants.find((t: any) => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const subscription = store.tenant_subscriptions.find((s: any) => s.tenant_id === params.p_tenant_id) ?? {};
+    const members = store.tenant_memberships
+      .filter((m: any) => m.tenant_id === params.p_tenant_id)
+      .map((m: any) => {
+        const u = store.users.find((u: any) => u.id === m.user_id);
+        return {
+          id: m.id,
+          tenant_id: m.tenant_id,
+          user_id: m.user_id,
+          role: m.role,
+          invited_by: m.invited_by,
+          created_at: m.created_at,
+          updated_at: m.updated_at,
+          email: u?.email ?? null,
+        };
+      });
+    const excludedTables = new Set([
+      'tenants',
+      'tenant_memberships',
+      'tenant_subscriptions',
+      'system_admins',
+      'admin_login_history',
+      'admin_2fa_backup_codes',
+      'terms_acceptance',
+    ]);
+    const tables: any[] = [];
+    for (const tableName of Object.keys(store)) {
+      if (excludedTables.has(tableName)) continue;
+      const rows = store[tableName];
+      if (!Array.isArray(rows) || rows.length === 0) continue;
+      if (!Object.prototype.hasOwnProperty.call(rows[0], 'tenant_id')) continue;
+      const filtered = rows.filter((r: any) => r.tenant_id === params.p_tenant_id);
+      tables.push({ table_name: tableName, row_count: filtered.length, rows: filtered });
+    }
+    return {
+      data: {
+        tenant,
+        subscription,
+        members,
+        tables,
+        exported_at: new Date().toISOString(),
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'create_gdpr_request') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo GDPR request' } };
+    }
+    if (!params.p_user_id) {
+      return { data: null, error: { code: '23514', message: 'Thiếu user_id' } };
+    }
+    if (!['export', 'deletion'].includes(params.p_type)) {
+      return { data: null, error: { code: '23514', message: 'type phải là export hoặc deletion' } };
+    }
+    const user = store.users.find((u: any) => u.id === params.p_user_id);
+    if (!user) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const now = new Date().toISOString();
+    const trimmedReason = typeof params.p_reason === 'string' ? params.p_reason.trim() : '';
+    const row = {
+      id: uuid(),
+      user_id: params.p_user_id,
+      type: params.p_type,
+      reason: trimmedReason || null,
+      status: 'pending',
+      dry_run: params.p_dry_run ?? false,
+      result_data: null,
+      result_url: null,
+      requested_by: currentUserId,
+      created_at: now,
+      completed_at: null,
+    };
+    store.gdpr_requests.push(row);
+    return { data: row.id, error: null };
+  }
+
+  if (name === 'get_gdpr_requests') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem GDPR requests' } };
+    }
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const all = store.gdpr_requests
+      .filter(
+        (r: any) =>
+          (params.p_status === null || params.p_status === undefined || r.status === params.p_status) &&
+          (params.p_type === null || params.p_type === undefined || r.type === params.p_type)
+      )
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const data = all.slice(offset, offset + limit).map((r: any) => {
+      const u = store.users.find((u: any) => u.id === r.user_id);
+      return {
+        id: r.id,
+        user_id: r.user_id,
+        type: r.type,
+        reason: r.reason,
+        status: r.status,
+        dry_run: r.dry_run,
+        result_url: r.result_url,
+        created_at: r.created_at,
+        completed_at: r.completed_at,
+        user_email: u?.email ?? null,
+      };
+    });
+    return { data: { data, count: all.length }, error: null };
+  }
+
+  if (name === 'gdpr_export_user_data') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được export dữ liệu user' } };
+    }
+    if (!params.p_user_id) {
+      return { data: null, error: { code: '23514', message: 'Thiếu user_id' } };
+    }
+    const user = store.users.find((u: any) => u.id === params.p_user_id);
+    if (!user) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const profile = {
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
+      last_sign_in_at: user.last_sign_in_at ?? null,
+      raw_user_meta_data: user.raw_user_meta_data ?? {},
+    };
+    const memberships = store.tenant_memberships
+      .filter((m: any) => m.user_id === params.p_user_id)
+      .map((m: any) => {
+        const t = store.tenants.find((t: any) => t.id === m.tenant_id);
+        if (!t) return null;
+        return {
+          id: m.id,
+          tenant_id: m.tenant_id,
+          role: m.role,
+          status: m.status,
+          invited_by: m.invited_by,
+          created_at: m.created_at,
+          updated_at: m.updated_at,
+          tenant_name: t.name,
+          tenant_subdomain: t.subdomain,
+        };
+      })
+      .filter(Boolean);
+    const payments = store.payments
+      .filter((p: any) => p.created_by === params.p_user_id)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((p: any) => ({
+        id: p.id,
+        tenant_id: p.tenant_id,
+        invoice_id: p.invoice_id,
+        amount: p.amount,
+        payment_method: p.payment_method,
+        payment_date: p.payment_date,
+        reference_code: p.reference_code,
+        status: p.status,
+        notes: p.notes,
+        created_at: p.created_at,
+      }));
+    const audit_log = store.audit_log
+      .filter((a: any) => a.actor_id === params.p_user_id)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((a: any) => ({
+        id: a.id,
+        tenant_id: a.tenant_id,
+        action: a.action,
+        entity_type: a.entity_type,
+        entity_id: a.entity_id,
+        old_data: a.old_data,
+        new_data: a.new_data,
+        ip_address: a.ip_address,
+        created_at: a.created_at,
+      }));
+    const admin_login_history = store.admin_login_history
+      .filter((h: any) => h.user_id === params.p_user_id)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((h: any) => ({
+        id: h.id,
+        email: h.email,
+        ip_address: h.ip_address,
+        user_agent: h.user_agent,
+        status: h.status,
+        failure_reason: h.failure_reason,
+        created_at: h.created_at,
+      }));
+    const terms_acceptance = store.terms_acceptance
+      .filter((a: any) => a.user_id === params.p_user_id)
+      .sort((a: any, b: any) => new Date(b.accepted_at).getTime() - new Date(a.accepted_at).getTime())
+      .map((a: any) => ({
+        id: a.id,
+        tenant_id: a.tenant_id,
+        terms_version: a.terms_version,
+        terms_type: a.terms_type,
+        accepted_at: a.accepted_at,
+        ip_address: a.ip_address,
+        user_agent: a.user_agent,
+        metadata: a.metadata,
+      }));
+    return {
+      data: {
+        profile,
+        memberships,
+        payments,
+        audit_log,
+        admin_login_history,
+        terms_acceptance,
+        exported_at: new Date().toISOString(),
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'gdpr_delete_user_data') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xóa dữ liệu user' } };
+    }
+    if (!params.p_user_id) {
+      return { data: null, error: { code: '23514', message: 'Thiếu user_id' } };
+    }
+    const user = store.users.find((u: any) => u.id === params.p_user_id);
+    if (!user) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const request_id = uuid();
+    const userId = params.p_user_id;
+    const membershipCount = store.tenant_memberships.filter((m: any) => m.user_id === userId).length;
+    const termsCount = store.terms_acceptance.filter((a: any) => a.user_id === userId).length;
+    const paymentCount = store.payments.filter((p: any) => p.created_by === userId).length;
+    const auditCount = store.audit_log.filter((a: any) => a.actor_id === userId).length;
+    const loginCount = store.admin_login_history.filter((h: any) => h.user_id === userId).length;
+    const planned_actions = [
+      { table: 'auth.users', action: 'anonymize', columns: ['email', 'raw_user_meta_data'] },
+      { table: 'public.tenant_memberships', action: 'delete', row_count: membershipCount },
+      { table: 'public.terms_acceptance', action: 'delete', row_count: termsCount },
+      { table: 'public.payments', action: 'anonymize', column: 'created_by', row_count: paymentCount },
+      { table: 'public.audit_log', action: 'delete', row_count: auditCount },
+      { table: 'public.admin_login_history', action: 'delete', row_count: loginCount },
+    ];
+    if (params.p_dry_run !== false) {
+      return { data: { dry_run: true, request_id, user_id: userId, planned_actions }, error: null };
+    }
+    const now = new Date().toISOString();
+    user.email = `deleted-${userId}@anon.local`;
+    user.raw_user_meta_data = {};
+    user.encrypted_password = null;
+    user.email_confirmed_at = null;
+    user.confirmation_token = null;
+    user.recovery_token = null;
+    user.email_change_token_new = null;
+    user.email_change = null;
+    user.phone = null;
+    user.phone_confirmed_at = null;
+    store.gdpr_deletion_logs.push({ id: uuid(), request_id, user_id: userId, action: 'anonymize_auth_user', details: { user_id: userId }, created_at: now });
+    store.tenant_memberships = store.tenant_memberships.filter((m: any) => m.user_id !== userId);
+    store.gdpr_deletion_logs.push({ id: uuid(), request_id, user_id: userId, action: 'delete_memberships', details: { user_id: userId }, created_at: now });
+    store.terms_acceptance = store.terms_acceptance.filter((a: any) => a.user_id !== userId);
+    store.gdpr_deletion_logs.push({ id: uuid(), request_id, user_id: userId, action: 'delete_terms_acceptance', details: { user_id: userId }, created_at: now });
+    for (const p of store.payments) {
+      if (p.created_by === userId) p.created_by = null;
+    }
+    store.gdpr_deletion_logs.push({ id: uuid(), request_id, user_id: userId, action: 'anonymize_payments', details: { user_id: userId }, created_at: now });
+    store.audit_log = store.audit_log.filter((a: any) => a.actor_id !== userId);
+    store.gdpr_deletion_logs.push({ id: uuid(), request_id, user_id: userId, action: 'delete_audit_log', details: { user_id: userId }, created_at: now });
+    store.admin_login_history = store.admin_login_history.filter((h: any) => h.user_id !== userId);
+    store.gdpr_deletion_logs.push({ id: uuid(), request_id, user_id: userId, action: 'delete_login_history', details: { user_id: userId }, created_at: now });
+    return {
+      data: {
+        dry_run: false,
+        request_id,
+        user_id: userId,
+        executed_actions: planned_actions,
+        deleted_at: now,
+      },
+      error: null,
+    };
+  }
+
+  // P12.3: notification log in-app messages
+  if (name === 'send_in_app_message') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được gửi tin nhắn in-app' } };
+    }
+    if (!params.p_tenant_id || !params.p_title || !params.p_content) {
+      return { data: null, error: { code: '23514', message: 'Thiếu tenant_id, title hoặc content' } };
+    }
+    const now = new Date().toISOString();
+    const row = {
+      id: uuid(),
+      tenant_id: params.p_tenant_id,
+      channel: 'in_app',
+      title: String(params.p_title).trim(),
+      content: String(params.p_content).trim(),
+      status: 'sent',
+      error_message: null,
+      metadata: params.p_metadata ?? null,
+      sent_by: currentUserId,
+      created_at: now,
+      updated_at: now,
+    };
+    store.notification_logs.push(row);
+    return { data: row, error: null };
+  }
+
+  if (name === 'get_in_app_messages_for_tenant') {
+    const v_tenant_id = params.p_tenant_id ?? currentTenantId;
+    if (!v_tenant_id) {
+      return { data: [], error: null };
+    }
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const all = store.notification_logs
+      .filter((n: any) => n.tenant_id === v_tenant_id && n.channel === 'in_app')
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const data = all.slice(offset, offset + limit);
+    return { data, error: null };
+  }
+
+  if (name === 'mark_in_app_message_read') {
+    const v_tenant_id = params.p_tenant_id ?? currentTenantId;
+    if (!v_tenant_id) {
+      return { data: false, error: null };
+    }
+    const row = store.notification_logs.find(
+      (n: any) =>
+        n.id === params.p_log_id &&
+        n.tenant_id === v_tenant_id &&
+        n.channel === 'in_app' &&
+        n.status !== 'read'
+    );
+    if (!row) {
+      return { data: false, error: null };
+    }
+    row.status = 'read';
+    row.updated_at = new Date().toISOString();
+    return { data: true, error: null };
+  }
+
+  if (name === 'validate_promo_code') {
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: { valid: false, error: 'Không tìm thấy tenant' }, error: null };
+
+    const promo = store.promo_codes.find(p => p.code === params.p_code);
+    if (!promo) return { data: { valid: false, error: 'Mã voucher không tồn tại' }, error: null };
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (!promo.is_active) {
+      return { data: { valid: false, error: 'Mã voucher đã bị vô hiệu hóa' }, error: null };
+    }
+    if (promo.valid_from && promo.valid_from.slice(0, 10) > today) {
+      return { data: { valid: false, error: 'Mã voucher chưa có hiệu lực' }, error: null };
+    }
+    if (promo.valid_until && promo.valid_until.slice(0, 10) < today) {
+      return { data: { valid: false, error: 'Mã voucher đã hết hạn' }, error: null };
+    }
+
+    const subtotal = Number(params.p_invoice_subtotal ?? 0);
+    if (Number(promo.min_invoice_amount ?? 0) > 0 && subtotal < Number(promo.min_invoice_amount)) {
+      return { data: { valid: false, error: 'Hóa đơn chưa đạt giá trị tối thiểu' }, error: null };
+    }
+
+    const totalUsed = store.promo_code_usages.filter(u => u.promo_code_id === promo.id).length;
+    if (promo.max_uses_total !== null && promo.max_uses_total !== undefined && totalUsed >= promo.max_uses_total) {
+      return { data: { valid: false, error: 'Mã voucher đã hết lượt sử dụng' }, error: null };
+    }
+
+    const tenantUsed = store.promo_code_usages.filter(
+      u => u.promo_code_id === promo.id && u.tenant_id === params.p_tenant_id
+    ).length;
+    if (promo.max_uses_per_tenant !== null && promo.max_uses_per_tenant !== undefined && tenantUsed >= promo.max_uses_per_tenant) {
+      return { data: { valid: false, error: 'Tenant đã sử dụng hết lượt voucher' }, error: null };
+    }
+
+    const conditions = promo.target_conditions || {};
+    if (conditions.tenant_age_days !== undefined) {
+      const ageDays = Math.floor(
+        (new Date(today).getTime() - new Date(tenant.created_at.slice(0, 10)).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (ageDays > Number(conditions.tenant_age_days)) {
+        return { data: { valid: false, error: 'Tenant không đủ điều kiện độ tuổi' }, error: null };
+      }
+    }
+    if (conditions.plan !== undefined && tenant.plan !== conditions.plan) {
+      return { data: { valid: false, error: 'Voucher không áp dụng cho gói hiện tại' }, error: null };
+    }
+    if (conditions.tenant_ids !== undefined && Array.isArray(conditions.tenant_ids) && !conditions.tenant_ids.includes(params.p_tenant_id)) {
+      return { data: { valid: false, error: 'Tenant không nằm trong danh sách áp dụng' }, error: null };
+    }
+
+    return {
+      data: {
+        valid: true,
+        promo_code_id: promo.id,
+        kind: promo.kind,
+        discount_value: promo.discount_value,
+        max_discount_amount: promo.max_discount_amount,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'get_promo_code_usage_counts') {
+    const usages = store.promo_code_usages.filter(u => u.promo_code_id === params.p_promo_code_id);
+    const perTenant: Record<string, number> = {};
+    for (const u of usages) {
+      perTenant[u.tenant_id] = (perTenant[u.tenant_id] || 0) + 1;
+    }
+    return { data: { total: usages.length, per_tenant: perTenant }, error: null };
+  }
+
+  if (name === 'apply_voucher_to_invoice') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được áp dụng voucher' } };
+    }
+    const invoice = store.invoices.find(i => i.id === params.p_invoice_id);
+    if (!invoice) {
+      return { data: { success: false, error: 'Không tìm thấy hóa đơn' }, error: null };
+    }
+    if (!['draft', 'pending'].includes(invoice.status)) {
+      return { data: { success: false, error: 'Hóa đơn không ở trạng thái chờ thanh toán' }, error: null };
+    }
+    if (store.promo_code_usages.some(u => u.invoice_id === params.p_invoice_id)) {
+      return { data: { success: false, error: 'Hóa đơn đã áp dụng voucher' }, error: null };
+    }
+    const tenant = store.tenants.find(t => t.id === invoice.tenant_id);
+    if (!tenant) {
+      return { data: { success: false, error: 'Không tìm thấy tenant' }, error: null };
+    }
+
+    const validation = await (rpc as any)('validate_promo_code', {
+      p_code: params.p_code,
+      p_tenant_id: invoice.tenant_id,
+      p_invoice_subtotal: invoice.subtotal,
+    });
+    if (!validation.data?.valid) {
+      return { data: { success: false, error: validation.data?.error || 'Áp dụng voucher thất bại' }, error: null };
+    }
+
+    const promo = store.promo_codes.find(p => p.code === params.p_code);
+    if (!promo) {
+      return { data: { success: false, error: 'Mã voucher không tồn tại' }, error: null };
+    }
+
+    const subtotal = Number(invoice.subtotal ?? 0);
+    let discount = 0;
+    if (promo.kind === 'percentage') {
+      discount = subtotal * Number(promo.discount_value) / 100;
+      if (promo.max_discount_amount !== null && promo.max_discount_amount !== undefined && discount > Number(promo.max_discount_amount)) {
+        discount = Number(promo.max_discount_amount);
+      }
+    } else {
+      discount = Number(promo.discount_value);
+    }
+    if (discount > subtotal) discount = subtotal;
+    if (discount < 0) discount = 0;
+    discount = Math.round(discount * 100) / 100;
+
+    const positiveItems = store.invoice_items
+      .filter(it => it.invoice_id === params.p_invoice_id && Number(it.unit_price) > 0)
+      .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+    let cycleType = 'monthly';
+    if (positiveItems.length > 0 && Number(positiveItems[0].unit_price) === 59000) {
+      cycleType = 'yearly';
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    let bonusMonths = 0;
+    const activeRules = store.promotion_rules
+      .filter(r => r.is_active && r.benefit_type === 'bonus_months')
+      .filter(r => (!r.valid_from || r.valid_from.slice(0, 10) <= today) && (!r.valid_until || r.valid_until.slice(0, 10) >= today))
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+    for (const rule of activeRules) {
+      let matches = false;
+      const conditionType = rule.condition_type;
+      const conditionValue = rule.condition_value || {};
+      if (conditionType === 'always') {
+        matches = true;
+      } else if (conditionType === 'tenant_age_days') {
+        const ageDays = Math.floor(
+          (new Date(today).getTime() - new Date(tenant.created_at.slice(0, 10)).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        matches = ageDays <= Number(conditionValue.age_days ?? 0);
+      } else if (conditionType === 'plan') {
+        matches = tenant.plan === conditionValue.plan;
+      } else if (conditionType === 'specific_tenant') {
+        matches = conditionValue.tenant_id === invoice.tenant_id;
+      } else if (conditionType === 'cycle_type') {
+        matches = cycleType === conditionValue.cycle_type;
+      }
+      if (matches) {
+        bonusMonths += Number(rule.benefit_value ?? 0);
+      }
+    }
+
+    const total = Math.max(0, subtotal - discount);
+    invoice.discount = discount;
+    invoice.total = total;
+    invoice.updated_at = new Date().toISOString();
+
+    if (bonusMonths > 0 && invoice.period_end) {
+      const invoiceEnd = invoice.period_end.slice(0, 10);
+      const tenantExpires = tenant.expires_at ? tenant.expires_at.slice(0, 10) : invoiceEnd;
+      const baseDate = invoiceEnd >= tenantExpires ? invoiceEnd : tenantExpires;
+      invoice.period_end = addMonths(baseDate, bonusMonths);
+    }
+
+    if (bonusMonths > 0) {
+      store.invoice_items.push({
+        id: uuid(),
+        invoice_id: invoice.id,
+        tenant_id: invoice.tenant_id,
+        description: 'Tháng tặng (promotion)',
+        quantity: bonusMonths,
+        unit_price: 0,
+        amount: 0,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    const usageId = uuid();
+    store.promo_code_usages.push({
+      id: usageId,
+      promo_code_id: promo.id,
+      tenant_id: invoice.tenant_id,
+      invoice_id: invoice.id,
+      used_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    });
+
+    return {
+      data: {
+        success: true,
+        invoice_id: invoice.id,
+        promo_code_id: promo.id,
+        code: promo.code,
+        discount,
+        bonus_months: bonusMonths,
+        total,
+        period_end: invoice.period_end,
+        usage_id: usageId,
+      },
+      error: null,
+    };
+  }
+
+  // ========== Domain A — Auth, Identity & Security (Recovery Package-01) ==========
+
+  if (name === 'can_use_feature') {
+    const sub = store.tenant_subscriptions.find(s => s.tenant_id === params.p_tenant_id);
+    if (!sub) return { data: false, error: null };
+    const plan = getPlan(sub.plan);
+    if (!plan) return { data: false, error: null };
+    return { data: true, error: null };
+  }
+
+  if (name === 'has_tenant_role') {
+    if (!currentUserId) return { data: false, error: null };
+    const member = store.tenant_memberships.find(
+      m => m.tenant_id === params.p_tenant_id && m.user_id === currentUserId
+    );
+    return { data: member?.role === params.p_role, error: null };
+  }
+
+  if (name === 'is_system_admin') {
+    return { data: isSystemAdmin, error: null };
+  }
+
+  if (name === 'is_tenant_owner') {
+    if (!currentUserId) return { data: false, error: null };
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    return { data: tenant?.owner_id === currentUserId, error: null };
+  }
+
+  if (name === 'get_tenant_by_subdomain') {
+    const tenant = store.tenants.find(t => t.subdomain === params.p_subdomain) ?? null;
+    return { data: tenant, error: null };
+  }
+
+  if (name === 'is_2fa_enabled') {
+    // ponytail: mock store không có auth.mfa_factors; mặc định false.
+    return { data: false, error: null };
+  }
+
+  if (name === 'generate_2fa_backup_codes') {
+    const userId = params.p_user_id;
+    if (!userId) return { data: null, error: { code: '23514', message: 'Thiếu user_id' } };
+    // Xóa code cũ chưa dùng
+    store.admin_2fa_backup_codes = store.admin_2fa_backup_codes.filter(
+      (c: any) => c.user_id !== userId || c.used_at !== null
+    );
+    const count = Math.max(1, Math.min(params.p_count ?? 10, 20));
+    const codes: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const code = uuid().replace(/-/g, '').toUpperCase().slice(0, 16);
+      codes.push(code);
+      store.admin_2fa_backup_codes.push({
+        id: uuid(),
+        user_id: userId,
+        code_hash: `sha256-${code}`,
+        used_at: null,
+        created_at: new Date().toISOString(),
+      });
+    }
+    return { data: { user_id: userId, codes }, error: null };
+  }
+
+  if (name === 'list_2fa_backup_codes') {
+    const userId = params.p_user_id;
+    if (!userId) return { data: [], error: null };
+    const rows = store.admin_2fa_backup_codes
+      .filter((c: any) => c.user_id === userId && c.used_at === null)
+      .map((c: any) => ({ id: c.id, createdAt: c.created_at }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'delete_2fa_backup_codes') {
+    const userId = params.p_user_id;
+    if (!userId) return { data: null, error: null };
+    store.admin_2fa_backup_codes = store.admin_2fa_backup_codes.filter(
+      (c: any) => c.user_id !== userId
+    );
+    return { data: null, error: null };
+  }
+
+  if (name === 'verify_2fa_backup_code') {
+    const userId = params.p_user_id;
+    const code = params.p_code;
+    if (!userId || !code) return { data: { valid: false, code_id: null }, error: null };
+    // Rate-limit: tối đa 5 lần thất bại trong 15 phút
+    const recentFails = store.admin_2fa_backup_codes.filter(
+      (c: any) => c.user_id === userId && c.failed_at &&
+        new Date(c.failed_at).getTime() > Date.now() - 15 * 60 * 1000
+    ).length;
+    if (recentFails >= 5) {
+      return { data: { valid: false, code_id: null }, error: null };
+    }
+    const match = store.admin_2fa_backup_codes.find(
+      (c: any) => c.user_id === userId && c.code_hash === `sha256-${code}` && c.used_at === null
+    );
+    if (!match) {
+      // Ghi lại lần thất bại
+      store.admin_2fa_backup_codes.push({
+        id: uuid(),
+        user_id: userId,
+        code_hash: `sha256-${code}`,
+        used_at: null,
+        failed_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      });
+      return { data: { valid: false, code_id: null }, error: null };
+    }
+    match.used_at = new Date().toISOString();
+    return { data: { valid: true, code_id: match.id }, error: null };
+  }
+
+  if (name === 'record_login_attempt') {
+    const row = {
+      id: uuid(),
+      email: (params.p_email || '').toLowerCase().trim(),
+      ip_address: params.p_ip_address || '',
+      success: params.p_success ?? false,
+      attempted_at: new Date().toISOString(),
+    };
+    store.login_attempts.push(row);
+    return { data: row.id, error: null };
+  }
+
+  if (name === 'get_login_attempts') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem login attempts' } };
+    }
+    const email = params.p_email ? (params.p_email as string).toLowerCase().trim() : null;
+    let rows = store.login_attempts.slice();
+    if (email) rows = rows.filter((r: any) => r.email === email);
+    rows.sort((a: any, b: any) => new Date(b.attempted_at).getTime() - new Date(a.attempted_at).getTime());
+    const count = rows.length;
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const paged = rows.slice(offset, offset + limit).map((r: any) => ({
+      id: r.id,
+      email: r.email,
+      ip_address: r.ip_address,
+      success: r.success,
+      attempted_at: r.attempted_at,
+    }));
+    return { data: { data: paged, count }, error: null };
+  }
+
+  if (name === 'get_locked_emails') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem danh sách bị khóa' } };
+    }
+    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const emailMap: Record<string, { failed: number; lastAttempt: string }> = {};
+    for (const a of store.login_attempts) {
+      if (a.success || a.attempted_at < cutoff) continue;
+      if (!emailMap[a.email]) emailMap[a.email] = { failed: 0, lastAttempt: a.attempted_at };
+      emailMap[a.email].failed++;
+      if (a.attempted_at > emailMap[a.email].lastAttempt) emailMap[a.email].lastAttempt = a.attempted_at;
+    }
+    const locked = Object.entries(emailMap)
+      .filter(([_, v]) => v.failed >= 5)
+      .map(([email, v]) => ({ email, failed_count: v.failed, last_attempt: v.lastAttempt }));
+    return { data: locked, error: null };
+  }
+
+  if (name === 'unlock_login_attempts') {
+    const email = (params.p_email || '').toLowerCase().trim();
+    store.login_attempts = store.login_attempts.filter((r: any) => r.email !== email);
+    return { data: null, error: null };
+  }
+
+  if (name === 'get_tenant_security_settings') {
+    if (!isSystemAdmin && !isTenantMember(params.p_tenant_id)) {
+      return { data: null, error: { code: '42501', message: 'Không đủ quyền xem cấu hình bảo mật' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    const settings = tenant?.settings || {};
+    return {
+      data: {
+        tenant_id: params.p_tenant_id,
+        allowed_ips: settings.allowed_ips || [],
+        session_timeout_minutes: settings.session_timeout_minutes ?? 60,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'update_tenant_ip_allowlist') {
+    if (!isSystemAdmin && !isTenantMember(params.p_tenant_id)) {
+      return { data: null, error: { code: '42501', message: 'Không đủ quyền cập nhật IP allowlist' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    tenant.settings = { ...(tenant.settings || {}), allowed_ips: params.p_allowed_ips || [] };
+    tenant.updated_at = new Date().toISOString();
+    return { data: null, error: null };
+  }
+
+  if (name === 'update_tenant_session_timeout') {
+    if (!isSystemAdmin && !isTenantMember(params.p_tenant_id)) {
+      return { data: null, error: { code: '42501', message: 'Không đủ quyền cập nhật thời gian timeout' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) return { data: null, error: { code: 'PGRST116', message: 'Not found' } };
+    const minutes = Math.max(5, Math.min(params.p_minutes ?? 60, 1440));
+    tenant.settings = { ...(tenant.settings || {}), session_timeout_minutes: minutes };
+    tenant.updated_at = new Date().toISOString();
+    return { data: null, error: null };
+  }
+
+  if (name === 'record_admin_login') {
+    const userId = params.p_user_id;
+    if (!userId) return { data: null, error: null };
+    // Chỉ ghi nếu user là system admin, or failed + lookup
+    if (params.p_status === 'success' && !store.system_admins.some((s: any) => s.user_id === userId)) {
+      return { data: null, error: null };
+    }
+    const row = {
+      id: uuid(),
+      user_id: userId,
+      email: params.p_email || null,
+      ip_address: params.p_ip_address || null,
+      user_agent: params.p_user_agent || null,
+      status: params.p_status || 'success',
+      failure_reason: params.p_failure_reason || null,
+      created_at: new Date().toISOString(),
+    };
+    store.admin_login_history.push(row);
+    return { data: row.id, error: null };
+  }
+
+  if (name === 'get_admin_login_history') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem login history' } };
+    }
+    let rows = store.admin_login_history.slice();
+    if (params.p_status) rows = rows.filter((r: any) => r.status === params.p_status);
+    if (params.p_date_from) {
+      const from = new Date(params.p_date_from).getTime();
+      rows = rows.filter((r: any) => new Date(r.created_at).getTime() >= from);
+    }
+    if (params.p_date_to) {
+      const to = new Date(params.p_date_to).getTime();
+      rows = rows.filter((r: any) => new Date(r.created_at).getTime() <= to);
+    }
+    rows.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const count = rows.length;
+    const limit = params.p_limit ?? 50;
+    const offset = params.p_offset ?? 0;
+    const paged = rows.slice(offset, offset + limit).map((r: any) => ({
+      id: r.id,
+      user_id: r.user_id,
+      email: r.email,
+      ip_address: r.ip_address,
+      user_agent: r.user_agent,
+      status: r.status,
+      failure_reason: r.failure_reason,
+      created_at: r.created_at,
+    }));
+    return { data: { data: paged, count }, error: null };
+  }
+
+  if (name === 'get_admin_login_alerts') {
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem login alerts' } };
+    }
+    const hoursAgo = params.p_hours_ago ?? 24;
+    const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
+    const recent = store.admin_login_history.filter((r: any) => r.created_at >= cutoff);
+
+    // failed_burst: >=3 failures trong 15 phút theo user
+    const failedBurst: any[] = [];
+    const failedByUser: Record<string, any[]> = {};
+    for (const r of recent) {
+      if (r.status !== 'failed') continue;
+      if (!failedByUser[r.user_id]) failedByUser[r.user_id] = [];
+      failedByUser[r.user_id].push(r);
+    }
+    for (const [uid, attempts] of Object.entries(failedByUser)) {
+      for (let i = 0; i < attempts.length; i++) {
+        const windowStart = new Date(attempts[i].created_at).getTime();
+        const inWindow = attempts.filter(
+          (a: any) => new Date(a.created_at).getTime() >= windowStart && new Date(a.created_at).getTime() <= windowStart + 15 * 60 * 1000
+        );
+        if (inWindow.length >= 3) {
+          failedBurst.push({
+            user_id: uid,
+            email: inWindow[0].email,
+            ip_address: inWindow[0].ip_address,
+            failed_count: inWindow.length,
+            window_start: inWindow[0].created_at,
+            window_end: inWindow[inWindow.length - 1].created_at,
+          });
+          break;
+        }
+      }
+    }
+
+    // rapid_login: >=3 success trong 15 phút
+    const rapidLogin: any[] = [];
+    const successByUser: Record<string, any[]> = {};
+    for (const r of recent) {
+      if (r.status !== 'success') continue;
+      if (!successByUser[r.user_id]) successByUser[r.user_id] = [];
+      successByUser[r.user_id].push(r);
+    }
+    for (const [uid, attempts] of Object.entries(successByUser)) {
+      for (let i = 0; i < attempts.length; i++) {
+        const windowStart = new Date(attempts[i].created_at).getTime();
+        const inWindow = attempts.filter(
+          (a: any) => new Date(a.created_at).getTime() >= windowStart && new Date(a.created_at).getTime() <= windowStart + 15 * 60 * 1000
+        );
+        if (inWindow.length >= 3) {
+          rapidLogin.push({
+            user_id: uid,
+            email: inWindow[0].email,
+            success_count: inWindow.length,
+            window_start: inWindow[0].created_at,
+            window_end: inWindow[inWindow.length - 1].created_at,
+          });
+          break;
+        }
+      }
+    }
+
+    return {
+      data: {
+        failed_burst: failedBurst,
+        new_device: [],
+        rapid_login: rapidLogin,
+      },
+      error: null,
+    };
+  }
+
+  // ========== End Domain A ==========
+
+  // ========== Domain B — Tenant Administration & Licensing (Recovery Domain B) ==========
+
+  if (name === 'generate_tenant_license') {
+    // Canonical: 20260720000001_sp_7_3_licenses.sql:37 — RETURNS public.licenses (single row)
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được tạo license' } };
+    }
+    const tenant = store.tenants.find(t => t.id === params.p_tenant_id);
+    if (!tenant) {
+      return { data: null, error: { code: 'PGRST116', message: 'Tenant không tồn tại' } };
+    }
+    const key = crypto.randomUUID().replace(/-/g, '').toUpperCase() + crypto.randomUUID().replace(/-/g, '').toUpperCase();
+    const now = new Date().toISOString();
+    const license = {
+      id: crypto.randomUUID(),
+      tenant_id: params.p_tenant_id,
+      license_key: key,
+      plan: params.p_plan,
+      max_users: params.p_max_users ?? 0,
+      max_products: params.p_max_products ?? 0,
+      max_orders_per_month: params.p_max_orders_per_month ?? 0,
+      expires_at: params.p_expires_at ?? null,
+      is_active: true,
+      revoked_at: null,
+      created_at: now,
+      updated_at: now,
+    };
+    store.licenses.push(license);
+    // ponytail: omits audit_log INSERT side effect (audit_log table not under test;
+    //           upgrade: push to store.audit_log when a license-audit test is added)
+    return { data: license, error: null };
+  }
+
+  if (name === 'validate_tenant_license') {
+    // Canonical: 20260720000001_sp_7_3_licenses.sql:106 — RETURNS TABLE(valid BOOLEAN, license_id UUID, tenant_id UUID, plan TEXT, reason TEXT)
+    const key = (params.p_license_key || '').toUpperCase();
+    const license = store.licenses.find((l: any) => l.license_key === key);
+    if (!license) {
+      return { data: { valid: false, license_id: null, tenant_id: null, plan: null, reason: 'not_found' }, error: null };
+    }
+    if (license.revoked_at || !license.is_active) {
+      return { data: { valid: false, license_id: license.id, tenant_id: license.tenant_id, plan: license.plan, reason: 'revoked' }, error: null };
+    }
+    if (license.expires_at && new Date(license.expires_at) < new Date()) {
+      return { data: { valid: false, license_id: license.id, tenant_id: license.tenant_id, plan: license.plan, reason: 'expired' }, error: null };
+    }
+    return { data: { valid: true, license_id: license.id, tenant_id: license.tenant_id, plan: license.plan, reason: null }, error: null };
+  }
+
+  if (name === 'lookup_invitation') {
+    // Canonical: 20260714000001_accept_invitation_rpc.sql:17 — RETURNS TABLE(tenant_id, tenant_name, tenant_subdomain, tenant_custom_domain, role, email, active, expired)
+    const token = params.p_token;
+    const invitation = store.invitations.find((i: any) => i.token === token);
+    if (!invitation) return { data: [], error: null };
+    const tenant = store.tenants.find(t => t.id === invitation.tenant_id);
+    if (!tenant) return { data: [], error: null };
+    const now = new Date();
+    const expiresAt = new Date(invitation.expires_at);
+    const row = {
+      tenant_id: invitation.tenant_id,
+      tenant_name: tenant.name,
+      tenant_subdomain: tenant.subdomain,
+      tenant_custom_domain: tenant.custom_domain ?? null,
+      role: invitation.role,
+      email: invitation.email,
+      active: invitation.status === 'pending' && expiresAt > now,
+      expired: expiresAt <= now,
+    };
+    return { data: [row], error: null };
+  }
+
+  if (name === 'accept_invitation') {
+    // Canonical: 20260714000001_accept_invitation_rpc.sql:53 — RETURNS public.tenant_memberships (single row)
+    // Full guard chain: auth.uid(), existence, status='pending', not expired, email match, no duplicate membership
+    if (!currentUserId) {
+      return { data: null, error: { code: '42501', message: 'Yêu cầu đăng nhập' } };
+    }
+    const token = params.p_token;
+    const invitation = store.invitations.find((i: any) => i.token === token);
+    if (!invitation) {
+      return { data: null, error: { code: 'PGRST116', message: 'Lời mời không tồn tại' } };
+    }
+    if (invitation.status !== 'pending') {
+      return { data: null, error: { code: '23514', message: 'Lời mời đã được sử dụng hoặc đã bị thu hồi' } };
+    }
+    if (new Date(invitation.expires_at) <= new Date()) {
+      return { data: null, error: { code: '23514', message: 'Lời mời đã hết hạn' } };
+    }
+    const currentUser = store.users.find((u: any) => u.id === currentUserId);
+    const userEmail = currentUser?.email || '';
+    if (userEmail.toLowerCase() !== invitation.email.toLowerCase()) {
+      return { data: null, error: { code: '42501', message: 'Email đăng nhập không khớp với email được mời' } };
+    }
+    const existingMembership = store.tenant_memberships.find(
+      (m: any) => m.tenant_id === invitation.tenant_id && m.user_id === currentUserId
+    );
+    if (existingMembership) {
+      return { data: null, error: { code: '23505', message: 'Bạn đã là thành viên của tenant này' } };
+    }
+    const now = new Date().toISOString();
+    const membership = {
+      id: crypto.randomUUID(),
+      tenant_id: invitation.tenant_id,
+      user_id: currentUserId,
+      role: invitation.role,
+      status: 'active',
+      is_active: true,
+      invited_by: invitation.created_by ?? null,
+      invited_at: invitation.created_at ?? now,
+      accepted_at: now,
+      email: invitation.email,
+      created_at: now,
+      updated_at: now,
+    };
+    store.tenant_memberships.push(membership);
+    // Update invitation status
+    const invIdx = store.invitations.findIndex((i: any) => i.id === invitation.id);
+    if (invIdx >= 0) {
+      store.invitations[invIdx].status = 'accepted';
+      store.invitations[invIdx].updated_at = now;
+    }
+    // ponytail: omits app_audit_log INSERT side effect
+    return { data: membership, error: null };
+  }
+
+  if (name === 'get_revenue_metrics') {
+    // Canonical: 20250708000010_phase_p16_1_revenue_metrics.sql:4 — RETURNS JSON
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem revenue metrics' } };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const start = params.p_start_date ?? (today.slice(0, 7) + '-01');
+    const end = params.p_end_date ?? today;
+    // MRR = sum of monthly_price for active/read_only tenants on paid plans
+    let mrr = 0;
+    for (const t of store.tenants) {
+      if (!['active', 'read_only'].includes(t.status)) continue;
+      const plan = store.plans.find((p: any) => p.key === t.plan);
+      if (plan && plan.monthly_price > 0) mrr += plan.monthly_price;
+    }
+    const arr = mrr * 12;
+    // Revenue by plan from confirmed payments in range
+    const revenueByPlan: Record<string, any> = {};
+    let totalRevenue = 0;
+    for (const p of store.payments) {
+      if (p.status !== 'confirmed') continue;
+      if (p.payment_date < start || p.payment_date > end) continue;
+      const tenant = store.tenants.find((t: any) => t.id === p.tenant_id);
+      const planKey = tenant?.plan || 'unknown';
+      if (!revenueByPlan[planKey]) {
+        const plan = store.plans.find((pl: any) => pl.key === planKey);
+        revenueByPlan[planKey] = { plan: planKey, plan_name: plan?.name || planKey, revenue: 0, payment_count: 0 };
+      }
+      revenueByPlan[planKey].revenue += p.amount;
+      revenueByPlan[planKey].payment_count += 1;
+      totalRevenue += p.amount;
+    }
+    const revenueByPlanArr = Object.values(revenueByPlan).sort((a: any, b: any) => b.revenue - a.revenue);
+    return {
+      data: {
+        mrr,
+        arr,
+        total_revenue: totalRevenue,
+        revenue_by_plan: revenueByPlanArr,
+        period_start: start,
+        period_end: end,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'get_churn_cohort_metrics') {
+    // Canonical: 20250708000011_phase_p16_2_churn_cohort.sql:5 — RETURNS JSON
+    if (!isSystemAdmin) {
+      return { data: null, error: { code: '42501', message: 'Chỉ system admin mới được xem churn/cohort metrics' } };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const end = params.p_end_date ?? today;
+    const start = params.p_start_date ?? (new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+    const cohortMonths = params.p_cohort_months ?? 12;
+
+    // Churn snapshot
+    const activeStart = store.tenants.filter((t: any) => new Date(t.created_at) < new Date(start)).length;
+    const activeEnd = store.tenants.filter((t: any) => {
+      if (new Date(t.created_at) >= new Date(start)) return false;
+      if (!['active', 'trial', 'read_only'].includes(t.status)) return false;
+      const sub = store.tenant_subscriptions.find((s: any) => s.tenant_id === t.id);
+      return !sub || sub.billing_status !== 'cancelled';
+    }).length;
+    const churned = activeStart - activeEnd;
+    const churnRate = activeStart > 0 ? Number(((churned / activeStart) * 100).toFixed(2)) : 0;
+
+    // LTV
+    let totalRevenue = 0;
+    const payingTenants = new Set<string>();
+    for (const p of store.payments) {
+      if (p.status !== 'confirmed') continue;
+      totalRevenue += p.amount;
+      payingTenants.add(p.tenant_id);
+    }
+    const payingTenantCount = payingTenants.size;
+    const avgLtv = payingTenantCount > 0 ? Number((totalRevenue / payingTenantCount).toFixed(2)) : 0;
+
+    // LTV by plan
+    const ltvByPlan: Record<string, any> = {};
+    for (const p of store.payments) {
+      if (p.status !== 'confirmed') continue;
+      const tenant = store.tenants.find((t: any) => t.id === p.tenant_id);
+      const planKey = tenant?.plan || 'unknown';
+      if (!ltvByPlan[planKey]) {
+        const plan = store.plans.find((pl: any) => pl.key === planKey);
+        ltvByPlan[planKey] = { plan: planKey, plan_name: plan?.name || planKey, revenue: 0, tenants: new Set<string>() };
+      }
+      ltvByPlan[planKey].revenue += p.amount;
+      ltvByPlan[planKey].tenants.add(p.tenant_id);
+    }
+    const ltvByPlanArr = Object.entries(ltvByPlan).map(([key, val]: [string, any]) => ({
+      plan: key,
+      plan_name: val.plan_name,
+      revenue: val.revenue,
+      tenants: val.tenants.size,
+      ltv: val.tenants.size > 0 ? Number((val.revenue / val.tenants.size).toFixed(2)) : 0,
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    // Funnel
+    const payingTenantIds = new Set(
+      store.payments.filter((p: any) => p.status === 'confirmed').map((p: any) => p.tenant_id)
+    );
+    let trial = 0, activeFree = 0, paying = 0, churnedFunnel = 0;
+    for (const t of store.tenants) {
+      const sub = store.tenant_subscriptions.find((s: any) => s.tenant_id === t.id);
+      const isCancelled = sub?.billing_status === 'cancelled';
+      if (t.status === 'trial') trial++;
+      else if (t.status === 'active' && !payingTenantIds.has(t.id) && !isCancelled) activeFree++;
+      else if (['active', 'read_only'].includes(t.status) && payingTenantIds.has(t.id) && !isCancelled) paying++;
+      else if (['suspended', 'archived'].includes(t.status) || isCancelled) churnedFunnel++;
+    }
+
+    // Cohort conversion-to-paid (simplified single-pass)
+    const cohortMap: Record<string, { total: number; converted: Set<string> }> = {};
+    for (const t of store.tenants) {
+      const cohort = t.created_at.slice(0, 7);
+      if (!cohortMap[cohort]) cohortMap[cohort] = { total: 0, converted: new Set() };
+      cohortMap[cohort].total++;
+    }
+    for (const p of store.payments) {
+      if (p.status !== 'confirmed') continue;
+      const tenant = store.tenants.find((t: any) => t.id === p.tenant_id);
+      if (!tenant) continue;
+      const cohort = tenant.created_at.slice(0, 7);
+      if (!cohortMap[cohort]) continue;
+      cohortMap[cohort].converted.add(p.tenant_id);
+    }
+    const cohortsArr = Object.entries(cohortMap)
+      .filter(([month]) => month >= start.slice(0, 7))
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        total: data.total,
+        retention: [{
+          month,
+          conversionRate: data.total > 0 ? Number(((data.converted.size / data.total) * 100).toFixed(2)) : 0,
+        }],
+      }));
+
+    // Months series
+    const months: string[] = [];
+    const cohortStart = new Date(start.slice(0, 7) + '-01');
+    const endDate = new Date(end.slice(0, 7) + '-01');
+    for (const d = new Date(cohortStart); d <= endDate; d.setMonth(d.getMonth() + 1)) {
+      months.push(d.toISOString().slice(0, 7));
+    }
+
+    return {
+      data: {
+        churn: {
+          active_start: activeStart,
+          active_end: activeEnd,
+          churned_count: churned,
+          churn_rate: churnRate,
+          period_start: start,
+          period_end: end,
+        },
+        cohort: {
+          months,
+          cohorts: cohortsArr,
+        },
+        ltv: {
+          average_ltv: avgLtv,
+          total_revenue: totalRevenue,
+          paying_tenants: payingTenantCount,
+          by_plan: ltvByPlanArr,
+        },
+        funnel: {
+          trial,
+          active_free: activeFree,
+          paying,
+          churned: churnedFunnel,
+        },
+      },
+      error: null,
+    };
+  }
+
+  // ========== End Domain B ==========
+
+  // ========== Domain H1 — Products & Catalog (Recovery Domain H1) ==========
+
+  // ponytail: shared 23-column product row builder for search_products_rpc / get_product_by_barcode
+  // Canonical source: 20250705000000_phase5_3_rls_policies_remaining_tables_unique_indexes.sql (latest definition)
+  // Columns: id, name, display_name, code (= products.sku), barcode, price, cost, quantity, unit, location,
+  //          category, brand, image, min_stock, max_stock, safety_stock, is_point_accumulation_enabled,
+  //          conversion_units, created_at, has_lots, category_id, brand_id, product_lots
+  const buildProductRow = (p: any) => {
+    const lots = (store.product_lots ?? [])
+      .filter((pl: any) => pl.product_id === p.id)
+      .sort((a: any, b: any) => {
+        const aExp = a.expiry_date || '';
+        const bExp = b.expiry_date || '';
+        if (aExp !== bExp) return aExp < bExp ? -1 : 1;
+        const aCrt = a.created_at || '';
+        const bCrt = b.created_at || '';
+        return aCrt < bCrt ? -1 : 1;
+      });
+    return {
+      id: p.id,
+      name: p.name ?? '',
+      display_name: p.display_name ?? p.name ?? '',
+      code: p.sku ?? p.code ?? '',
+      barcode: p.barcode ?? '',
+      price: p.price ?? 0,
+      cost: p.cost ?? 0,
+      quantity: p.quantity ?? 0,
+      unit: p.unit ?? '',
+      location: p.location ?? '',
+      category: p.category ?? '',
+      brand: p.brand ?? '',
+      image: p.image ?? '',
+      min_stock: p.min_stock ?? 0,
+      max_stock: p.max_stock ?? 0,
+      safety_stock: p.safety_stock ?? 0,
+      is_point_accumulation_enabled: p.is_point_accumulation_enabled ?? false,
+      conversion_units: p.conversion_units ?? null,
+      created_at: p.created_at ?? new Date().toISOString(),
+      has_lots: (lots.length > 0) || (p.has_lots ?? false),
+      category_id: p.category_id ?? '',
+      brand_id: p.brand_id ?? '',
+      product_lots: lots,
+    };
+  };
+
+  if (name === 'check_product_barcode_exists') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:3276 — RETURNS BOOLEAN
+    const barcode = params.p_barcode;
+    if (!barcode) return { data: false, error: null };
+    const exists = store.products.some((p: any) => p.barcode === barcode);
+    return { data: exists, error: null };
+  }
+
+  if (name === 'check_product_code_exists') {
+    // Canonical: 20250705000000_phase5_3_rls_policies_remaining_tables_unique_indexes.sql:82 — RETURNS BOOLEAN (checks products.sku)
+    const code = params.p_code;
+    if (!code) return { data: false, error: null };
+    const exists = store.products.some((p: any) => p.sku === code);
+    return { data: exists, error: null };
+  }
+
+  if (name === 'get_product_by_barcode') {
+    // Canonical: 20250705000000_phase5_3_rls_policies_remaining_tables_unique_indexes.sql:284 — RETURNS TABLE (23 columns)
+    const barcode = params.p_barcode;
+    if (!barcode) return { data: [], error: null };
+    const product = store.products.find((p: any) => p.barcode === barcode);
+    if (!product) return { data: [], error: null };
+    return { data: [buildProductRow(product)], error: null };
+  }
+
+  if (name === 'get_product_stats') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8084 — RETURNS JSON
+    const all = store.products ?? [];
+    const total = all.length;
+    const active = all.filter((p: any) => p.status === 'active' || !p.status).length;
+    const lowStock = all.filter((p: any) => {
+      const qty = Number(p.quantity ?? 0);
+      const min = Number(p.min_stock ?? 0);
+      return min > 0 && qty > 0 && qty <= min;
+    }).length;
+    const outOfStock = all.filter((p: any) => Number(p.quantity ?? 0) === 0).length;
+    const inventoryValue = all.reduce((sum: number, p: any) => sum + (Number(p.quantity ?? 0) * Number(p.cost ?? 0)), 0);
+    return { data: { total, active, lowStock, outOfStock, inventoryValue }, error: null };
+  }
+
+  if (name === 'get_brand_product_counts') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:6698 — RETURNS JSON
+    const brands = store.brands ?? [];
+    const counts = brands.map((b: any) => {
+      const count = store.products.filter((p: any) => p.brand_id === b.id || p.brand === b.name).length;
+      return { id: b.id, name: b.name, product_count: count };
+    });
+    return { data: counts, error: null };
+  }
+
+  if (name === 'get_category_product_counts') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:6717 — RETURNS JSON
+    const categories = store.categories ?? [];
+    const counts = categories.map((c: any) => {
+      const count = store.products.filter((p: any) => p.category_id === c.id || p.category === c.name).length;
+      return { id: c.id, name: c.name, product_count: count };
+    });
+    return { data: counts, error: null };
+  }
+
+  if (name === 'get_unsynced_brands') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:9603 — RETURNS JSON
+    // Finds product brands not yet present in store.brands
+    const knownBrandNames = new Set((store.brands ?? []).map((b: any) => b.name?.toLowerCase().trim()));
+    const productBrands = new Set(
+      store.products
+        .map((p: any) => p.brand?.toLowerCase().trim())
+        .filter(Boolean)
+    );
+    const unsynced = [...productBrands].filter(name => !knownBrandNames.has(name));
+    return { data: unsynced.map(name => ({ name })), error: null };
+  }
+
+  if (name === 'get_unsynced_categories') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:9624 — RETURNS JSON
+    // Finds product categories not yet present in store.categories
+    const knownCategoryNames = new Set((store.categories ?? []).map((c: any) => c.name?.toLowerCase().trim()));
+    const productCategories = new Set(
+      store.products
+        .map((p: any) => p.category?.toLowerCase().trim())
+        .filter(Boolean)
+    );
+    const unsynced = [...productCategories].filter(name => !knownCategoryNames.has(name));
+    return { data: unsynced.map(name => ({ name })), error: null };
+  }
+
+  if (name === 'count_point_products') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:3822 — RETURNS INTEGER
+    const count = store.products.filter((p: any) => p.is_point_accumulation_enabled === true).length;
+    return { data: count, error: null };
+  }
+
+  if (name === 'search_products_rpc') {
+    // Canonical: 20250705000000_phase5_3_rls_policies_remaining_tables_unique_indexes.sql:231 — RETURNS TABLE (23 columns)
+    const term = (params.p_search_term || '').toLowerCase();
+    const limit = params.p_limit ?? 100;
+    let matches = store.products ?? [];
+    if (term) {
+      matches = matches.filter((p: any) =>
+        (p.name || '').toLowerCase().includes(term) ||
+        (p.sku || '').toLowerCase().includes(term) ||
+        (p.barcode || '').toLowerCase().includes(term)
+      );
+    }
+    matches = matches.slice(0, limit);
+    return { data: matches.map((p: any) => buildProductRow(p)), error: null };
+  }
+
+  if (name === 'filter_products_rpc') {
+    // Canonical: 20250705000000_phase5_3_rls_policies_remaining_tables_unique_indexes.sql:346 — RETURNS JSON (8-arg overload, superset of 7-arg)
+    // One handler covers both overloads; 7-arg delegates to 8-arg in canonical SQL.
+    let rows = store.products ?? [];
+    const search = (params.p_search_term || '').toLowerCase();
+    if (search) {
+      rows = rows.filter((p: any) =>
+        (p.name || '').toLowerCase().includes(search) ||
+        (p.sku || '').toLowerCase().includes(search) ||
+        (p.barcode || '').toLowerCase().includes(search)
+      );
+    }
+    if (params.p_category_id) {
+      rows = rows.filter((p: any) => p.category_id === params.p_category_id);
+    }
+    if (params.p_brand_id) {
+      rows = rows.filter((p: any) => p.brand_id === params.p_brand_id);
+    }
+    if (params.p_stock_status) {
+      if (params.p_stock_status === 'in_stock') {
+        rows = rows.filter((p: any) => Number(p.quantity ?? 0) > 0);
+      } else if (params.p_stock_status === 'out_of_stock') {
+        rows = rows.filter((p: any) => Number(p.quantity ?? 0) === 0);
+      } else if (params.p_stock_status === 'low_stock') {
+        rows = rows.filter((p: any) => {
+          const qty = Number(p.quantity ?? 0);
+          const min = Number(p.min_stock ?? 0);
+          return min > 0 && qty > 0 && qty <= min;
+        });
+      }
+    }
+    const totalCount = rows.length;
+    const sortBy = params.p_sort_by ?? 'created_at';
+    const sortOrder = params.p_sort_order ?? 'desc';
+    const sortMult = sortOrder === 'asc' ? 1 : -1;
+    rows.sort((a: any, b: any) => {
+      let av = a[sortBy] ?? '';
+      let bv = b[sortBy] ?? '';
+      if (sortBy === 'created_at' || sortBy === 'updated_at') {
+        av = new Date(av).getTime();
+        bv = new Date(bv).getTime();
+      }
+      if (typeof av === 'string' && typeof bv === 'string') return sortMult * av.localeCompare(bv);
+      return sortMult * (av > bv ? 1 : av < bv ? -1 : 0);
+    });
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const start = (page - 1) * pageSize;
+    const paged = rows.slice(start, start + pageSize);
+    return { data: { products: paged.map((p: any) => buildProductRow(p)), totalCount }, error: null };
+  }
+
+  // ========== End Domain H1 ==========
+
+  // ========== Domain H2 — Inventory & Stock (Recovery Wave-02) ==========
+
+  if (name === 'cancel_inventory_count_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:2782 — RETURNS void
+    const count = store.inventory_counts.find((c: any) => c.id === params.p_count_id);
+    if (!count) return { data: null, error: { code: 'P0001', message: 'Phiếu kiểm kê không tồn tại' } };
+    if (count.status === 'cancelled') return { data: null, error: { code: 'P0001', message: 'Phiếu kiểm kê đã bị hủy trước đó' } };
+    if (count.status === 'completed') {
+      // Reverse stock deltas + write reverse ledger entries
+      for (const item of store.inventory_count_items.filter((i: any) => i.count_id === count.id)) {
+        const diff = (item.actual_quantity ?? 0) - (item.system_quantity ?? 0);
+        if (diff === 0) continue;
+        const product = store.products.find((p: any) => p.id === item.product_id);
+        if (product && !product.has_lots) {
+          product.quantity = Number(product.quantity ?? 0) - diff;
+        } else if (product && item.lot_id) {
+          const lot = store.product_lots.find((pl: any) => pl.id === item.lot_id);
+          if (lot) lot.quantity = Math.max(0, Number(lot.quantity ?? 0) - diff);
+        }
+        store.stock_movements.push({
+          id: uuid(),
+          posting_date: new Date().toISOString(),
+          voucher_type: 'Stock Reconciliation',
+          voucher_no: count.code ?? count.id,
+          voucher_detail_no: item.id,
+          product_id: item.product_id,
+          lot_id: item.lot_id ?? null,
+          warehouse: 'Kho Chính',
+          actual_qty: -diff,
+          qty_after_transaction: 0,
+          valuation_rate: 0,
+          incoming_rate: 0,
+          outgoing_rate: 0,
+          stock_value: 0,
+          balance_value: 0,
+          reason: item.reason ?? 'Hủy phiếu kiểm kê',
+          is_cancelled: true,
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+    count.status = 'cancelled';
+    count.completed_at = null;
+    return { data: null, error: null };
+  }
+
+  if (name === 'complete_inventory_count') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:3531 — RETURNS void
+    if (!params.p_count_id) return { data: null, error: { code: 'P0001', message: 'Mã phiếu kiểm kê không hợp lệ' } };
+    const count = store.inventory_counts.find((c: any) => c.id === params.p_count_id);
+    if (!count) return { data: null, error: { code: 'P0001', message: 'Phiếu kiểm kê không tồn tại' } };
+    if (count.status === 'completed') return { data: null, error: { code: 'P0001', message: 'Phiếu kiểm kê đã được hoàn thành trước đó' } };
+    if (count.status === 'cancelled') return { data: null, error: { code: 'P0001', message: 'Phiếu kiểm kê đã bị hủy, không thể hoàn thành' } };
+    const items = store.inventory_count_items.filter((i: any) => i.count_id === count.id);
+    for (const item of items) {
+      if (item.actual_quantity == null) return { data: null, error: { code: 'P0001', message: 'Số lượng thực tế chưa nhập' } };
+      if (item.actual_quantity < 0) return { data: null, error: { code: 'P0001', message: 'Số lượng thực tế không được âm' } };
+      const product = store.products.find((p: any) => p.id === item.product_id);
+      if (!product) return { data: null, error: { code: 'P0001', message: 'Sản phẩm không tồn tại' } };
+      let currentQty: number;
+      if (!product.has_lots) {
+        currentQty = Number(product.quantity ?? 0);
+        const delta = Number(item.actual_quantity) - currentQty;
+        product.quantity = Number(product.quantity ?? 0) + delta;
+        item.system_quantity = currentQty;
+        if (delta !== 0) {
+          store.stock_movements.push({
+            id: uuid(), posting_date: new Date().toISOString(), voucher_type: 'Stock Reconciliation',
+            voucher_no: count.code ?? count.id, voucher_detail_no: item.id, product_id: item.product_id,
+            lot_id: null, warehouse: 'Kho Chính', actual_qty: delta, qty_after_transaction: product.quantity,
+            valuation_rate: 0, incoming_rate: 0, outgoing_rate: 0, stock_value: 0, balance_value: 0,
+            reason: item.reason ?? 'Hoàn thành kiểm kê', is_cancelled: false, created_at: new Date().toISOString(),
+          });
+        }
+      } else if (item.lot_id) {
+        const lot = store.product_lots.find((pl: any) => pl.id === item.lot_id);
+        currentQty = Number(lot?.quantity ?? 0);
+        const delta = Number(item.actual_quantity) - currentQty;
+        if (lot) lot.quantity = Number(lot.quantity ?? 0) + delta;
+        item.system_quantity = currentQty;
+        if (delta !== 0) {
+          store.stock_movements.push({
+            id: uuid(), posting_date: new Date().toISOString(), voucher_type: 'Stock Reconciliation',
+            voucher_no: count.code ?? count.id, voucher_detail_no: item.id, product_id: item.product_id,
+            lot_id: item.lot_id, warehouse: 'Kho Chính', actual_qty: delta, qty_after_transaction: lot?.quantity ?? 0,
+            valuation_rate: 0, incoming_rate: 0, outgoing_rate: 0, stock_value: 0, balance_value: 0,
+            reason: item.reason ?? 'Hoàn thành kiểm kê', is_cancelled: false, created_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+    count.status = 'completed';
+    count.completed_at = new Date().toISOString();
+    return { data: null, error: null };
+  }
+
+  if (name === 'delete_inventory_count_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:5571 — RETURNS void
+    const count = store.inventory_counts.find((c: any) => c.id === params.p_count_id);
+    if (!count) return { data: null, error: { code: 'P0001', message: 'Phiếu kiểm kê không tồn tại' } };
+    if (count.status === 'completed') return { data: null, error: { code: 'P0001', message: 'Không thể xóa hẳn phiếu kiểm kê đã hoàn thành' } };
+    if (!['draft', 'cancelled'].includes(count.status)) return { data: null, error: { code: 'P0001', message: 'Chỉ được xóa hẳn phiếu kiểm kê ở trạng thái draft hoặc cancelled' } };
+    store.inventory_count_items = store.inventory_count_items.filter((i: any) => i.count_id !== params.p_count_id);
+    store.inventory_counts = store.inventory_counts.filter((c: any) => c.id !== params.p_count_id);
+    return { data: null, error: null };
+  }
+
+  if (name === 'get_stock_ledger') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8923 — RETURNS TABLE
+    let rows = store.stock_movements ?? [];
+    if (params.p_product_id) rows = rows.filter((r: any) => r.product_id === params.p_product_id);
+    if (params.p_lot_id) rows = rows.filter((r: any) => r.lot_id === params.p_lot_id);
+    if (params.p_voucher_type) rows = rows.filter((r: any) => r.voucher_type === params.p_voucher_type);
+    if (params.p_from_date) rows = rows.filter((r: any) => new Date(r.posting_date) >= new Date(params.p_from_date));
+    if (params.p_to_date) rows = rows.filter((r: any) => new Date(r.posting_date) <= new Date(params.p_to_date));
+    if (params.p_is_cancelled !== null && params.p_is_cancelled !== undefined) rows = rows.filter((r: any) => r.is_cancelled === params.p_is_cancelled);
+    rows = rows.slice().sort((a: any, b: any) => {
+      const pa = new Date(a.posting_date).getTime();
+      const pb = new Date(b.posting_date).getTime();
+      if (pa !== pb) return pa < pb ? -1 : 1;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+    const limit = params.p_limit ?? 1000;
+    const offset = params.p_offset ?? 0;
+    const paged = rows.slice(offset, offset + limit).map((r: any) => {
+      const product = store.products.find((p: any) => p.id === r.product_id);
+      const lot = store.product_lots.find((pl: any) => pl.id === r.lot_id);
+      return {
+        id: r.id,
+        posting_date: r.posting_date,
+        voucher_type: r.voucher_type,
+        voucher_no: r.voucher_no,
+        voucher_detail_no: r.voucher_detail_no,
+        product_id: r.product_id,
+        product_name: product?.name ?? null,
+        lot_id: r.lot_id,
+        lot_code: lot?.code ?? null,
+        warehouse: r.warehouse,
+        actual_qty: r.actual_qty,
+        qty_after_transaction: r.qty_after_transaction,
+        valuation_rate: r.valuation_rate,
+        incoming_rate: r.incoming_rate,
+        outgoing_rate: r.outgoing_rate,
+        stock_value: r.stock_value,
+        balance_value: r.balance_value,
+        reason: r.reason,
+        is_cancelled: r.is_cancelled,
+        created_at: r.created_at,
+      };
+    });
+    return { data: paged, error: null };
+  }
+
+  if (name === 'check_stock_ledger_drift') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:3346 — RETURNS TABLE
+    const lotTotals: Record<string, number> = {};
+    for (const pl of store.product_lots ?? []) {
+      lotTotals[pl.product_id] = (lotTotals[pl.product_id] ?? 0) + Number(pl.quantity ?? 0);
+    }
+    const movementTotals: Record<string, number> = {};
+    for (const sm of store.stock_movements ?? []) {
+      if (sm.is_cancelled) continue;
+      movementTotals[sm.product_id] = (movementTotals[sm.product_id] ?? 0) + Number(sm.actual_qty ?? 0);
+    }
+    const drift: any[] = [];
+    for (const p of store.products ?? []) {
+      const pq = Number(p.quantity ?? 0);
+      const ls = lotTotals[p.id] ?? null;
+      const ms = movementTotals[p.id] ?? null;
+      if (p.has_lots) {
+        if (pq !== (ls ?? 0) || pq !== (ms ?? 0) || (ls ?? 0) !== (ms ?? 0)) {
+          drift.push({ product_id: p.id, lot_id: null, products_quantity: pq, lot_sum: ls, movement_sum: ms, diff: pq - (ms ?? 0) });
+        }
+      } else if (pq !== (ms ?? 0)) {
+        drift.push({ product_id: p.id, lot_id: null, products_quantity: pq, lot_sum: null, movement_sum: ms, diff: pq - (ms ?? 0) });
+      }
+    }
+    return { data: drift, error: null };
+  }
+
+  if (name === 'increment_product_quantity') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:9693 — RETURNS void
+    const product = store.products.find((p: any) => p.id === params.p_product_id);
+    if (product) {
+      product.quantity = Number(product.quantity ?? 0) + Number(params.p_quantity ?? 0);
+    }
+    return { data: null, error: null };
+  }
+
+  if (name === 'get_inventory_report') {
+    // Canonical: 20250705000000_phase5_3_rls_policies_remaining_tables_unique_indexes.sql:90 — RETURNS json
+    const category = params.p_category ?? '';
+    const stockStatus = params.p_stock_status ?? 'all';
+    const startDate = params.p_start_date;
+    const endDate = params.p_end_date;
+    let products = store.products ?? [];
+    if (category) products = products.filter((p: any) => p.category === category);
+    const productValues: Record<string, { total_value: number; total_qty: number }> = {};
+    for (const p of products) {
+      const lots = (store.product_lots ?? []).filter((pl: any) => pl.product_id === p.id);
+      if (lots.length > 0) {
+        const totalValue = lots.reduce((s: number, pl: any) => s + Number(pl.quantity ?? 0) * Number(pl.cost ?? 0), 0);
+        const totalQty = lots.reduce((s: number, pl: any) => s + Number(pl.quantity ?? 0), 0);
+        productValues[p.id] = { total_value: totalValue, total_qty: totalQty };
+      } else {
+        productValues[p.id] = { total_value: Number(p.quantity ?? 0) * Number(p.cost ?? 0), total_qty: Number(p.quantity ?? 0) };
+      }
+    }
+    const returnedByProduct: Record<string, number> = {};
+    for (const ro of store.return_orders ?? []) {
+      if (ro.status === 'cancelled') continue;
+      for (const roi of store.return_order_items ?? []) {
+        if (roi.return_order_id !== ro.id) continue;
+        returnedByProduct[roi.product_id] = (returnedByProduct[roi.product_id] ?? 0) + Number(roi.quantity ?? 0);
+      }
+    }
+    const summary = {
+      totalValue: products.reduce((s: number, p: any) => s + productValues[p.id].total_value, 0),
+      totalQty: products.reduce((s: number, p: any) => s + productValues[p.id].total_qty, 0),
+      lowStockCount: products.filter((p: any) => Number(p.quantity ?? 0) > 0 && p.min_stock != null && Number(p.quantity) <= Number(p.min_stock)).length,
+      outOfStockCount: products.filter((p: any) => Number(p.quantity ?? 0) <= 0).length,
+    };
+    const inventoryByCategory: Record<string, number> = {};
+    for (const p of products) {
+      const cat = p.category || 'Chưa phân loại';
+      inventoryByCategory[cat] = (inventoryByCategory[cat] ?? 0) + productValues[p.id].total_value;
+    }
+    const exportInPeriod: any[] = [];
+    const exportByProduct: Record<string, { product_id: string; name: string; qty: number; value: number }> = {};
+    for (const o of store.orders ?? []) {
+      if (o.status === 'cancelled') continue;
+      const d = new Date(o.date);
+      if (startDate && d < new Date(startDate)) continue;
+      if (endDate && d > new Date(endDate)) continue;
+      for (const oi of store.order_items ?? []) {
+        if (oi.order_id !== o.id) continue;
+        const returned = returnedByProduct[oi.product_id] ?? 0;
+        const netQty = Math.max(0, Number(oi.quantity ?? 0) - returned);
+        const product = store.products.find((p: any) => p.id === oi.product_id);
+        const cost = Number(oi.cost ?? product?.cost ?? 0);
+        if (!exportByProduct[oi.product_id]) {
+          exportByProduct[oi.product_id] = { product_id: oi.product_id, name: oi.product_name ?? 'Không xác định', qty: 0, value: 0 };
+        }
+        exportByProduct[oi.product_id].qty += netQty;
+        exportByProduct[oi.product_id].value += netQty * cost;
+      }
+    }
+    for (const k of Object.keys(exportByProduct)) exportInPeriod.push(exportByProduct[k]);
+    exportInPeriod.sort((a, b) => b.qty - a.qty);
+    const lowStockProducts = products
+      .filter((p: any) => Number(p.quantity ?? 0) <= Number(p.min_stock ?? 5))
+      .map((p: any) => ({
+        id: p.id, code: p.sku ?? p.code ?? '', name: p.name, category: p.category ?? '',
+        unit: p.unit ?? '', quantity: Number(p.quantity ?? 0), min_stock: Number(p.min_stock ?? 5),
+        cost: Number(p.cost ?? 0), value: productValues[p.id].total_value,
+      }))
+      .sort((a, b) => a.quantity - b.quantity);
+    const productsFiltered = products
+      .filter((p: any) => {
+        if (stockStatus === 'all') return true;
+        if (stockStatus === 'in') return Number(p.quantity) > Number(p.min_stock ?? 5);
+        if (stockStatus === 'low') return Number(p.quantity) > 0 && Number(p.quantity) <= Number(p.min_stock ?? 5);
+        if (stockStatus === 'out') return Number(p.quantity ?? 0) <= 0;
+        return true;
+      })
+      .map((p: any) => ({
+        id: p.id, code: p.sku ?? p.code ?? '', name: p.name, category: p.category ?? '',
+        unit: p.unit ?? '', quantity: Number(p.quantity ?? 0), min_stock: Number(p.min_stock ?? 5),
+        cost: Number(p.cost ?? 0), value: productValues[p.id].total_value,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const categories = Array.from(new Set(products.map((p: any) => (p.category || '').trim()).filter(Boolean)));
+    return {
+      data: {
+        summary,
+        inventoryByCategory: Object.entries(inventoryByCategory).map(([name, value]) => ({ name, value })),
+        exportInPeriod,
+        lowStockProducts,
+        products: productsFiltered,
+        categories,
+      },
+      error: null,
+    };
+  }
+
+  // ========== End Domain H2 ==========
+
+  // ========== Domain H3 — Orders & Sales (Recovery Wave-02) ==========
+
+  if (name === 'cancel_order') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:2883 — RETURNS jsonb
+    if (!params.p_order_id) return { data: null, error: { code: 'P0001', message: 'order_id is required' } };
+    const order = store.orders.find((o: any) => o.id === params.p_order_id);
+    if (!order) return { data: null, error: { code: 'P0001', message: `Đơn hàng ${params.p_order_id} không tồn tại` } };
+    if (order.status === 'cancelled') return { data: null, error: { code: 'P0001', message: `Đơn hàng ${params.p_order_id} đã ở trạng thái Đã huỷ` } };
+    const activeReturns = (store.return_orders ?? []).filter((r: any) => r.original_order_id === params.p_order_id && r.status !== 'cancelled').length;
+    if (activeReturns > 0) return { data: null, error: { code: 'P0001', message: `Đơn hàng đã có ${activeReturns} phiếu trả còn hiệu lực` } };
+    // Restore stock
+    for (const item of store.order_items.filter((i: any) => i.order_id === params.p_order_id)) {
+      const product = store.products.find((p: any) => p.id === item.product_id);
+      if (!product) continue;
+      const ratio = 1; // ponytail: ignore unit conversion in mock (sales side already base unit)
+      const baseQty = Number(item.quantity ?? 0) * ratio;
+      if (product.has_lots && item.lot_id) {
+        const lot = store.product_lots.find((pl: any) => pl.id === item.lot_id);
+        if (lot) lot.quantity = Number(lot.quantity ?? 0) + baseQty;
+      } else {
+        product.quantity = Number(product.quantity ?? 0) + baseQty;
+      }
+    }
+    // Reverse customer aggregates
+    if (order.customer_id && order.customer_id !== 'guest') {
+      const customer = store.customers.find((c: any) => c.id === order.customer_id);
+      if (customer) {
+        customer.total_spent = Math.max(0, Number(customer.total_spent ?? 0) - Number(order.total_amount ?? 0));
+        customer.debt = Math.max(0, Number(customer.debt ?? 0) - Number(order.debt_recorded ?? 0));
+        const pointsDiff = Number(order.points_redeemed ?? 0) - Number(order.points_earned ?? 0);
+        customer.loyalty_points = Math.max(0, Number(customer.loyalty_points ?? 0) + pointsDiff);
+        if (Number(order.debt_recorded ?? 0) > 0) {
+          store.customer_payment_ledger.push({
+            id: uuid(), customer_id: order.customer_id, reference_type: 'cancel_order',
+            reference_id: params.p_order_id, amount: -Number(order.debt_recorded),
+            balance_after: 0, reason: `Hủy đơn ${params.p_order_id} — đảo nợ`,
+            created_by: 'system', created_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+    store.point_history = (store.point_history ?? []).filter((ph: any) => ph.order_id !== params.p_order_id);
+    order.status = 'cancelled';
+    order.cancelled_at = new Date().toISOString();
+    order.debt_recorded = 0;
+    order.points_earned = 0;
+    order.points_redeemed = 0;
+    return { data: { ok: true, cancelled_order_id: params.p_order_id, cancelled_at: order.cancelled_at }, error: null };
+  }
+
+  if (name === 'delete_order') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:5622 — RETURNS jsonb
+    if (!params.p_order_id) return { data: null, error: { code: 'P0001', message: 'order_id is required' } };
+    const order = store.orders.find((o: any) => o.id === params.p_order_id);
+    if (!order) return { data: null, error: { code: 'P0001', message: `Đơn hàng ${params.p_order_id} không tồn tại` } };
+    const activeReturns = (store.return_orders ?? []).filter((r: any) => r.original_order_id === params.p_order_id && r.status !== 'cancelled').length;
+    if (activeReturns > 0) return { data: null, error: { code: 'P0001', message: `Đơn hàng đã có ${activeReturns} phiếu trả còn hiệu lực` } };
+    for (const item of store.order_items.filter((i: any) => i.order_id === params.p_order_id)) {
+      const product = store.products.find((p: any) => p.id === item.product_id);
+      if (!product) continue;
+      const baseQty = Number(item.quantity ?? 0);
+      if (product.has_lots && item.lot_id) {
+        const lot = store.product_lots.find((pl: any) => pl.id === item.lot_id);
+        if (lot) lot.quantity = Number(lot.quantity ?? 0) + baseQty;
+      } else {
+        product.quantity = Number(product.quantity ?? 0) + baseQty;
+      }
+    }
+    if (order.customer_id && order.customer_id !== 'guest') {
+      const customer = store.customers.find((c: any) => c.id === order.customer_id);
+      if (customer) {
+        customer.total_spent = Math.max(0, Number(customer.total_spent ?? 0) - Number(order.total_amount ?? 0));
+        customer.debt = Math.max(0, Number(customer.debt ?? 0) - Number(order.debt_recorded ?? 0));
+        const pointsDiff = Number(order.points_redeemed ?? 0) - Number(order.points_earned ?? 0);
+        customer.loyalty_points = Math.max(0, Number(customer.loyalty_points ?? 0) + pointsDiff);
+        if (Number(order.debt_recorded ?? 0) > 0) {
+          store.customer_payment_ledger.push({
+            id: uuid(), customer_id: order.customer_id, reference_type: 'cancel_order',
+            reference_id: params.p_order_id, amount: -Number(order.debt_recorded),
+            balance_after: 0, reason: `Xóa đơn ${params.p_order_id} — đảo nợ`,
+            created_by: 'system', created_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+    store.point_history = (store.point_history ?? []).filter((ph: any) => ph.order_id !== params.p_order_id);
+    store.order_items = store.order_items.filter((i: any) => i.order_id !== params.p_order_id);
+    store.orders = store.orders.filter((o: any) => o.id !== params.p_order_id);
+    return { data: { ok: true, deleted_order_id: params.p_order_id }, error: null };
+  }
+
+  if (name === 'get_order_auto_code') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:7908 — RETURNS text ('HD' || LPAD(nextval, 7, '0'))
+    orderCodeCounter += 1;
+    return { data: 'HD' + String(orderCodeCounter).padStart(7, '0'), error: null };
+  }
+
+  if (name === 'get_sales_report') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8671 — RETURNS json
+    const startDate = params.p_start_date;
+    const endDate = params.p_end_date;
+    const statusFilter = params.p_status ?? 'all';
+    const paymentFilter = params.p_payment_method ?? '';
+    const productKw = (params.p_product_keyword ?? '').toLowerCase();
+    const customerKw = (params.p_customer_keyword ?? '').toLowerCase();
+    const inRange = (d: string) => {
+      const dt = new Date(d);
+      if (startDate && dt < new Date(startDate)) return false;
+      if (endDate && dt > new Date(endDate)) return false;
+      return true;
+    };
+    const filtered = (store.orders ?? []).filter((o: any) => {
+      if (!inRange(o.date)) return false;
+      if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+      if (paymentFilter && o.payment_method !== paymentFilter) return false;
+      if (customerKw && !String(o.customer_name ?? '').toLowerCase().includes(customerKw)) return false;
+      if (productKw) {
+        const hasProduct = store.order_items.some((oi: any) => oi.order_id === o.id && String(oi.product_name ?? '').toLowerCase().includes(productKw));
+        if (!hasProduct) return false;
+      }
+      return true;
+    });
+    const active = filtered.filter((o: any) => o.status !== 'cancelled');
+    const cancelled = filtered.filter((o: any) => o.status === 'cancelled');
+    const returnedByProduct: Record<string, number> = {};
+    for (const ro of store.return_orders ?? []) {
+      if (ro.status === 'cancelled') continue;
+      for (const roi of store.return_order_items ?? []) {
+        if (roi.return_order_id !== ro.id) continue;
+        returnedByProduct[roi.product_id] = (returnedByProduct[roi.product_id] ?? 0) + Number(roi.quantity ?? 0);
+      }
+    }
+    const spanDays = Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1);
+    const prevStart = new Date(new Date(startDate).getTime() - spanDays * 86400000);
+    const prevEnd = new Date(new Date(startDate).getTime() - 86400000);
+    const prevOrders = (store.orders ?? []).filter((o: any) => {
+      const d = new Date(o.date);
+      return d >= prevStart && d <= prevEnd && o.status !== 'cancelled';
+    });
+    const prevRevenue = prevOrders.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0), 0);
+    const totalRevenue = active.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0), 0);
+    const completedOrders = active.filter((o: any) => o.status === 'completed');
+    const completedRevenue = completedOrders.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0), 0);
+    const cancelledRevenue = cancelled.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0), 0);
+    const uniqueCustomers = new Set(active.map((o: any) => o.customer_id).filter(Boolean)).size;
+    const summary = {
+      totalRevenue,
+      totalOrders: filtered.length,
+      avgOrderValue: active.length > 0 ? totalRevenue / active.length : 0,
+      uniqueCustomers,
+      completedRevenue,
+      cancelledRevenue,
+      completedOrders: completedOrders.length,
+      cancelledOrders: cancelled.length,
+      prevRevenue,
+      prevOrdersCount: prevOrders.length,
+    };
+    const dayMap: Record<string, { revenue: number; orders: number; cost: number }> = {};
+    for (const o of active) {
+      const key = String(o.date).slice(0, 10);
+      if (!dayMap[key]) dayMap[key] = { revenue: 0, orders: 0, cost: 0 };
+      dayMap[key].revenue += Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0);
+      dayMap[key].orders += 1;
+    }
+    for (const oi of store.order_items ?? []) {
+      const o = active.find((x: any) => x.id === oi.order_id);
+      if (!o) continue;
+      const key = String(o.date).slice(0, 10);
+      if (!dayMap[key]) dayMap[key] = { revenue: 0, orders: 0, cost: 0 };
+      const returned = returnedByProduct[oi.product_id] ?? 0;
+      const netQty = Math.max(0, Number(oi.quantity ?? 0) - returned);
+      dayMap[key].cost += Number(oi.cost ?? 0) * netQty;
+    }
+    const dailyRevenue = Object.entries(dayMap).map(([date, v]) => ({ date, revenue: v.revenue, orders: v.orders, profit: v.revenue - v.cost })).sort((a, b) => a.date < b.date ? -1 : 1);
+    const paymentMap: Record<string, number> = {};
+    for (const o of active) {
+      const key = o.payment_method || 'Khác';
+      paymentMap[key] = (paymentMap[key] ?? 0) + Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0);
+    }
+    const paymentData = Object.entries(paymentMap).map(([name, value]) => ({ name, value }));
+    const productAgg: Record<string, { key: string; label: string; revenue: number; orders: number; count: number }> = {};
+    for (const oi of store.order_items ?? []) {
+      const o = active.find((x: any) => x.id === oi.order_id);
+      if (!o) continue;
+      const returned = returnedByProduct[oi.product_id] ?? 0;
+      const netQty = Math.max(0, Number(oi.quantity ?? 0) - returned);
+      const revenue = Number(oi.price ?? 0) * netQty;
+      const key = oi.product_id ?? '';
+      if (!productAgg[key]) productAgg[key] = { key, label: oi.product_name ?? 'Không xác định', revenue: 0, orders: 0, count: 0 };
+      productAgg[key].revenue += revenue;
+      productAgg[key].count += netQty;
+    }
+    for (const k of Object.keys(productAgg)) productAgg[k].orders = 0;
+    const groupedByProduct = Object.values(productAgg).sort((a, b) => b.revenue - a.revenue);
+    const customerAgg: Record<string, { key: string; label: string; revenue: number; orders: number; count: number }> = {};
+    for (const o of active) {
+      const key = o.customer_id ?? 'guest';
+      if (!customerAgg[key]) customerAgg[key] = { key, label: o.customer_name ?? 'Khách lẻ', revenue: 0, orders: 0, count: 0 };
+      customerAgg[key].revenue += Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0);
+      customerAgg[key].orders += 1;
+    }
+    const groupedByCustomer = Object.values(customerAgg).sort((a, b) => b.revenue - a.revenue);
+    const dayAgg: Record<string, { key: string; label: string; revenue: number; orders: number; count: number }> = {};
+    for (const o of active) {
+      const key = String(o.date).slice(0, 10);
+      if (!dayAgg[key]) dayAgg[key] = { key, label: key, revenue: 0, orders: 0, count: 0 };
+      dayAgg[key].revenue += Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0);
+      dayAgg[key].orders += 1;
+    }
+    const groupedByDay = Object.values(dayAgg).sort((a, b) => a.key < b.key ? 1 : -1);
+    const orderAgg = active.map((o: any) => ({ key: o.id, label: 'Đơn ' + o.id, revenue: Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0), orders: 1, count: 0 })).sort((a, b) => b.revenue - a.revenue);
+    const detailRows: any[] = [];
+    for (const oi of store.order_items ?? []) {
+      const o = active.find((x: any) => x.id === oi.order_id);
+      if (!o) continue;
+      const returned = returnedByProduct[oi.product_id] ?? 0;
+      const netQty = Number(oi.quantity ?? 0) - returned;
+      detailRows.push({
+        date: String(o.date).slice(0, 10),
+        orderId: o.id,
+        productName: oi.product_name ?? '',
+        quantity: netQty,
+        revenue: Number(oi.price ?? 0) * netQty,
+        customerName: o.customer_name ?? '',
+        paymentMethod: o.payment_method ?? 'N/A',
+      });
+    }
+    detailRows.sort((a, b) => a.date < b.date ? 1 : -1);
+    return {
+      data: {
+        summary,
+        dailyRevenue,
+        paymentData,
+        groupedByProduct,
+        groupedByCustomer,
+        groupedByDay,
+        groupedByOrder: orderAgg,
+        detailRows,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'process_checkout') {
+    // Canonical: 20250706000006_phase_p7_0_read_only_tenant_infra.sql:204 — RETURNS jsonb
+    const pOrder = params.p_order ?? {};
+    const orderId = pOrder.id;
+    if (!orderId) return { data: null, error: { code: 'P0001', message: 'order.id is required' } };
+    const opId = params.p_op_id;
+    if (opId) {
+      const existing = store.processed_operations.find((op: any) => op.op_id === opId);
+      if (existing) return { data: { ok: true, order_id: orderId, skipped: true, reason: 'op_id already processed' }, error: null };
+      store.processed_operations.push({ op_id: opId, op_type: 'checkout', ref_id: orderId, created_at: new Date().toISOString() });
+    }
+    const customerId = pOrder.customerId && pOrder.customerId !== 'guest' ? pOrder.customerId : null;
+    const postingDate = pOrder.date ?? new Date().toISOString();
+    const existingOrderIdx = store.orders.findIndex((o: any) => o.id === orderId);
+    const orderRow: any = {
+      id: orderId,
+      order_code: pOrder.orderCode ?? orderId,
+      date: postingDate,
+      customer_id: customerId,
+      customer_name: pOrder.customerName ?? '',
+      total_amount: Number(pOrder.totalAmount ?? 0),
+      paid_amount: Number(pOrder.paidAmount ?? 0),
+      debt_recorded: Number(pOrder.debtRecorded ?? 0),
+      payment_method: pOrder.paymentMethod ?? null,
+      status: pOrder.status ?? 'completed',
+      points_earned: Number(pOrder.pointsEarned ?? 0),
+      points_redeemed: Number(pOrder.pointsRedeemed ?? 0),
+      rewards_redeemed: pOrder.rewardsRedeemed ?? [],
+      applied_promotions: pOrder.appliedPromotions ?? [],
+      note: pOrder.note ?? null,
+      has_return: false,
+      total_returned_amount: 0,
+      created_at: existingOrderIdx >= 0 ? store.orders[existingOrderIdx].created_at : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    if (existingOrderIdx >= 0) store.orders[existingOrderIdx] = orderRow;
+    else store.orders.push(orderRow);
+    store.order_items = store.order_items.filter((i: any) => i.order_id !== orderId);
+    const items = Array.isArray(params.p_items) ? params.p_items : [];
+    for (const item of items) {
+      store.order_items.push({
+        id: uuid(),
+        order_id: orderId,
+        product_id: item.productId,
+        product_name: item.productName,
+        quantity: Number(item.quantity ?? 0),
+        unit_name: item.unitName ?? null,
+        price: Number(item.price ?? 0),
+        lot_id: item.lotId ?? null,
+        lot_code: item.lotCode ?? null,
+        cost: Number(item.cost ?? 0),
+        created_at: new Date().toISOString(),
+      });
+    }
+    const deltas = Array.isArray(params.p_deltas) ? params.p_deltas : [];
+    const allowNegative = !!params.p_allow_negative;
+    for (const d of deltas) {
+      const deduct = Number(d.deductBaseQty ?? 0);
+      if (deduct <= 0) continue;
+      const product = store.products.find((p: any) => p.id === d.productId);
+      if (!product) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${d.productId} không tồn tại` } };
+      if (product.has_lots) {
+        if (!d.lotId) return { data: null, error: { code: 'P0001', message: `Sản phẩm "${product.name}" có quản lý lô, phải chọn lô khi bán` } };
+        const lot = store.product_lots.find((pl: any) => pl.id === d.lotId);
+        if (!lot) return { data: null, error: { code: 'P0001', message: `Lô ${d.lotId} không tồn tại` } };
+        const newQty = Number(lot.quantity ?? 0) - deduct;
+        if (newQty < 0 && !allowNegative) return { data: null, error: { code: 'P0001', message: `Tồn lô không đủ` } };
+        lot.quantity = newQty;
+      } else {
+        const newQty = Number(product.quantity ?? 0) - deduct;
+        if (newQty < 0 && !allowNegative) return { data: null, error: { code: 'P0001', message: `Tồn kho không đủ cho "${product.name}"` } };
+        product.quantity = newQty;
+      }
+      store.stock_movements.push({
+        id: uuid(), posting_date: postingDate, voucher_type: 'Sales Invoice',
+        voucher_no: orderId, voucher_detail_no: d.lotId ?? d.productId,
+        product_id: d.productId, lot_id: d.lotId ?? null, warehouse: 'Kho Chính',
+        actual_qty: -deduct, qty_after_transaction: 0, valuation_rate: 0,
+        incoming_rate: 0, outgoing_rate: 0, stock_value: 0, balance_value: 0,
+        reason: 'Bán hàng', is_cancelled: false, created_at: new Date().toISOString(),
+      });
+    }
+    const rewardDeltas = Array.isArray(params.p_reward_deltas) ? params.p_reward_deltas : [];
+    for (const r of rewardDeltas) {
+      const reward = store.rewards.find((rw: any) => rw.id === r.rewardId);
+      if (reward) reward.redeemed_count = Number(reward.redeemed_count ?? 0) + Number(r.delta ?? 0);
+    }
+    if (customerId) {
+      const cu = params.p_customer_update ?? {};
+      const addSpent = Number(cu.addSpent ?? 0);
+      const addDebt = Number(cu.addDebt ?? 0);
+      const addPoints = Number(cu.addPoints ?? 0);
+      if (addSpent > 0 || addDebt !== 0 || addPoints !== 0) {
+        const customer = store.customers.find((c: any) => c.id === customerId);
+        if (customer) {
+          customer.total_spent = Number(customer.total_spent ?? 0) + addSpent;
+          customer.debt = Number(customer.debt ?? 0) + addDebt;
+          customer.loyalty_points = Number(customer.loyalty_points ?? 0) + addPoints;
+          customer.updated_at = new Date().toISOString();
+        }
+      }
+      if (addDebt !== 0) {
+        store.customer_payment_ledger.push({
+          id: uuid(), customer_id: customerId, reference_type: 'order', reference_id: orderId,
+          amount: addDebt, balance_after: 0, reason: 'Nợ từ đơn hàng', created_by: 'system',
+          created_at: postingDate,
+        });
+      }
+    }
+    const pointHistory = Array.isArray(params.p_point_history) ? params.p_point_history : [];
+    for (const ph of pointHistory) {
+      store.point_history.push({
+        id: ph.id ?? uuid(),
+        customer_id: ph.customerId,
+        type: ph.type,
+        amount: Number(ph.amount ?? 0),
+        description: ph.description,
+        order_id: ph.orderId ?? null,
+        created_at: ph.date ?? new Date().toISOString(),
+      });
+    }
+    return { data: { ok: true, order_id: orderId }, error: null };
+  }
+
+  if (name === 'search_orders_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:11897 — RETURNS json (array of order rows)
+    const term = (params.p_search_term || '').toLowerCase();
+    const limit = params.p_limit ?? 100;
+    let matches = store.orders ?? [];
+    if (term) {
+      matches = matches.filter((o: any) => {
+        if (String(o.id).toLowerCase().includes(term)) return true;
+        if (String(o.customer_name ?? '').toLowerCase().includes(term)) return true;
+        const customer = store.customers.find((c: any) => c.id === o.customer_id);
+        if (customer && String(customer.phone ?? '').toLowerCase().includes(term)) return true;
+        const hasProduct = store.order_items.some((oi: any) => oi.order_id === o.id && String(oi.product_name ?? '').toLowerCase().includes(term));
+        return hasProduct;
+      });
+    }
+    matches = matches.slice().sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, limit);
+    return { data: matches, error: null };
+  }
+
+  if (name === 'pay_order_debt') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:10280 — RETURNS jsonb
+    if (!params.p_order_id) return { data: null, error: { code: 'P0001', message: 'order_id is required' } };
+    const amount = Number(params.p_amount ?? 0);
+    if (!(amount > 0)) return { data: null, error: { code: 'P0001', message: 'Số tiền thanh toán phải lớn hơn 0' } };
+    const order = store.orders.find((o: any) => o.id === params.p_order_id);
+    if (!order) return { data: null, error: { code: 'P0001', message: `Đơn hàng ${params.p_order_id} không tồn tại` } };
+    if (order.status === 'cancelled') return { data: null, error: { code: 'P0001', message: `Đơn hàng đã bị huỷ` } };
+    const remainingDebt = Number(order.debt_recorded ?? 0);
+    if (remainingDebt <= 0) return { data: null, error: { code: 'P0001', message: `Đơn hàng đã thanh toán đủ` } };
+    const effective = Math.min(amount, remainingDebt);
+    const newPaid = Number(order.paid_amount ?? 0) + effective;
+    const newOrderDebt = Math.max(0, Number(order.total_amount ?? 0) - newPaid);
+    order.paid_amount = newPaid;
+    order.debt_recorded = newOrderDebt;
+    let newCustomerDebt: number | null = null;
+    let ledgerBalanceAfter = 0;
+    if (order.customer_id && order.customer_id !== 'guest') {
+      const customer = store.customers.find((c: any) => c.id === order.customer_id);
+      if (customer) {
+        newCustomerDebt = Math.max(0, Number(customer.debt ?? 0) - effective);
+        customer.debt = newCustomerDebt;
+        ledgerBalanceAfter = newCustomerDebt;
+        store.customer_payment_ledger.push({
+          id: uuid(), customer_id: order.customer_id, reference_type: 'payment',
+          reference_id: params.p_order_id, amount: -effective, balance_after: ledgerBalanceAfter,
+          reason: `Thanh toán công nợ đơn ${params.p_order_id}`, created_by: 'system',
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+    return {
+      data: {
+        ok: true,
+        order_id: params.p_order_id,
+        requested_amount: amount,
+        effective_amount: effective,
+        change_amount: Math.max(0, amount - effective),
+        new_order_paid: newPaid,
+        new_order_debt: newOrderDebt,
+        new_customer_debt: newCustomerDebt,
+        ledger_balance_after: ledgerBalanceAfter,
+        fully_paid: newOrderDebt === 0,
+      },
+      error: null,
+    };
+  }
+
+  // ========== End Domain H3 ==========
+
+  // ========== Domain H5 — Customers (Recovery Wave-03) ==========
+
+  if (name === 'search_customers_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:11884 — RETURNS SETOF customers
+    // ponytail: param name is `search_term` (no p_ prefix) per migration signature.
+    const term = (params.search_term ?? '').toLowerCase();
+    const norm = (s: any) => String(s ?? '').toLowerCase();
+    let rows = (store.customers ?? []).slice();
+    if (term) {
+      rows = rows.filter((c: any) =>
+        norm(c.name).includes(term) ||
+        norm(c.phone).includes(term) ||
+        norm(c.code).includes(term));
+    }
+    rows.sort((a: any, b: any) => norm(a.name) < norm(b.name) ? -1 : norm(a.name) > norm(b.name) ? 1 : 0);
+    return { data: rows.slice(0, 500), error: null };
+  }
+
+  if (name === 'filter_customers_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:6027 — RETURNS json
+    const term = (params.p_search_term ?? '').toLowerCase();
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const sortBy = params.p_sort_by ?? 'created_at';
+    const sortOrder = params.p_sort_order ?? 'desc';
+    const minPoints = params.p_min_points ?? null;
+    const maxPoints = params.p_max_points ?? null;
+    const hasDebt = params.p_has_debt ?? null;
+    const norm = (s: any) => String(s ?? '').toLowerCase();
+    let rows = (store.customers ?? []).slice();
+    rows = rows.filter((c: any) => {
+      if (term) {
+        if (!(norm(c.name).includes(term) || norm(c.phone).includes(term) || norm(c.code).includes(term))) return false;
+      }
+      if (minPoints != null && Number(c.loyalty_points ?? 0) < Number(minPoints)) return false;
+      if (maxPoints != null && Number(c.loyalty_points ?? 0) > Number(maxPoints)) return false;
+      if (hasDebt === 'true' && !(Number(c.debt ?? 0) > 0)) return false;
+      if (hasDebt === 'false' && !(Number(c.debt ?? 0) === 0)) return false;
+      return true;
+    });
+    const total = rows.length;
+    const cmpVal = (sel: (c: any) => number | string) => (a: any, b: any) => {
+      const va = sel(a), vb = sel(b);
+      if (va < vb) return -1; if (va > vb) return 1; return 0;
+    };
+    const dir = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'name') rows.sort((a, b) => dir * cmpVal((c: any) => norm(c.name))(a, b));
+    else if (sortBy === 'points') rows.sort((a, b) => dir * cmpVal((c: any) => Number(c.loyalty_points ?? 0))(a, b));
+    else if (sortBy === 'debt') rows.sort((a, b) => dir * cmpVal((c: any) => Number(c.debt ?? 0))(a, b));
+    else if (sortBy === 'spent') rows.sort((a, b) => dir * cmpVal((c: any) => Number(c.total_spent ?? 0))(a, b));
+    else rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // ponytail: created_at DESC tiebreak per migration ORDER BY final fallback.
+    if (sortBy !== 'created_at') rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const offset = (page - 1) * pageSize;
+    return { data: { customers: rows.slice(offset, offset + pageSize), totalCount: total }, error: null };
+  }
+
+  if (name === 'get_customer_stats') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:7062 — RETURNS json
+    const rows = store.customers ?? [];
+    const vipRanks = ['vip', 'vipvip', 'gold', 'diamond', 'platinum'];
+    const total = rows.length;
+    const vip = rows.filter((c: any) => vipRanks.includes(String(c.rank ?? '').toLowerCase())).length;
+    const debt = rows.filter((c: any) => Number(c.debt ?? 0) > 0).length;
+    const totalSpent = rows.reduce((s: number, c: any) => s + Number(c.total_spent ?? 0), 0);
+    return { data: { total, vip, debt, totalSpent }, error: null };
+  }
+
+  if (name === 'get_customer_report') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:7005 — RETURNS json
+    const startDate = params.p_start_date;
+    const endDate = params.p_end_date;
+    const rows = store.customers ?? [];
+    const inRange = (d: string) => {
+      const dt = new Date(d);
+      if (startDate && dt < new Date(String(startDate))) return false;
+      if (endDate && dt > new Date(String(endDate))) return false;
+      return true;
+    };
+    const summary = {
+      totalCustomers: rows.length,
+      newCustomers: rows.filter((c: any) => c.created_at && inRange(String(c.created_at))).length,
+      totalDebt: rows.reduce((s: number, c: any) => s + Number(c.debt ?? 0), 0),
+      totalPoints: rows.reduce((s: number, c: any) => s + Number(c.loyalty_points ?? 0), 0),
+      totalSpent: rows.reduce((s: number, c: any) => s + Number(c.total_spent ?? 0), 0),
+    };
+    const topCustomers = rows.slice()
+      .map((c: any) => ({
+        id: c.id, name: c.name,
+        total_spent: Number(c.total_spent ?? 0),
+        debt: Number(c.debt ?? 0),
+        loyalty_points: Number(c.loyalty_points ?? 0),
+        order_count: (store.orders ?? []).filter((o: any) => o.customer_id === c.id).length,
+      }))
+      .sort((a, b) => b.total_spent - a.total_spent)
+      .slice(0, 50);
+    const growthMap: Record<string, number> = {};
+    for (const c of rows) {
+      if (!c.created_at) continue;
+      if (!inRange(String(c.created_at))) continue;
+      const d = new Date(c.created_at);
+      const key = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+      growthMap[key] = (growthMap[key] ?? 0) + 1;
+    }
+    const customerGrowth = Object.entries(growthMap).map(([date, new_customers]) => ({ date, new_customers }))
+      .sort((a, b) => a.date < b.date ? -1 : 1);
+    return { data: { summary, topCustomers, customerGrowth }, error: null };
+  }
+
+  if (name === 'get_customer_debt_ledger') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:6990 — RETURNS json
+    if (!params.p_customer_id) return { data: null, error: { code: 'P0001', message: 'customer_id is required' } };
+    const limit = params.p_limit ?? 100;
+    const offset = params.p_offset ?? 0;
+    const ledger = (store.customer_payment_ledger ?? []).filter((l: any) => l.customer_id === params.p_customer_id);
+    const balance = ledger.reduce((s: number, l: any) => s + Number(l.amount ?? 0), 0);
+    const total = ledger.length;
+    const entries = ledger.slice()
+      .sort((a: any, b: any) => {
+        const ta = new Date(a.created_at).getTime(), tb = new Date(b.created_at).getTime();
+        if (tb !== ta) return tb - ta;
+        return String(b.id) < String(a.id) ? -1 : 1;
+      })
+      .slice(offset, offset + limit)
+      .map((l: any) => ({
+        id: l.id, customer_id: l.customer_id, reference_type: l.reference_type,
+        reference_id: l.reference_id, amount: Number(l.amount ?? 0),
+        balance_after: Number(l.balance_after ?? 0), reason: l.reason,
+        created_by: l.created_by, created_at: l.created_at,
+      }));
+    return { data: { customer_id: params.p_customer_id, current_balance: balance, total_entries: total, entries }, error: null };
+  }
+
+  if (name === 'adjust_customer_debt') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:1611 — RETURNS jsonb
+    if (!params.p_customer_id) return { data: null, error: { code: 'P0001', message: 'customer_id is required' } };
+    const amount = Number(params.p_amount ?? 0);
+    if (!amount) return { data: null, error: { code: 'P0001', message: 'Số tiền điều chỉnh phải khác 0' } };
+    const reason = String(params.p_reason ?? '').trim();
+    if (!reason || reason.toLowerCase() === 'khớp') {
+      return { data: null, error: { code: 'P0001', message: 'Lý do điều chỉnh công nợ bắt buộc và không được để Khớp' } };
+    }
+    const customer = (store.customers ?? []).find((c: any) => c.id === params.p_customer_id);
+    if (!customer) return { data: null, error: { code: 'P0001', message: `Khách hàng ${params.p_customer_id} không tồn tại` } };
+    const newDebt = Math.max(0, Number(customer.debt ?? 0) + amount);
+    customer.debt = newDebt;
+    customer.updated_at = new Date().toISOString();
+    const ledgerBalanceAfter = newDebt;
+    store.customer_payment_ledger.push({
+      id: uuid(), customer_id: params.p_customer_id, reference_type: 'adjustment',
+      reference_id: null, amount, balance_after: ledgerBalanceAfter, reason,
+      created_by: 'system', created_at: new Date().toISOString(),
+    });
+    return {
+      data: {
+        ok: true, customer_id: params.p_customer_id, adjustment_amount: amount,
+        new_customer_debt: newDebt, ledger_balance_after: ledgerBalanceAfter, reason,
+      },
+      error: null,
+    };
+  }
+
+  // ========== End Domain H5 ==========
+
+  // ========== Domain H6 — Suppliers (Recovery Wave-03) ==========
+
+  if (name === 'search_suppliers_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:11969 — RETURNS SETOF suppliers
+    const term = (params.p_search_term ?? '').toLowerCase();
+    const limit = params.p_limit ?? 100;
+    const norm = (s: any) => String(s ?? '').toLowerCase();
+    let rows = (store.suppliers ?? []).slice();
+    if (term) {
+      rows = rows.filter((s: any) =>
+        norm(s.name).includes(term) ||
+        norm(s.code).includes(term) ||
+        norm(s.phone).includes(term));
+    }
+    rows.sort((a: any, b: any) => norm(a.name) < norm(b.name) ? -1 : norm(a.name) > norm(b.name) ? 1 : 0);
+    return { data: rows.slice(0, limit), error: null };
+  }
+
+  if (name === 'filter_suppliers_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:6367 — RETURNS json
+    const term = (params.p_search_term ?? '').toLowerCase();
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const sortBy = params.p_sort_by ?? 'name';
+    const sortOrder = params.p_sort_order ?? 'asc';
+    const norm = (s: any) => String(s ?? '').toLowerCase();
+    let rows = (store.suppliers ?? []).slice();
+    if (term) {
+      rows = rows.filter((s: any) =>
+        norm(s.name).includes(term) ||
+        norm(s.code).includes(term) ||
+        norm(s.phone).includes(term));
+    }
+    const total = rows.length;
+    const dir = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'name') {
+      rows.sort((a: any, b: any) => {
+        const c = norm(a.name) < norm(b.name) ? -1 : norm(a.name) > norm(b.name) ? 1 : 0;
+        return dir * c;
+      });
+    } else if (sortBy === 'debt') {
+      rows.sort((a: any, b: any) => {
+        const c = Number(a.debt ?? 0) - Number(b.debt ?? 0);
+        return dir * (c < 0 ? -1 : c > 0 ? 1 : 0);
+      });
+    } else {
+      rows.sort((a: any, b: any) => norm(a.name) < norm(b.name) ? -1 : 1);
+    }
+    const offset = (page - 1) * pageSize;
+    return { data: { suppliers: rows.slice(offset, offset + pageSize), totalCount: total }, error: null };
+  }
+
+  if (name === 'get_supplier_stats') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:9015 — RETURNS json
+    const rows = store.suppliers ?? [];
+    const total = rows.length;
+    const withPhone = rows.filter((s: any) => s.phone != null && String(s.phone) !== '').length;
+    const withDebt = rows.filter((s: any) => Number(s.debt ?? 0) > 0).length;
+    const totalDebt = rows.reduce((sum: number, s: any) => sum + Number(s.debt ?? 0), 0);
+    return { data: { total, withPhone, withDebt, totalDebt }, error: null };
+  }
+
+  if (name === 'get_supplier_report') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8950 — RETURNS json
+    const startDate = params.p_start_date;
+    const endDate = params.p_end_date;
+    const suppliers = store.suppliers ?? [];
+    const receipts = (store.import_receipts ?? []).filter((r: any) => r.status === 'completed');
+    const inRange = (d: string) => {
+      const dt = new Date(d);
+      if (startDate && dt < new Date(String(startDate))) return false;
+      if (endDate && dt > new Date(String(endDate))) return false;
+      return true;
+    };
+    const summary = {
+      totalSuppliers: suppliers.length,
+      totalDebt: suppliers.reduce((s: number, x: any) => s + Number(x.debt ?? 0), 0),
+      totalPaid: receipts.reduce((s: number, r: any) => s + Number(r.paid_amount ?? 0), 0),
+      totalImportValue: receipts.filter((r: any) => r.date && inRange(String(r.date))).reduce((s: number, r: any) => s + Number(r.total_cost ?? 0), 0),
+    };
+    const topSuppliers = suppliers.map((s: any) => {
+      const sReceipts = receipts.filter((r: any) => r.supplier_id === s.id);
+      return {
+        id: s.id, code: s.code, name: s.name,
+        total_import_value: sReceipts.reduce((sum: number, r: any) => sum + Number(r.total_cost ?? 0), 0),
+        total_paid: sReceipts.reduce((sum: number, r: any) => sum + Number(r.paid_amount ?? 0), 0),
+        debt: Number(s.debt ?? 0),
+        import_count: sReceipts.length,
+      };
+    }).sort((a, b) => b.total_import_value - a.total_import_value).slice(0, 50);
+    const growthMap: Record<string, number> = {};
+    for (const s of suppliers) {
+      if (!s.created_at) continue;
+      if (!inRange(String(s.created_at))) continue;
+      const d = new Date(s.created_at);
+      const key = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+      growthMap[key] = (growthMap[key] ?? 0) + 1;
+    }
+    const supplierGrowth = Object.entries(growthMap).map(([date, new_suppliers]) => ({ date, new_suppliers }))
+      .sort((a, b) => a.date < b.date ? -1 : 1);
+    const importBySupplier = suppliers.map((s: any) => {
+      const value = receipts.filter((r: any) => r.supplier_id === s.id && r.date && inRange(String(r.date)))
+        .reduce((sum: number, r: any) => sum + Number(r.total_cost ?? 0), 0);
+      return { id: s.id, name: s.name, value };
+    }).filter((x: any) => x.value > 0).sort((a, b) => b.value - a.value);
+    return { data: { summary, topSuppliers, supplierGrowth, importBySupplier }, error: null };
+  }
+
+  if (name === 'get_supplier_debt_ledger') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8927 — RETURNS json
+    if (!params.p_supplier_id) return { data: null, error: { code: 'P0001', message: 'supplier_id is required' } };
+    const limit = params.p_limit ?? 100;
+    const offset = params.p_offset ?? 0;
+    const ledger = (store.supplier_payment_ledger ?? []).filter((l: any) => l.supplier_id === params.p_supplier_id);
+    const balance = ledger.reduce((s: number, l: any) => s + Number(l.amount ?? 0), 0);
+    const total = ledger.length;
+    const entries = ledger.slice()
+      .sort((a: any, b: any) => {
+        const ta = new Date(a.created_at).getTime(), tb = new Date(b.created_at).getTime();
+        if (tb !== ta) return tb - ta;
+        return String(b.id) < String(a.id) ? -1 : 1;
+      })
+      .slice(offset, offset + limit)
+      .map((l: any) => ({
+        id: l.id, supplier_id: l.supplier_id, reference_type: l.reference_type,
+        reference_id: l.reference_id, amount: Number(l.amount ?? 0),
+        balance_after: Number(l.balance_after ?? 0), reason: l.reason,
+        created_by: l.created_by, created_at: l.created_at,
+      }));
+    return { data: { supplier_id: params.p_supplier_id, current_balance: balance, total_entries: total, entries }, error: null };
+  }
+
+  if (name === 'adjust_supplier_debt') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:1633 — RETURNS jsonb
+    if (!params.p_supplier_id) return { data: null, error: { code: 'P0001', message: 'supplier_id is required' } };
+    const amount = Number(params.p_amount ?? 0);
+    if (!amount) return { data: null, error: { code: 'P0001', message: 'Số tiền điều chỉnh phải khác 0' } };
+    const reason = String(params.p_reason ?? '').trim();
+    if (!reason || reason.toLowerCase() === 'khớp') {
+      return { data: null, error: { code: 'P0001', message: 'Lý do điều chỉnh công nợ bắt buộc và không được để Khớp' } };
+    }
+    const supplier = (store.suppliers ?? []).find((s: any) => s.id === params.p_supplier_id);
+    if (!supplier) return { data: null, error: { code: 'P0001', message: `Nhà cung cấp ${params.p_supplier_id} không tồn tại` } };
+    const newDebt = Math.max(0, Number(supplier.debt ?? 0) + amount);
+    supplier.debt = newDebt;
+    supplier.updated_at = new Date().toISOString();
+    const ledgerBalanceAfter = newDebt;
+    store.supplier_payment_ledger.push({
+      id: uuid(), supplier_id: params.p_supplier_id, reference_type: 'adjustment',
+      reference_id: null, amount, balance_after: ledgerBalanceAfter, reason,
+      created_by: 'system', created_at: new Date().toISOString(),
+    });
+    return {
+      data: {
+        ok: true, supplier_id: params.p_supplier_id, adjustment_amount: amount,
+        new_supplier_debt: newDebt, ledger_balance_after: ledgerBalanceAfter, reason,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'pay_supplier_debt') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:10320 — RETURNS jsonb
+    if (!params.p_receipt_id) return { data: null, error: { code: 'P0001', message: 'receipt_id is required' } };
+    const amount = Number(params.p_amount ?? 0);
+    if (!(amount > 0)) return { data: null, error: { code: 'P0001', message: 'Số tiền thanh toán phải lớn hơn 0' } };
+    const receipt = (store.import_receipts ?? []).find((r: any) => r.id === params.p_receipt_id);
+    if (!receipt) return { data: null, error: { code: 'P0001', message: `Phiếu nhập ${params.p_receipt_id} không tồn tại` } };
+    if (receipt.status !== 'completed') return { data: null, error: { code: 'P0001', message: `Phiếu nhập ${params.p_receipt_id} chưa hoàn thành` } };
+    const remainingDebt = Number(receipt.debt_recorded ?? 0);
+    if (remainingDebt <= 0) return { data: null, error: { code: 'P0001', message: `Phiếu nhập ${params.p_receipt_id} đã thanh toán đủ` } };
+    const effective = Math.min(amount, remainingDebt);
+    const newPaid = Number(receipt.paid_amount ?? 0) + effective;
+    const newReceiptDebt = Math.max(0, Number(receipt.total_cost ?? 0) - newPaid);
+    receipt.paid_amount = newPaid;
+    receipt.debt_recorded = newReceiptDebt;
+    let newSupplierDebt: number | null = null;
+    let ledgerBalanceAfter = 0;
+    if (receipt.supplier_id) {
+      const supplier = (store.suppliers ?? []).find((s: any) => s.id === receipt.supplier_id);
+      if (supplier) {
+        newSupplierDebt = Math.max(0, Number(supplier.debt ?? 0) - effective);
+        supplier.debt = newSupplierDebt;
+        supplier.updated_at = new Date().toISOString();
+        ledgerBalanceAfter = newSupplierDebt;
+        store.supplier_payment_ledger.push({
+          id: uuid(), supplier_id: receipt.supplier_id, reference_type: 'payment',
+          reference_id: params.p_receipt_id, amount: -effective, balance_after: ledgerBalanceAfter,
+          reason: `Thanh toán công nợ phiếu nhập ${params.p_receipt_id}`,
+          created_by: 'system', created_at: new Date().toISOString(),
+        });
+      }
+    }
+    return {
+      data: {
+        ok: true,
+        receipt_id: params.p_receipt_id,
+        requested_amount: amount,
+        effective_amount: effective,
+        change_amount: Math.max(0, amount - effective),
+        new_receipt_paid: newPaid,
+        new_receipt_debt: newReceiptDebt,
+        new_supplier_debt: newSupplierDebt,
+        ledger_balance_after: ledgerBalanceAfter,
+        fully_paid: newReceiptDebt === 0,
+      },
+      error: null,
+    };
+  }
+
+  // ========== End Domain H6 ==========
+
+  // ========== Domain H4 — Returns & Exchanges (Recovery Wave-03) ==========
+
+  if (name === 'get_return_order_auto_code') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8602 — RETURNS text
+    returnOrderCodeCounter += 1;
+    return { data: 'TH' + String(returnOrderCodeCounter).padStart(7, '0'), error: null };
+  }
+
+  if (name === 'filter_return_orders_rpc') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:6325 — RETURNS json
+    const term = (params.p_search_term ?? '').toLowerCase();
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const fromDate = params.p_from_date ?? null;
+    const toDate = params.p_to_date ?? null;
+    const status = params.p_status ?? null;
+    const norm = (s: any) => String(s ?? '').toLowerCase();
+    const toEnd = toDate ? new Date(new Date(String(toDate)).getTime() + 86400000) : null;
+    let rows = (store.return_orders ?? []).slice();
+    rows = rows.filter((r: any) => {
+      if (term) {
+        if (!(norm(r.id).includes(term) || norm(r.original_order_id).includes(term) || norm(r.customer_name).includes(term))) return false;
+      }
+      if (fromDate && new Date(r.date) < new Date(String(fromDate))) return false;
+      if (toEnd && new Date(r.date) >= toEnd) return false;
+      if (status && r.status !== status) return false;
+      return true;
+    });
+    const total = rows.length;
+    rows.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const offset = (page - 1) * pageSize;
+    return { data: { returnOrders: rows.slice(offset, offset + pageSize), totalCount: total }, error: null };
+  }
+
+  if (name === 'create_return_order') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:4645 — RETURNS jsonb
+    if (!params.p_id) return { data: null, error: { code: 'P0001', message: 'return_order.id is required' } };
+    if (!params.p_original_order_id) return { data: null, error: { code: 'P0001', message: 'original_order_id is required' } };
+    const items = Array.isArray(params.p_items) ? params.p_items : [];
+    if (items.length === 0) return { data: null, error: { code: 'P0001', message: 'Phiếu trả phải có ít nhất 1 sản phẩm' } };
+    const totalRefund = Number(params.p_total_refund_amount ?? 0);
+    if (totalRefund < 0) return { data: null, error: { code: 'P0001', message: 'Tổng tiền hoàn không thể âm' } };
+    const order = (store.orders ?? []).find((o: any) => o.id === params.p_original_order_id);
+    if (!order) return { data: null, error: { code: 'P0001', message: `Đơn hàng gốc ${params.p_original_order_id} không tồn tại` } };
+    const newTotalReturned = Number(order.total_returned_amount ?? 0) + totalRefund;
+    if (newTotalReturned > Number(order.total_amount ?? 0) + 0.01) {
+      return { data: null, error: { code: 'P0001', message: `Tổng tiền trả (${newTotalReturned}) vượt quá tổng tiền đơn hàng (${order.total_amount})` } };
+    }
+    const customerIdClean = params.p_customer_id && params.p_customer_id !== '' && params.p_customer_id !== 'guest' ? params.p_customer_id : null;
+    if (customerIdClean) {
+      const customer = (store.customers ?? []).find((c: any) => c.id === customerIdClean);
+      if (!customer) return { data: null, error: { code: 'P0001', message: `Khách hàng ${customerIdClean} không tồn tại` } };
+    }
+    for (const item of items) {
+      const qty = Number(item.quantity ?? 0);
+      if (qty <= 0) return { data: null, error: { code: 'P0001', message: `Số lượng trả của "${item.productName ?? item.productId}" phải > 0` } };
+      const orderedQty = (store.order_items ?? []).filter((oi: any) => oi.order_id === params.p_original_order_id && oi.product_id === item.productId).reduce((s: number, oi: any) => s + Number(oi.quantity ?? 0), 0);
+      if (orderedQty === 0) return { data: null, error: { code: 'P0001', message: `Sản phẩm "${item.productName ?? item.productId}" không có trong đơn hàng gốc` } };
+      const alreadyReturned = (store.return_order_items ?? [])
+        .filter((roi: any) => {
+          const ro = (store.return_orders ?? []).find((r: any) => r.id === roi.return_order_id);
+          return ro && ro.original_order_id === params.p_original_order_id && roi.product_id === item.productId && ro.status !== 'cancelled';
+        })
+        .reduce((s: number, roi: any) => s + Number(roi.quantity ?? 0), 0);
+      if (alreadyReturned + qty > orderedQty + 0.001) {
+        return { data: null, error: { code: 'P0001', message: `Trả vượt số đã bán cho "${item.productName ?? item.productId}" (đã bán ${orderedQty}, đã trả ${alreadyReturned}, đang trả thêm ${qty})` } };
+      }
+    }
+    // ponytail: point rate default 100000 — matches migration fallback when app_settings missing.
+    let pointRate: number | null = null;
+    const settings = store.system_settings.find((s: any) => s.key === 'default_point_rate');
+    if (settings && Number(settings.value ?? 0) > 0) pointRate = Number(settings.value);
+    if (!pointRate || pointRate <= 0) pointRate = 100000;
+    let eligibleSubtotal = 0;
+    for (const item of items) {
+      const product = (store.products ?? []).find((p: any) => p.id === item.productId);
+      if (product && product.is_point_accumulation_enabled) {
+        eligibleSubtotal += Number(item.subtotal ?? 0);
+      }
+    }
+    const pointsToDeduct = Math.floor(eligibleSubtotal / pointRate);
+    const now = new Date().toISOString();
+    const debtReduction = Number(params.p_debt_reduction ?? 0);
+    const cashRefund = Number(params.p_cash_refund ?? 0);
+    const grossRefund = params.p_gross_refund_amount != null ? Number(params.p_gross_refund_amount) : totalRefund;
+    store.return_orders.push({
+      id: params.p_id,
+      original_order_id: params.p_original_order_id,
+      date: now,
+      customer_id: customerIdClean,
+      customer_name: params.p_customer_name,
+      total_refund_amount: totalRefund,
+      refund_method: 'cash',
+      debt_reduction: debtReduction,
+      cash_refund: cashRefund,
+      reason: params.p_reason ?? '',
+      note: params.p_note ?? null,
+      status: 'completed',
+      gross_refund_amount: grossRefund,
+      fee_percent: Number(params.p_fee_percent ?? 0),
+      fee_amount: Number(params.p_fee_amount ?? 0),
+      days_since_purchase: Number(params.p_days_since_purchase ?? 0),
+      original_payment_method: params.p_original_payment_method ?? null,
+      points_deducted: pointsToDeduct,
+      created_at: now,
+      updated_at: now,
+    });
+    for (const item of items) {
+      const lotId = item.lotId && item.lotId !== '' ? item.lotId : null;
+      const lotCode = item.lotCode && item.lotCode !== '' ? item.lotCode : null;
+      store.return_order_items.push({
+        id: params.p_id + '_' + item.productId + '_' + (lotId ?? Math.floor(Math.random() * 1000000)),
+        return_order_id: params.p_id,
+        product_id: item.productId,
+        product_name: item.productName,
+        quantity: Number(item.quantity ?? 0),
+        unit_name: item.unitName ?? null,
+        unit_price: Number(item.unitPrice ?? 0),
+        subtotal: Number(item.subtotal ?? 0),
+        reason: item.reason ?? '',
+        lot_id: lotId,
+        lot_code: lotCode,
+      });
+      const qty = Number(item.quantity ?? 0);
+      if (qty <= 0) continue;
+      const product = (store.products ?? []).find((p: any) => p.id === item.productId);
+      if (lotId) {
+        let lot = (store.product_lots ?? []).find((pl: any) => pl.id === lotId);
+        if (lot) {
+          lot.quantity = Number(lot.quantity ?? 0) + qty;
+        } else {
+          lot = {
+            id: lotId, product_id: item.productId, code: lotCode ?? 'RECOVERED_RTN',
+            expiry_date: null, quantity: qty, original_quantity: qty,
+            created_at: now, updated_at: now,
+          };
+          store.product_lots.push(lot);
+        }
+      } else if (product) {
+        product.quantity = Number(product.quantity ?? 0) + qty;
+      }
+    }
+    order.has_return = true;
+    order.total_returned_amount = newTotalReturned;
+    if (customerIdClean) {
+      const customer = (store.customers ?? []).find((c: any) => c.id === customerIdClean);
+      if (customer) {
+        customer.debt = Math.max(0, Number(customer.debt ?? 0) - debtReduction);
+        customer.total_spent = Math.max(0, Number(customer.total_spent ?? 0) - totalRefund);
+        customer.loyalty_points = Math.max(0, Number(customer.loyalty_points ?? 0) - pointsToDeduct);
+        customer.updated_at = now;
+        if (debtReduction > 0) {
+          store.customer_payment_ledger.push({
+            id: uuid(), customer_id: customerIdClean, reference_type: 'return',
+            reference_id: params.p_id, amount: -debtReduction, balance_after: customer.debt,
+            reason: `Trả hàng giảm nợ ${params.p_id}`, created_by: 'system', created_at: now,
+          });
+        }
+        if (pointsToDeduct > 0) {
+          store.point_history.push({
+            id: 'PH_RET_' + params.p_id, customer_id: customerIdClean, date: now,
+            type: 'return', amount: -pointsToDeduct,
+            description: `Trừ điểm do trả hàng từ đơn ${params.p_original_order_id}`,
+            order_id: params.p_original_order_id,
+          });
+        }
+      }
+    }
+    return { data: { ok: true, return_id: params.p_id, new_total_returned: newTotalReturned, points_deducted: pointsToDeduct }, error: null };
+  }
+
+  if (name === 'cancel_return_order_v2') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:2973 — RETURNS jsonb
+    if (!params.p_return_id) return { data: null, error: { code: 'P0001', message: 'return_id is required' } };
+    const ret = (store.return_orders ?? []).find((r: any) => r.id === params.p_return_id);
+    if (!ret) return { data: null, error: { code: 'P0001', message: `Phiếu trả ${params.p_return_id} không tồn tại` } };
+    if (ret.status === 'cancelled') return { data: null, error: { code: 'P0001', message: `Phiếu trả ${params.p_return_id} đã bị huỷ trước đó` } };
+    ret.status = 'cancelled';
+    ret.updated_at = new Date().toISOString();
+    // Reverse stock additions done at create time
+    for (const item of (store.return_order_items ?? []).filter((ri: any) => ri.return_order_id === params.p_return_id)) {
+      const qty = Number(item.quantity ?? 0);
+      if (qty <= 0) continue;
+      const product = (store.products ?? []).find((p: any) => p.id === item.product_id);
+      if (item.lot_id) {
+        const lot = (store.product_lots ?? []).find((pl: any) => pl.id === item.lot_id);
+        if (lot) lot.quantity = Number(lot.quantity ?? 0) - qty;
+      } else if (product) {
+        product.quantity = Number(product.quantity ?? 0) - qty;
+      }
+    }
+    // Recompute order totals from remaining non-cancelled returns
+    const remainingTotal = (store.return_orders ?? [])
+      .filter((r: any) => r.original_order_id === ret.original_order_id && r.status !== 'cancelled')
+      .reduce((s: number, r: any) => s + Number(r.total_refund_amount ?? 0), 0);
+    const order = (store.orders ?? []).find((o: any) => o.id === ret.original_order_id);
+    if (order) {
+      order.has_return = remainingTotal > 0;
+      order.total_returned_amount = remainingTotal;
+    }
+    const totalRefund = Number(ret.total_refund_amount ?? 0);
+    const debtReduction = Number(ret.debt_reduction ?? 0);
+    const pointsDeducted = Number(ret.points_deducted ?? 0);
+    if (ret.customer_id) {
+      const customer = (store.customers ?? []).find((c: any) => c.id === ret.customer_id);
+      if (customer) {
+        customer.total_spent = Number(customer.total_spent ?? 0) + totalRefund;
+        customer.debt = Number(customer.debt ?? 0) + debtReduction;
+        customer.loyalty_points = Math.max(0, Number(customer.loyalty_points ?? 0) + pointsDeducted);
+        customer.updated_at = new Date().toISOString();
+        if (debtReduction > 0) {
+          store.customer_payment_ledger.push({
+            id: uuid(), customer_id: ret.customer_id, reference_type: 'cancel_return',
+            reference_id: params.p_return_id, amount: debtReduction, balance_after: customer.debt,
+            reason: `Hủy phiếu trả ${params.p_return_id} — hoàn lại nợ`, created_by: 'system',
+            created_at: new Date().toISOString(),
+          });
+        }
+        if (pointsDeducted > 0) {
+          store.point_history.push({
+            id: 'PH_CANCEL_RET_' + params.p_return_id, customer_id: ret.customer_id,
+            date: new Date().toISOString(), type: 'cancel_return', amount: pointsDeducted,
+            description: `Hoàn điểm do hủy phiếu trả ${params.p_return_id}`,
+            order_id: ret.original_order_id,
+          });
+        }
+      }
+    }
+    return { data: { ok: true, cancelled_return_id: params.p_return_id, points_restored: pointsDeducted }, error: null };
+  }
+
+  if (name === 'create_exchange_transaction') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:3830 — RETURNS jsonb
+    const returnItems = Array.isArray(params.p_return_items) ? params.p_return_items : [];
+    const exchangeItems = Array.isArray(params.p_exchange_items) ? params.p_exchange_items : [];
+    const hasReturn = returnItems.length > 0;
+    const hasExchange = exchangeItems.length > 0;
+    if (!hasReturn && !hasExchange) {
+      return { data: null, error: { code: 'P0001', message: 'Phiếu trống: phải có ít nhất 1 sản phẩm trả hoặc 1 sản phẩm đổi' } };
+    }
+    const customerIdClean = params.p_customer_id && params.p_customer_id !== '' && params.p_customer_id !== 'guest' ? params.p_customer_id : null;
+    if (customerIdClean) {
+      const customer = (store.customers ?? []).find((c: any) => c.id === customerIdClean);
+      if (!customer) return { data: null, error: { code: 'P0001', message: `Khách hàng ${customerIdClean} không tồn tại` } };
+    }
+    const now = new Date().toISOString();
+    let newTotalReturned: number | null = null;
+    let netSpentDelta = 0;
+    let netDebtDelta = 0;
+    if (hasReturn) {
+      if (!params.p_return_id) return { data: null, error: { code: 'P0001', message: 'return_id is required khi có hàng trả' } };
+      if (!params.p_original_order_id) return { data: null, error: { code: 'P0001', message: 'original_order_id is required khi có hàng trả' } };
+      const totalRefund = Number(params.p_total_refund_amount ?? 0);
+      if (totalRefund < 0) return { data: null, error: { code: 'P0001', message: 'Tổng tiền hoàn không thể âm' } };
+      const order = (store.orders ?? []).find((o: any) => o.id === params.p_original_order_id);
+      if (!order) return { data: null, error: { code: 'P0001', message: `Đơn hàng gốc ${params.p_original_order_id} không tồn tại` } };
+      newTotalReturned = Number(order.total_returned_amount ?? 0) + totalRefund;
+      if (newTotalReturned > Number(order.total_amount ?? 0) + 0.01) {
+        return { data: null, error: { code: 'P0001', message: `Tổng tiền trả (${newTotalReturned}) vượt quá tổng tiền đơn hàng (${order.total_amount})` } };
+      }
+      for (const item of returnItems) {
+        const qty = Number(item.quantity ?? 0);
+        if (qty <= 0) return { data: null, error: { code: 'P0001', message: `Số lượng trả của "${item.productName ?? item.productId}" phải > 0` } };
+        const orderedQty = (store.order_items ?? []).filter((oi: any) => oi.order_id === params.p_original_order_id && oi.product_id === item.productId).reduce((s: number, oi: any) => s + Number(oi.quantity ?? 0), 0);
+        if (orderedQty === 0) return { data: null, error: { code: 'P0001', message: `Sản phẩm "${item.productName ?? item.productId}" không có trong đơn hàng gốc` } };
+        const alreadyReturned = (store.return_order_items ?? [])
+          .filter((roi: any) => {
+            const ro = (store.return_orders ?? []).find((r: any) => r.id === roi.return_order_id);
+            return ro && ro.original_order_id === params.p_original_order_id && roi.product_id === item.productId && ro.status !== 'cancelled';
+          })
+          .reduce((s: number, roi: any) => s + Number(roi.quantity ?? 0), 0);
+        if (alreadyReturned + qty > orderedQty + 0.001) {
+          return { data: null, error: { code: 'P0001', message: `Trả vượt số đã bán cho "${item.productName ?? item.productId}"` } };
+        }
+      }
+      const debtReduction = Number(params.p_debt_reduction ?? 0);
+      const cashRefund = Number(params.p_cash_refund ?? 0);
+      const grossRefund = params.p_gross_refund_amount != null ? Number(params.p_gross_refund_amount) : totalRefund;
+      store.return_orders.push({
+        id: params.p_return_id,
+        original_order_id: params.p_original_order_id,
+        date: now,
+        customer_id: customerIdClean,
+        customer_name: params.p_customer_name,
+        total_refund_amount: totalRefund,
+        refund_method: 'cash',
+        debt_reduction: debtReduction,
+        cash_refund: cashRefund,
+        reason: params.p_reason ?? '',
+        note: params.p_note ?? null,
+        status: 'completed',
+        gross_refund_amount: grossRefund,
+        fee_percent: Number(params.p_fee_percent ?? 0),
+        fee_amount: Number(params.p_fee_amount ?? 0),
+        days_since_purchase: Number(params.p_days_since_purchase ?? 0),
+        original_payment_method: params.p_original_payment_method ?? null,
+        points_deducted: 0,
+        created_at: now,
+        updated_at: now,
+      });
+      for (const item of returnItems) {
+        const lotId = item.lotId && item.lotId !== '' ? item.lotId : null;
+        const lotCode = item.lotCode && item.lotCode !== '' ? item.lotCode : null;
+        store.return_order_items.push({
+          id: params.p_return_id + '_' + item.productId + '_' + (lotId ?? Math.floor(Math.random() * 1000000)),
+          return_order_id: params.p_return_id,
+          product_id: item.productId,
+          product_name: item.productName,
+          quantity: Number(item.quantity ?? 0),
+          unit_name: item.unitName ?? null,
+          unit_price: Number(item.unitPrice ?? 0),
+          subtotal: Number(item.subtotal ?? 0),
+          reason: item.reason ?? '',
+          lot_id: lotId,
+          lot_code: lotCode,
+        });
+        const qty = Number(item.quantity ?? 0);
+        if (qty <= 0) continue;
+        const product = (store.products ?? []).find((p: any) => p.id === item.productId);
+        if (lotId) {
+          let lot = (store.product_lots ?? []).find((pl: any) => pl.id === lotId);
+          if (lot) lot.quantity = Number(lot.quantity ?? 0) + qty;
+          else {
+            lot = { id: lotId, product_id: item.productId, code: lotCode ?? 'RECOVERED_RTN', expiry_date: null, quantity: qty, original_quantity: qty, created_at: now, updated_at: now };
+            store.product_lots.push(lot);
+          }
+        } else if (product) {
+          product.quantity = Number(product.quantity ?? 0) + qty;
+        }
+      }
+      order.has_return = true;
+      order.total_returned_amount = newTotalReturned;
+      netDebtDelta -= debtReduction;
+      netSpentDelta -= totalRefund;
+      if (customerIdClean && debtReduction > 0) {
+        store.customer_payment_ledger.push({
+          id: uuid(), customer_id: customerIdClean, reference_type: 'return',
+          reference_id: params.p_return_id, amount: -debtReduction, balance_after: 0,
+          reason: `Trả hàng giảm nợ ${params.p_return_id}`, created_by: 'system', created_at: now,
+        });
+      }
+    }
+    if (hasExchange) {
+      // ponytail: exchange order is upserted into store.orders (matching create_return_order mutation depth).
+      const exchangeOrderId = params.p_exchange_order_id;
+      const exchangeTotal = Number(params.p_exchange_total ?? 0);
+      const exchangePaid = Number(params.p_exchange_paid_amount ?? 0);
+      const exchangeDebt = Number(params.p_exchange_debt_recorded ?? 0);
+      if (exchangeOrderId) {
+        const existingIdx = (store.orders ?? []).findIndex((o: any) => o.id === exchangeOrderId);
+        const row: any = {
+          id: exchangeOrderId,
+          order_code: exchangeOrderId,
+          date: now,
+          customer_id: customerIdClean,
+          customer_name: params.p_customer_name ?? '',
+          total_amount: exchangeTotal,
+          paid_amount: exchangePaid,
+          debt_recorded: exchangeDebt,
+          payment_method: params.p_exchange_payment_method ?? 'cash',
+          status: 'completed',
+          points_earned: 0,
+          points_redeemed: 0,
+          rewards_redeemed: [],
+          applied_promotions: [],
+          note: params.p_note ?? null,
+          has_return: false,
+          total_returned_amount: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        if (existingIdx >= 0) store.orders[existingIdx] = row;
+        else store.orders.push(row);
+        store.order_items = (store.order_items ?? []).filter((oi: any) => oi.order_id !== exchangeOrderId);
+        for (const item of exchangeItems) {
+          store.order_items.push({
+            id: uuid(), order_id: exchangeOrderId, product_id: item.productId,
+            product_name: item.productName, quantity: Number(item.quantity ?? 0),
+            unit_name: item.unitName ?? null, price: Number(item.price ?? 0),
+            lot_id: item.lotId ?? null, lot_code: item.lotCode ?? null,
+            cost: Number(item.cost ?? 0), created_at: now,
+          });
+        }
+      }
+      netSpentDelta += exchangeTotal;
+      netDebtDelta += exchangeDebt;
+    }
+    if (customerIdClean && (netSpentDelta !== 0 || netDebtDelta !== 0)) {
+      const customer = (store.customers ?? []).find((c: any) => c.id === customerIdClean);
+      if (customer) {
+        customer.debt = Math.max(0, Number(customer.debt ?? 0) + netDebtDelta);
+        customer.total_spent = Math.max(0, Number(customer.total_spent ?? 0) + netSpentDelta);
+        customer.updated_at = now;
+        if (netDebtDelta !== 0) {
+          store.customer_payment_ledger.push({
+            id: uuid(), customer_id: customerIdClean, reference_type: 'exchange',
+            reference_id: params.p_return_id, amount: netDebtDelta, balance_after: customer.debt,
+            reason: `Đổi hàng ${params.p_return_id} — chênh lệch công nợ`, created_by: 'system', created_at: now,
+          });
+        }
+      }
+    }
+    return {
+      data: {
+        ok: true,
+        has_return: hasReturn,
+        has_exchange: hasExchange,
+        return_id: hasReturn ? params.p_return_id : null,
+        exchange_order_id: hasExchange ? params.p_exchange_order_id : null,
+        new_total_returned: hasReturn ? newTotalReturned : null,
+        offset_amount: Number(params.p_offset_amount ?? 0),
+        cash_diff: Number(params.p_cash_diff ?? 0),
+        net_spent_delta: netSpentDelta,
+        net_debt_delta: netDebtDelta,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'create_supplier_exchange') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:4800 — RETURNS jsonb (single p_payload jsonb)
+    const payload = params.p_payload ?? {};
+    const exchangeId = payload.id;
+    if (!exchangeId) return { data: null, error: { code: 'P0001', message: 'Mã phiếu đổi trả không được để trống' } };
+    const supplierId = payload.supplier_id;
+    if (!supplierId) return { data: null, error: { code: 'P0001', message: 'Vui lòng chọn nhà cung cấp' } };
+    const referenceReceiptId = payload.reference_receipt_id;
+    if (!referenceReceiptId) return { data: null, error: { code: 'P0001', message: 'Vui lòng chọn phiếu nhập gốc' } };
+    const supplier = (store.suppliers ?? []).find((s: any) => s.id === supplierId);
+    if (!supplier) return { data: null, error: { code: 'P0001', message: `Nhà cung cấp ${supplierId} không tồn tại` } };
+    const refReceipt = (store.import_receipts ?? []).find((r: any) => r.id === referenceReceiptId && r.supplier_id === supplierId);
+    if (!refReceipt) return { data: null, error: { code: 'P0001', message: 'Phiếu nhập gốc không tồn tại hoặc không thuộc nhà cung cấp đã chọn' } };
+    const returnItems = Array.isArray(payload.return_items) ? payload.return_items : [];
+    if (returnItems.length === 0) return { data: null, error: { code: 'P0001', message: 'Phiếu phải có ít nhất 1 dòng hàng trả' } };
+    const receivedItems = Array.isArray(payload.received_items) ? payload.received_items : [];
+    if (receivedItems.length === 0) return { data: null, error: { code: 'P0001', message: 'Phiếu phải có ít nhất 1 dòng hàng nhận đổi' } };
+    let returnTotal = 0;
+    for (const it of returnItems) {
+      const qty = Number(it.quantity ?? 0);
+      const cost = Number(it.cost ?? 0);
+      if (qty <= 0) return { data: null, error: { code: 'P0001', message: 'Số lượng trả phải > 0' } };
+      const product = (store.products ?? []).find((p: any) => p.id === it.product_id);
+      if (!product) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${it.product_id} không tồn tại` } };
+      if (!product.has_lots) return { data: null, error: { code: 'P0001', message: `Sản phẩm "${product.name}" không bật quản lý lô, không thể đổi trả theo lô` } };
+      const lot = (store.product_lots ?? []).find((pl: any) => pl.id === it.lot_id && pl.product_id === it.product_id);
+      if (!lot) return { data: null, error: { code: 'P0001', message: `Lô ${it.lot_id} của sản phẩm "${product.name}" không tồn tại trong kho` } };
+      if (Number(lot.quantity ?? 0) < qty) return { data: null, error: { code: 'P0001', message: `Lô "${lot.code}" của "${product.name}" không đủ tồn để trả (còn ${lot.quantity}, cần ${qty})` } };
+      returnTotal += qty * cost;
+    }
+    let receivedTotal = 0;
+    for (const it of receivedItems) {
+      const qty = Number(it.quantity ?? 0);
+      const cost = Number(it.cost ?? 0);
+      if (qty <= 0) return { data: null, error: { code: 'P0001', message: 'Số lượng nhận đổi phải > 0' } };
+      const product = (store.products ?? []).find((p: any) => p.id === it.product_id);
+      if (!product) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${it.product_id} không tồn tại` } };
+      if (!product.has_lots) return { data: null, error: { code: 'P0001', message: `Sản phẩm "${product.name}" không bật quản lý lô` } };
+      const lotCode = String(it.lot_code ?? '').trim();
+      if (!lotCode) return { data: null, error: { code: 'P0001', message: 'Số lô mới không được để trống' } };
+      receivedTotal += qty * cost;
+    }
+    // Same-product rule: received ⊆ return
+    const returnProductIds = new Set(returnItems.map((x: any) => x.product_id));
+    for (const it of receivedItems) {
+      if (!returnProductIds.has(it.product_id)) {
+        return { data: null, error: { code: 'P0001', message: 'Chỉ cho phép đổi cùng sản phẩm. Mỗi sản phẩm trả phải có sản phẩm nhận đổi tương ứng' } };
+      }
+    }
+    const debtAdjustment = receivedTotal - returnTotal;
+    const now = new Date().toISOString();
+    const code = payload.code ?? (() => { supplierExchangeCodeCounter += 1; return 'DH' + String(supplierExchangeCodeCounter).padStart(6, '0'); })();
+    const status = payload.status ?? 'completed';
+    const date = payload.date ?? now;
+    store.supplier_exchanges.push({
+      id: exchangeId, code, date, supplier_id: supplierId, supplier_name: supplier.name,
+      reference_receipt_id: referenceReceiptId, status,
+      return_total_value: returnTotal, received_total_value: receivedTotal,
+      debt_adjustment: debtAdjustment, reason: payload.reason ?? '', note: payload.note ?? null,
+      created_at: now, updated_at: now,
+    });
+    for (const it of returnItems) {
+      const qty = Number(it.quantity ?? 0);
+      const cost = Number(it.cost ?? 0);
+      const product = (store.products ?? []).find((p: any) => p.id === it.product_id);
+      const lot = (store.product_lots ?? []).find((pl: any) => pl.id === it.lot_id && pl.product_id === it.product_id);
+      store.supplier_exchange_return_items.push({
+        exchange_id: exchangeId, product_id: it.product_id, product_name: product?.name,
+        lot_id: lot?.id, lot_code: lot?.code, expiry_date: lot?.expiry_date,
+        quantity: qty, cost, total_value: qty * cost,
+        reference_import_item_id: it.reference_import_item_id ?? null,
+      });
+      if (lot) lot.quantity = Number(lot.quantity ?? 0) - qty;
+    }
+    for (const it of receivedItems) {
+      const qty = Number(it.quantity ?? 0);
+      const cost = Number(it.cost ?? 0);
+      const cleanLotCode = String(it.lot_code ?? '').trim();
+      const cleanExpiry = it.expiry_date && it.expiry_date !== '' ? it.expiry_date : null;
+      const product = (store.products ?? []).find((p: any) => p.id === it.product_id);
+      let existingLot = (store.product_lots ?? []).find((pl: any) => pl.product_id === it.product_id && pl.code === cleanLotCode);
+      let newLotId: string;
+      if (existingLot) {
+        newLotId = existingLot.id;
+        existingLot.quantity = Number(existingLot.quantity ?? 0) + qty;
+        existingLot.cost = cost;
+        if (cleanExpiry) existingLot.expiry_date = cleanExpiry;
+        existingLot.updated_at = now;
+      } else {
+        newLotId = 'lot_' + it.product_id + '_' + cleanLotCode.replace(/[^a-zA-Z0-9]/g, '_') + '_' + Math.floor(Date.now() / 1000);
+        store.product_lots.push({
+          id: newLotId, product_id: it.product_id, code: cleanLotCode, expiry_date: cleanExpiry,
+          quantity: qty, original_quantity: qty, cost, created_at: now, updated_at: now,
+        });
+      }
+      store.supplier_exchange_received_items.push({
+        exchange_id: exchangeId, product_id: it.product_id, product_name: product?.name,
+        lot_id: newLotId, lot_code: cleanLotCode, expiry_date: cleanExpiry,
+        quantity: qty, cost, total_value: qty * cost,
+      });
+    }
+    if (debtAdjustment !== 0) {
+      supplier.debt = Math.max(0, Number(supplier.debt ?? 0) + debtAdjustment);
+      supplier.updated_at = now;
+      store.supplier_payment_ledger.push({
+        id: uuid(), supplier_id: supplierId, reference_type: 'exchange',
+        reference_id: exchangeId, amount: debtAdjustment, balance_after: supplier.debt,
+        reason: `Đổi trả NCC ${exchangeId} — chênh lệch công nợ`, created_by: 'system', created_at: now,
+      });
+    }
+    return {
+      data: {
+        ok: true, exchange_id: exchangeId, code, status,
+        return_total_value: returnTotal, received_total_value: receivedTotal,
+        debt_adjustment: debtAdjustment,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'cancel_supplier_exchange') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:3051 — RETURNS jsonb
+    if (!params.p_exchange_id) return { data: null, error: { code: 'P0001', message: 'exchange_id is required' } };
+    const ex = (store.supplier_exchanges ?? []).find((e: any) => e.id === params.p_exchange_id);
+    if (!ex) return { data: null, error: { code: 'P0001', message: `Phiếu đổi trả ${params.p_exchange_id} không tồn tại` } };
+    if (ex.status === 'cancelled') {
+      return { data: { ok: true, skipped: true, reason: 'already cancelled' }, error: null };
+    }
+    // Restore return-item lots (+qty)
+    for (const it of (store.supplier_exchange_return_items ?? []).filter((r: any) => r.exchange_id === params.p_exchange_id)) {
+      const qty = Number(it.quantity ?? 0);
+      let lot = (store.product_lots ?? []).find((pl: any) => pl.id === it.lot_id);
+      if (lot) {
+        lot.quantity = Number(lot.quantity ?? 0) + qty;
+        lot.updated_at = new Date().toISOString();
+      } else if (it.lot_id) {
+        store.product_lots.push({
+          id: it.lot_id, product_id: it.product_id, code: it.lot_code ?? 'RECOVERED_DTH',
+          expiry_date: it.expiry_date, quantity: qty, original_quantity: qty, cost: it.cost,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        });
+      }
+    }
+    // Subtract received-item lots (-qty) with stock guard
+    for (const it of (store.supplier_exchange_received_items ?? []).filter((r: any) => r.exchange_id === params.p_exchange_id)) {
+      const qty = Number(it.quantity ?? 0);
+      const lot = (store.product_lots ?? []).find((pl: any) => pl.id === it.lot_id);
+      if (!lot) return { data: null, error: { code: 'P0001', message: `Lô mới ${it.lot_id} không còn tồn tại, không thể hủy phiếu` } };
+      if (Number(lot.quantity ?? 0) < qty) {
+        return { data: null, error: { code: 'P0001', message: `Không thể hủy phiếu: lô mới "${it.lot_code}" đã bán giảm (còn ${lot.quantity}, cần trừ ${qty})` } };
+      }
+      lot.quantity = Number(lot.quantity ?? 0) - qty;
+      lot.updated_at = new Date().toISOString();
+    }
+    const debtAdj = Number(ex.debt_adjustment ?? 0);
+    const supplier = (store.suppliers ?? []).find((s: any) => s.id === ex.supplier_id);
+    if (supplier && debtAdj !== 0) {
+      supplier.debt = Math.max(0, Number(supplier.debt ?? 0) - debtAdj);
+      supplier.updated_at = new Date().toISOString();
+      store.supplier_payment_ledger.push({
+        id: uuid(), supplier_id: ex.supplier_id, reference_type: 'exchange',
+        reference_id: params.p_exchange_id, amount: -debtAdj, balance_after: supplier.debt,
+        reason: `Hủy phiếu đổi trả NCC ${params.p_exchange_id} — đảo ngược công nợ`,
+        created_by: 'system', created_at: new Date().toISOString(),
+      });
+    }
+    ex.status = 'cancelled';
+    ex.updated_at = new Date().toISOString();
+    return { data: { ok: true, exchange_id: params.p_exchange_id, status: 'cancelled' }, error: null };
+  }
+
+  // ========== End Domain H4 ==========
+
+  // ========== Domain H7 — Imports (Recovery Wave-04) ==========
+
+  if (name === 'get_import_stats') {
+    const toVN = (v: any) => new Date(v).toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const from = params.p_from_date ?? null;
+    const to = params.p_to_date ?? null;
+    const rows = (store.import_receipts ?? []).filter((r: any) => {
+      if (from && toVN(r.date) < String(from)) return false;
+      if (to && toVN(r.date) > String(to)) return false;
+      return true;
+    });
+    const totalCount = rows.length;
+    const totalCost = rows.reduce((s: number, r: any) => s + Number(r.total_cost ?? 0), 0);
+    const totalShipping = rows.reduce((s: number, r: any) => s + Number(r.shipping_cost ?? 0), 0);
+    const totalPaid = rows.reduce((s: number, r: any) => s + Number(r.paid_amount ?? 0), 0);
+    const totalDebt = rows.reduce((s: number, r: any) => s + Number(r.debt_recorded ?? 0), 0);
+    return { data: { totalCount, totalCost, totalShipping, totalPaid, totalDebt }, error: null };
+  }
+
+  if (name === 'get_import_receipt_count_by_date') {
+    const toVN = (v: any) => new Date(v).toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const count = (store.import_receipts ?? []).filter((r: any) => toVN(r.date) === String(params.p_date)).length;
+    return { data: count, error: null };
+  }
+
+  if (name === 'get_import_receipts_by_supplier_id') {
+    const limit = params.p_limit ?? 100;
+    const rows = (store.import_receipts ?? [])
+      .filter((r: any) => r.supplier_id === params.p_supplier_id)
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit)
+      .map((r: any) => ({ ...r, import_items: (store.import_items ?? []).filter((i: any) => i.receipt_id === r.id) }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'get_import_receipts_by_product_and_lot') {
+    const productId = params.p_product_id;
+    const lotId = params.p_lot_id ?? null;
+    const lotCodes = new Set<string>();
+    if (lotId) {
+      const lot = (store.product_lots ?? []).find((pl: any) => pl.id === lotId);
+      if (lot?.code) lotCodes.add(lot.code);
+      lotCodes.add(lotId);
+    }
+    const matchedItems = (store.import_items ?? []).filter((i: any) => {
+      if (i.product_id !== productId) return false;
+      if (!lotId) return true;
+      return i.lot_code && lotCodes.has(String(i.lot_code));
+    });
+    const receiptIds = new Set(matchedItems.map((i: any) => i.receipt_id));
+    const rows = (store.import_receipts ?? [])
+      .filter((r: any) => receiptIds.has(r.id))
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .map((r: any) => ({ ...r, import_items: matchedItems.filter((i: any) => i.receipt_id === r.id) }));
+    return { data: rows, error: null };
+  }
+
+  if (name === 'filter_import_receipts_rpc') {
+    const term = (params.p_search_term ?? '').toLowerCase();
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const fromDate = params.p_from_date ?? null;
+    const toDate = params.p_to_date ?? null;
+    const supplierId = params.p_supplier_id ?? null;
+    const status = params.p_status ?? null;
+    const toVN = (v: any) => new Date(v).toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    let rows = (store.import_receipts ?? []).slice();
+    rows = rows.filter((r: any) => {
+      if (term && !String(r.invoice_number ?? '').toLowerCase().includes(term)) return false;
+      if (fromDate && toVN(r.date) < String(fromDate)) return false;
+      if (toDate && toVN(r.date) > String(toDate)) return false;
+      if (supplierId && r.supplier_id !== supplierId) return false;
+      if (status != null && status !== '' && r.status !== status) return false;
+      return true;
+    });
+    rows.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const total = rows.length;
+    const offset = (page - 1) * pageSize;
+    return { data: { receipts: rows.slice(offset, offset + pageSize).map((r: any) => ({ ...r, import_items: [] })), totalCount: total }, error: null };
+  }
+
+  if (name === 'process_import_v2') {
+    const payload = params.p_payload ?? {};
+    const receiptId = payload.id;
+    if (!receiptId) return { data: null, error: { code: 'P0001', message: 'Mã phiếu nhập hàng không được để trống' } };
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    if (items.length === 0) return { data: null, error: { code: 'P0001', message: 'Danh sách sản phẩm nhập không được để trống' } };
+    const now = new Date().toISOString();
+    const date = payload.date ? new Date(payload.date).toISOString() : now;
+    const supplierId = payload.supplier_id ?? null;
+    const supplierName = payload.supplier_name ?? 'N/A';
+    const totalCost = Number(payload.total_cost ?? 0);
+    const shippingCost = Number(payload.shipping_cost ?? 0);
+    const discountTotal = Number(payload.discount_total ?? 0);
+    const paidAmount = Number(payload.paid_amount ?? 0);
+    const debtRecorded = Number(payload.debt_recorded ?? 0);
+    const status = payload.status ?? 'completed';
+    const note = payload.note ?? null;
+    const invoiceNumber = payload.invoice_number ?? null;
+
+    const existingIdx = (store.import_receipts ?? []).findIndex((r: any) => r.id === receiptId);
+    if (existingIdx >= 0) {
+      const existing = store.import_receipts[existingIdx];
+      if (existing.status === 'completed') return { data: null, error: { code: 'P0001', message: `Phiếu nhập ${receiptId} đã hoàn thành trước đó, không thể ghi đè.` } };
+      store.import_items = (store.import_items ?? []).filter((i: any) => i.receipt_id !== receiptId);
+      store.import_receipts.splice(existingIdx, 1);
+    }
+
+    const totalValue = items.reduce((s: number, it: any) => s + Math.max(0, Number(it.quantity ?? 0) * Number(it.cost ?? 0) - Number(it.discount ?? 0)), 0);
+    const shippingFactor = totalValue > 0 ? shippingCost / totalValue : 0;
+
+    store.import_receipts.push({
+      id: receiptId,
+      invoice_number: invoiceNumber,
+      date,
+      supplier_id: supplierId,
+      supplier_name: supplierName,
+      total_cost: totalCost,
+      shipping_cost: shippingCost,
+      discount_total: discountTotal,
+      paid_amount: paidAmount,
+      debt_recorded: debtRecorded,
+      status,
+      note,
+      created_at: now,
+      updated_at: now,
+    });
+
+    const affectedProducts: string[] = [];
+    let totalAddedQty = 0;
+
+    for (const it of items) {
+      const productId = it.product_id;
+      const productName = it.product_name ?? '';
+      const qty = Number(it.quantity ?? 0);
+      const cost = Number(it.cost ?? 0);
+      const discount = Number(it.discount ?? 0);
+      const lotCodeRaw = it.lot_code ?? null;
+      const lotCode = lotCodeRaw ? String(lotCodeRaw).trim() : null;
+      const expiryDate = it.expiry_date && String(it.expiry_date) !== '' ? String(it.expiry_date).slice(0, 10) : null;
+
+      const lineNet = qty > 0 ? Math.max(0, cost * qty - discount) / qty : 0;
+      const adjustedCost = Math.round(lineNet * (1 + shippingFactor) * 100) / 100;
+
+      const product = (store.products ?? []).find((p: any) => p.id === productId);
+      if (!product) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${productId} không tồn tại trong hệ thống` } };
+
+      store.import_items.push({
+        id: uuid(),
+        receipt_id: receiptId,
+        product_id: productId,
+        product_name: productName,
+        quantity: qty,
+        cost,
+        discount,
+        adjusted_cost: adjustedCost,
+        lot_code: lotCode,
+        expiry_date: expiryDate,
+        created_at: now,
+      });
+
+      if (status === 'completed') {
+        const existingQty = Number(product.quantity ?? 0);
+        const existingCost = Number(product.cost ?? 0);
+        const newQty = existingQty + qty;
+        const newCost = newQty > 0 ? Math.round((existingQty * existingCost + qty * adjustedCost) / newQty * 100) / 100 : adjustedCost;
+        product.quantity = newQty;
+        product.cost = newCost;
+
+        if (product.has_lots) {
+          if (!lotCode) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${productName} (ID: ${productId}) đang bật quản lý lô, bắt buộc phải nhập số lô` } };
+          const existingLot = (store.product_lots ?? []).find((pl: any) => pl.product_id === productId && pl.code === lotCode);
+          if (existingLot) {
+            const existingLotQty = Number(existingLot.quantity ?? 0);
+            const existingLotCost = Number(existingLot.cost ?? 0);
+            const newLotQty = existingLotQty + qty;
+            const newLotCost = newLotQty > 0 ? Math.round((existingLotQty * existingLotCost + qty * adjustedCost) / newLotQty * 100) / 100 : adjustedCost;
+            existingLot.quantity = newLotQty;
+            existingLot.cost = newLotCost;
+            if (expiryDate) existingLot.expiry_date = expiryDate;
+            existingLot.updated_at = now;
+          } else {
+            const lotTs = Math.floor(Date.now() / 1000);
+            const newLotId = 'lot_' + productId + '_' + lotCode.replace(/[^a-zA-Z0-9]/g, '_') + '_' + lotTs;
+            store.product_lots.push({
+              id: newLotId,
+              product_id: productId,
+              code: lotCode,
+              expiry_date: expiryDate,
+              quantity: qty,
+              original_quantity: qty,
+              cost: adjustedCost,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+          const lots = (store.product_lots ?? []).filter((pl: any) => pl.product_id === productId);
+          product.quantity = lots.reduce((s: number, pl: any) => s + Number(pl.quantity ?? 0), 0);
+        }
+
+        affectedProducts.push(productId);
+        totalAddedQty += qty;
+      }
+    }
+
+    if (status === 'completed' && debtRecorded > 0 && supplierId) {
+      const supplier = (store.suppliers ?? []).find((s: any) => s.id === supplierId);
+      if (supplier) {
+        supplier.debt = Number(supplier.debt ?? 0) + debtRecorded;
+        supplier.updated_at = now;
+      }
+    }
+
+    return { data: { receipt_id: receiptId, affected_products: affectedProducts, total_qty_added: totalAddedQty, status }, error: null };
+  }
+
+  if (name === 'delete_import_v2') {
+    const receiptId = params.p_receipt_id;
+    const receiptIdx = (store.import_receipts ?? []).findIndex((r: any) => r.id === receiptId);
+    if (receiptIdx < 0) return { data: null, error: { code: 'P0001', message: `Phiếu nhập ${receiptId} không tồn tại trong hệ thống` } };
+    const receipt = store.import_receipts[receiptIdx];
+
+    if (receipt.status === 'draft') {
+      store.import_items = (store.import_items ?? []).filter((i: any) => i.receipt_id !== receiptId);
+      store.import_receipts.splice(receiptIdx, 1);
+      return { data: { receipt_id: receiptId, status: 'draft_deleted' }, error: null };
+    }
+
+    const allowNegative = false;
+    const affectedProducts: string[] = [];
+    let totalRemovedQty = 0;
+    const items = (store.import_items ?? []).filter((i: any) => i.receipt_id === receiptId);
+
+    for (const item of items) {
+      const productId = item.product_id;
+      const qty = Number(item.quantity ?? 0);
+      const itemCost = Number(item.adjusted_cost ?? item.cost ?? 0);
+      const product = (store.products ?? []).find((p: any) => p.id === productId);
+      if (!product) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${productId} không tồn tại` } };
+      const currentQty = Number(product.quantity ?? 0);
+      const currentCost = Number(product.cost ?? 0);
+
+      if (!allowNegative && currentQty < qty) {
+        return { data: null, error: { code: 'P0001', message: `Không thể xóa phiếu nhập ${receiptId}: Sản phẩm ${item.product_name} đã bán vượt quá số lượng nhập (Tồn hiện tại ${currentQty}, yêu cầu trả ${qty})` } };
+      }
+      const newQty = Math.max(0, currentQty - qty);
+      let newCost = 0;
+      if (newQty > 0) {
+        newCost = Math.max(0, Math.round((currentQty * currentCost - qty * itemCost) / newQty * 100) / 100);
+      }
+      product.quantity = newQty;
+      product.cost = newCost;
+
+      if (product.has_lots) {
+        const lotCode = item.lot_code;
+        const existingLot = (store.product_lots ?? []).find((pl: any) => pl.product_id === productId && pl.code === lotCode);
+        if (!allowNegative && (!existingLot || Number(existingLot.quantity ?? 0) < qty)) {
+          return { data: null, error: { code: 'P0001', message: `Không thể xóa phiếu nhập ${receiptId}: Lô ${lotCode} của sản phẩm ${item.product_name} không đủ tồn kho để giảm trừ (Lô hiện có ${existingLot?.quantity ?? 0}, yêu cầu trừ ${qty})` } };
+        }
+        const existingLotQty = Number(existingLot?.quantity ?? 0);
+        const existingLotCost = Number(existingLot?.cost ?? 0);
+        const newLotQty = Math.max(0, existingLotQty - qty);
+        let newLotCost = 0;
+        if (newLotQty > 0) {
+          newLotCost = Math.max(0, Math.round((existingLotQty * existingLotCost - qty * itemCost) / newLotQty * 100) / 100);
+        }
+        if (existingLot) {
+          existingLot.quantity = newLotQty;
+          existingLot.cost = newLotCost;
+          existingLot.updated_at = new Date().toISOString();
+          if (newLotQty <= 0) {
+            store.product_lots = (store.product_lots ?? []).filter((pl: any) => pl !== existingLot);
+          }
+        }
+        const lots = (store.product_lots ?? []).filter((pl: any) => pl.product_id === productId);
+        product.quantity = lots.reduce((s: number, pl: any) => s + Number(pl.quantity ?? 0), 0);
+      }
+
+      affectedProducts.push(productId);
+      totalRemovedQty += qty;
+    }
+
+    if (Number(receipt.debt_recorded ?? 0) > 0 && receipt.supplier_id) {
+      const supplier = (store.suppliers ?? []).find((s: any) => s.id === receipt.supplier_id);
+      if (supplier) {
+        supplier.debt = Math.max(0, Number(supplier.debt ?? 0) - Number(receipt.debt_recorded));
+        supplier.updated_at = new Date().toISOString();
+      }
+    }
+
+    store.import_items = (store.import_items ?? []).filter((i: any) => i.receipt_id !== receiptId);
+    store.import_receipts.splice(receiptIdx, 1);
+
+    return { data: { receipt_id: receiptId, affected_products: affectedProducts, total_qty_removed: totalRemovedQty, status: 'completed_deleted' }, error: null };
+  }
+
+  if (name === 'update_import_v2') {
+    const receiptId = params.p_receipt_id;
+    if (!receiptId) return { data: null, error: { code: 'P0001', message: 'Mã phiếu nhập cần sửa không được để trống' } };
+    const payload = { ...(params.p_payload ?? {}), id: receiptId };
+    const del = await rpc('delete_import_v2', { p_receipt_id: receiptId });
+    if (del.error) return del;
+    return rpc('process_import_v2', { p_payload: payload });
+  }
+
+  // ========== End Domain H7 ==========
+
+  // ========== Domain H8 — Disposals (Recovery Wave-04) ==========
+
+  if (name === 'get_disposal_auto_code') {
+    const count = (store.disposals ?? []).length;
+    return { data: 'XH' + String(count + 1).padStart(6, '0'), error: null };
+  }
+
+  if (name === 'complete_disposal') {
+    const disposalId = params.p_disposal_id;
+    const disposal = (store.disposals ?? []).find((d: any) => d.id === disposalId);
+    if (!disposal) return { data: null, error: { code: 'P0001', message: `Phiếu xuất hủy không tồn tại (${disposalId})` } };
+    if (disposal.status === 'COMPLETED') return { data: null, error: { code: 'P0001', message: 'Phiếu xuất hủy đã hoàn thành trước đó' } };
+    const now = new Date().toISOString();
+    const items = (store.disposal_items ?? []).filter((di: any) => di.disposal_id === disposalId);
+
+    for (const item of items) {
+      const productId = item.product_id;
+      const qty = Number(item.quantity ?? 0);
+      const product = (store.products ?? []).find((p: any) => p.id === productId);
+      if (!product) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${productId} không tồn tại trong kho` } };
+      const productQty = Number(product.quantity ?? 0);
+      if (productQty < qty) return { data: null, error: { code: 'P0001', message: `Sản phẩm ${productId} không đủ tồn kho` } };
+
+      if (item.lot_id) {
+        const lot = (store.product_lots ?? []).find((pl: any) => pl.id === item.lot_id);
+        if (!lot) return { data: null, error: { code: 'P0001', message: `Lô ${item.lot_id} không tồn tại` } };
+        const lotQty = Number(lot.quantity ?? 0);
+        if (lotQty < qty) return { data: null, error: { code: 'P0001', message: `Lô ${item.lot_id} không đủ số lượng` } };
+        lot.quantity = lotQty - qty;
+        lot.updated_at = now;
+        const lots = (store.product_lots ?? []).filter((pl: any) => pl.product_id === productId);
+        product.quantity = lots.reduce((s: number, pl: any) => s + Number(pl.quantity ?? 0), 0);
+        product.updated_at = now;
+      } else {
+        product.quantity = productQty - qty;
+        product.updated_at = now;
+      }
+    }
+
+    disposal.status = 'COMPLETED';
+    disposal.updated_at = now;
+    return { data: [{ id: disposal.id, code: disposal.code, status: disposal.status }], error: null };
+  }
+
+  if (name === 'delete_disposal_with_restore') {
+    const disposalId = params.p_disposal_id;
+    const disposalIdx = (store.disposals ?? []).findIndex((d: any) => d.id === disposalId);
+    if (disposalIdx < 0) return { data: null, error: { code: 'P0001', message: 'Phiếu xuất hủy không tồn tại' } };
+    const disposal = store.disposals[disposalIdx];
+    const now = new Date().toISOString();
+
+    if (disposal.status === 'COMPLETED') {
+      const items = (store.disposal_items ?? []).filter((di: any) => di.disposal_id === disposalId);
+      for (const item of items) {
+        const productId = item.product_id;
+        const qty = Number(item.quantity ?? 0);
+        const product = (store.products ?? []).find((p: any) => p.id === productId);
+        if (item.lot_id) {
+          let lot = (store.product_lots ?? []).find((pl: any) => pl.id === item.lot_id);
+          if (lot) {
+            lot.quantity = Number(lot.quantity ?? 0) + qty;
+            lot.updated_at = now;
+          } else {
+            store.product_lots.push({
+              id: item.lot_id,
+              product_id: productId,
+              code: item.lot_code ?? 'RECOVERED_DSP',
+              expiry_date: item.expiry_date,
+              quantity: qty,
+              original_quantity: qty,
+              cost: item.cost_price ?? 0,
+              created_at: now,
+              updated_at: now,
+            });
+          }
+          const lots = (store.product_lots ?? []).filter((pl: any) => pl.product_id === productId);
+          if (product) product.quantity = lots.reduce((s: number, pl: any) => s + Number(pl.quantity ?? 0), 0);
+        } else if (product) {
+          product.quantity = Number(product.quantity ?? 0) + qty;
+          product.updated_at = now;
+        }
+      }
+    }
+
+    store.disposal_items = (store.disposal_items ?? []).filter((di: any) => di.disposal_id !== disposalId);
+    store.disposals.splice(disposalIdx, 1);
+    return { data: null, error: null };
+  }
+
+  if (name === 'filter_disposals_rpc') {
+    const term = (params.p_search_term ?? '').toLowerCase();
+    const page = params.p_page ?? 1;
+    const pageSize = params.p_page_size ?? 20;
+    const fromDate = params.p_from_date ?? null;
+    const toDate = params.p_to_date ?? null;
+    const status = params.p_status ?? null;
+    const toVN = (v: any) => new Date(v).toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    let rows = (store.disposals ?? []).slice();
+    rows = rows.filter((d: any) => {
+      if (term && !String(d.code ?? '').toLowerCase().includes(term)) return false;
+      if (fromDate && toVN(d.date) < String(fromDate)) return false;
+      if (toDate && toVN(d.date) > String(toDate)) return false;
+      if (status != null && status !== '' && d.status !== status) return false;
+      return true;
+    });
+    rows.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const total = rows.length;
+    const offset = (page - 1) * pageSize;
+    const paged = rows.slice(offset, offset + pageSize).map((d: any) => {
+      const items = (store.disposal_items ?? [])
+        .filter((di: any) => di.disposal_id === d.id)
+        .map((di: any) => ({
+          id: di.id,
+          disposal_id: di.disposal_id,
+          product_id: di.product_id,
+          product_code: di.product_code,
+          product_name: di.product_name,
+          quantity: di.quantity,
+          cost_price: di.cost_price,
+          total_value: di.total_value,
+          lot_id: di.lot_id,
+          lot_code: di.lot_code,
+          expiry_date: di.expiry_date,
+          category_id: di.category_id,
+          category_name: di.category_name,
+          brand_id: di.brand_id,
+          brand_name: di.brand_name,
+        }));
+      return { ...d, disposal_items: items };
+    });
+    return { data: { disposals: paged, totalCount: total }, error: null };
+  }
+
+  // ========== End Domain H8 ==========
+
+  // ========== Domain H9 — Reports & Dashboard (Recovery Wave-05) ==========
+
+  if (name === 'get_dashboard_summary') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:7090 — RETURNS json
+    const fromDate = params.p_from || null;
+    const toDate = params.p_to || null;
+    const toVN = (v: any) => new Date(v).toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const fmtDM = (sv: string) => sv.slice(8, 10) + '/' + sv.slice(5, 7);
+    const inRange = (d: string) => {
+      const s = toVN(d);
+      if (fromDate && s < String(fromDate)) return false;
+      if (toDate && s > String(toDate)) return false;
+      return true;
+    };
+    const orders = store.orders ?? [];
+    const orderItems = store.order_items ?? [];
+    const products = store.products ?? [];
+    const customers = store.customers ?? [];
+
+    const revMap: Record<string, { date: string; revenue: number; profit: number; orders: number }> = {};
+    for (const o of orders) {
+      if (!inRange(o.date)) continue;
+      const key = fmtDM(toVN(o.date));
+      if (!revMap[key]) revMap[key] = { date: key, revenue: 0, profit: 0, orders: 0 };
+      const revenue = Number(o.total_amount ?? 0);
+      const cost = orderItems
+        .filter((oi: any) => oi.order_id === o.id)
+        .reduce((s: number, oi: any) => {
+          const p = products.find((pr: any) => pr.id === oi.product_id);
+          return s + Number(p?.cost ?? 0) * Number(oi.quantity ?? 0);
+        }, 0);
+      revMap[key].revenue += revenue;
+      revMap[key].profit += revenue - cost;
+      revMap[key].orders += 1;
+    }
+    const revenueData = Object.values(revMap).sort((a: any, b: any) => (a.date < b.date ? 1 : -1));
+
+    const topProductMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
+    for (const oi of orderItems) {
+      const o = orders.find((x: any) => x.id === oi.order_id);
+      if (!o || !inRange(o.date)) continue;
+      const key = oi.product_id ?? '';
+      if (!topProductMap[key]) topProductMap[key] = { name: oi.product_name ?? 'Không xác định', quantity: 0, revenue: 0 };
+      const qty = Number(oi.quantity ?? 0);
+      topProductMap[key].quantity += qty;
+      topProductMap[key].revenue += Number(oi.price ?? 0) * qty;
+    }
+    const topProducts = Object.values(topProductMap).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
+
+    const inventoryValue = products.reduce((s: number, p: any) => s + Number(p.cost ?? 0) * Number(p.quantity ?? 0), 0);
+    const inventoryRetailValue = products.reduce((s: number, p: any) => s + Number(p.price ?? 0) * Number(p.quantity ?? 0), 0);
+
+    const debtCustomers = customers
+      .filter((c: any) => Number(c.debt ?? 0) > 0)
+      .sort((a: any, b: any) => Number(b.debt) - Number(a.debt))
+      .map((c: any) => ({ ...c }));
+
+    const topCustomers = customers
+      .slice()
+      .sort((a: any, b: any) => Number(b.total_spent ?? 0) - Number(a.total_spent ?? 0))
+      .slice(0, 10)
+      .map((c: any) => ({ ...c, order_count: orders.filter((o: any) => o.customer_id === c.id).length }));
+
+    const totalDebt = customers.reduce((s: number, c: any) => s + Number(c.debt ?? 0), 0);
+    const totalCustomers = customers.length;
+    const totalProducts = products.length;
+    const activeProducts = products.filter((p: any) => Number(p.quantity ?? 0) > 0).length;
+
+    const today = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const yesterday = addDays(today, -1);
+    const todayOrders = orders.filter((o: any) => toVN(o.date) === today);
+    const yesterdayOrders = orders.filter((o: any) => toVN(o.date) === yesterday);
+    const todayRevenue = todayOrders.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0), 0);
+    const todaySoldProducts = todayOrders.reduce((s: number, o: any) => s + orderItems.filter((oi: any) => oi.order_id === o.id).reduce((ss: number, oi: any) => ss + Number(oi.quantity ?? 0), 0), 0);
+    const todayCustomers = new Set(todayOrders.map((o: any) => o.customer_id).filter(Boolean)).size;
+    const yesterdayRevenue = yesterdayOrders.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0), 0);
+
+    return {
+      data: {
+        revenueData,
+        topProducts,
+        inventoryValue,
+        inventoryRetailValue,
+        debtCustomers,
+        topCustomers,
+        totalDebt,
+        totalCustomers,
+        totalProducts,
+        activeProducts,
+        todayRevenue,
+        todayOrders: todayOrders.length,
+        todaySoldProducts,
+        todayCustomers,
+        yesterdayRevenue,
+      },
+      error: null,
+    };
+  }
+
+  if (name === 'get_profit_report') {
+    // Canonical: 20250703000000_baseline_pre_tenant_schema.sql:8151 — RETURNS json
+    const startDate = String(params.p_start_date ?? '');
+    const endDate = String(params.p_end_date ?? '');
+    const statusFilter = params.p_status ?? 'all';
+    const paymentFilter = params.p_payment_method ?? '';
+    const productKw = String(params.p_product_keyword ?? '').toLowerCase();
+    const customerKw = String(params.p_customer_keyword ?? '').toLowerCase();
+    const compareMode = params.p_compare_mode ?? 'prev';
+    const toVN = (v: any) => new Date(v).toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const fmtDM = (sv: string) => sv.slice(8, 10) + '/' + sv.slice(5, 7);
+    const inRange = (d: string, from: string, to: string) => {
+      const s = toVN(d);
+      return s >= from && s <= to;
+    };
+
+    const orders = store.orders ?? [];
+    const orderItems = store.order_items ?? [];
+    const products = store.products ?? [];
+    const returnOrders = store.return_orders ?? [];
+    const returnOrderItems = store.return_order_items ?? [];
+
+    const spanDays = Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1);
+    const compareStart = compareMode === 'samePeriod' ? addMonths(startDate, -12) : addDays(startDate, -spanDays);
+    const compareEnd = compareMode === 'samePeriod' ? addMonths(endDate, -12) : addDays(startDate, -1);
+
+    const filteredOrders = orders.filter((o: any) => {
+      if (!inRange(String(o.date), startDate, endDate)) return false;
+      if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+      if (paymentFilter && String(o.payment_method ?? '') !== paymentFilter) return false;
+      if (customerKw && !String(o.customer_name ?? '').toLowerCase().includes(customerKw)) return false;
+      if (productKw && !orderItems.some((oi: any) => oi.order_id === o.id && String(oi.product_name ?? '').toLowerCase().includes(productKw))) return false;
+      return true;
+    });
+    const activeOrders = filteredOrders.filter((o: any) => o.status !== 'cancelled');
+
+    const compareOrders = orders.filter((o: any) => o.status !== 'cancelled' && inRange(String(o.date), compareStart, compareEnd));
+
+    const returnedMap: Record<string, Record<string, number>> = {};
+    for (const ro of returnOrders) {
+      if (ro.status === 'cancelled') continue;
+      const items = returnOrderItems.filter((roi: any) => roi.return_order_id === ro.id);
+      for (const roi of items) {
+        const oid = ro.original_order_id ?? '';
+        const pid = roi.product_id ?? '';
+        returnedMap[oid] = returnedMap[oid] || {};
+        returnedMap[oid][pid] = (returnedMap[oid][pid] || 0) + Number(roi.quantity ?? 0);
+      }
+    }
+
+    const makeItems = (sourceOrders: any[]) => {
+      const items: any[] = [];
+      for (const o of sourceOrders) {
+        const ois = orderItems.filter((oi: any) => oi.order_id === o.id);
+        for (const oi of ois) {
+          const product = products.find((p: any) => p.id === oi.product_id);
+          const unitCost = Number(oi.cost ?? product?.cost ?? 0);
+          const returned = returnedMap[o.id]?.[oi.product_id] ?? 0;
+          const netQty = Math.max(0, Number(oi.quantity ?? 0) - returned);
+          const itemRevenue = Number(oi.price ?? 0) * netQty;
+          const itemCost = unitCost * netQty;
+          items.push({
+            order_id: o.id,
+            date: o.date,
+            customer_id: o.customer_id,
+            customer_name: o.customer_name,
+            product_id: oi.product_id,
+            product_name: oi.product_name,
+            quantity: Number(oi.quantity ?? 0),
+            price: Number(oi.price ?? 0),
+            unitCost,
+            returned,
+            netQty,
+            itemRevenue,
+            itemCost,
+          });
+        }
+      }
+      return items;
+    };
+
+    const allItems = makeItems(activeOrders);
+    const compareItems = makeItems(compareOrders);
+
+    const sumRevenue = (ords: any[]) => ords.reduce((s: number, o: any) => s + Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0), 0);
+    const activeRevenue = sumRevenue(activeOrders);
+    const activeCost = allItems.reduce((s: number, it: any) => s + it.itemCost, 0);
+    const profit = activeRevenue - activeCost;
+    const margin = activeRevenue > 0 ? (profit / activeRevenue) * 100 : 0;
+    const prevRevenue = sumRevenue(compareOrders);
+    const prevCost = compareItems.reduce((s: number, it: any) => s + it.itemCost, 0);
+    const prevProfit = prevRevenue - prevCost;
+    const profitChange = prevProfit > 0 ? ((profit - prevProfit) / prevProfit) * 100 : 0;
+    const summary = { totalRevenue: activeRevenue, totalCost: activeCost, profit, margin, prevRevenue, prevCost, prevProfit, profitChange };
+
+    const daySet = new Set<string>();
+    for (const o of activeOrders) daySet.add(fmtDM(toVN(o.date)));
+    for (const it of allItems) daySet.add(fmtDM(toVN(it.date)));
+    for (const o of compareOrders) daySet.add(fmtDM(toVN(o.date)));
+    for (const it of compareItems) daySet.add(fmtDM(toVN(it.date)));
+    const dailyProfit = Array.from(daySet).sort().map((d: string) => {
+      const currentRevenue = activeOrders
+        .filter((o: any) => fmtDM(toVN(o.date)) === d)
+        .reduce((s: number, o: any) => s + Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0), 0);
+      const currentCost = allItems
+        .filter((it: any) => fmtDM(toVN(it.date)) === d)
+        .reduce((s: number, it: any) => s + it.itemCost, 0);
+      const prevRevenue = compareOrders
+        .filter((o: any) => fmtDM(toVN(o.date)) === d)
+        .reduce((s: number, o: any) => s + Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0), 0);
+      const prevCost = compareItems
+        .filter((it: any) => fmtDM(toVN(it.date)) === d)
+        .reduce((s: number, it: any) => s + it.itemCost, 0);
+      return { date: d, currentRevenue, currentProfit: currentRevenue - currentCost, prevRevenue, prevProfit: prevRevenue - prevCost };
+    });
+
+    const profitDetails = allItems
+      .map((it: any) => ({
+        date: fmtDM(toVN(it.date)),
+        orderId: it.order_id,
+        productName: it.product_name ?? '',
+        revenue: it.itemRevenue,
+        cost: it.itemCost,
+        profit: it.itemRevenue - it.itemCost,
+        margin: it.itemRevenue > 0 ? ((it.itemRevenue - it.itemCost) / it.itemRevenue) * 100 : 0,
+      }))
+      .sort((a: any, b: any) => (a.date < b.date ? 1 : -1));
+
+    const prodAgg: Record<string, { key: string; label: string; revenue: number; cost: number; profit: number; count: number }> = {};
+    for (const it of allItems) {
+      const key = it.product_id ?? '';
+      if (!prodAgg[key]) prodAgg[key] = { key, label: it.product_name ?? 'Không xác định', revenue: 0, cost: 0, profit: 0, count: 0 };
+      prodAgg[key].revenue += it.itemRevenue;
+      prodAgg[key].cost += it.itemCost;
+      prodAgg[key].profit += it.itemRevenue - it.itemCost;
+      prodAgg[key].count += it.netQty;
+    }
+    const groupedByProduct = Object.values(prodAgg).sort((a: any, b: any) => b.profit - a.profit);
+
+    const custAgg: Record<string, { key: string; label: string; revenue: number; cost: number; profit: number; count: number }> = {};
+    for (const o of activeOrders) {
+      const key = o.customer_id ?? 'guest';
+      if (!custAgg[key]) custAgg[key] = { key, label: o.customer_name ?? 'Khách lẻ', revenue: 0, cost: 0, profit: 0, count: 0 };
+      custAgg[key].revenue += Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0);
+      custAgg[key].count += 1;
+    }
+    for (const it of allItems) {
+      const key = it.customer_id ?? 'guest';
+      if (custAgg[key]) custAgg[key].cost += it.itemCost;
+    }
+    for (const k of Object.keys(custAgg)) custAgg[k].profit = custAgg[k].revenue - custAgg[k].cost;
+    const groupedByCustomer = Object.values(custAgg).sort((a: any, b: any) => b.profit - a.profit);
+
+    const dayAgg: Record<string, { key: string; label: string; revenue: number; cost: number; profit: number; count: number }> = {};
+    for (const o of activeOrders) {
+      const key = fmtDM(toVN(o.date));
+      if (!dayAgg[key]) dayAgg[key] = { key, label: key, revenue: 0, cost: 0, profit: 0, count: 0 };
+      dayAgg[key].revenue += Number(o.total_amount ?? 0) - Number(o.total_returned_amount ?? 0);
+      dayAgg[key].count += 1;
+    }
+    for (const it of allItems) {
+      const key = fmtDM(toVN(it.date));
+      if (dayAgg[key]) dayAgg[key].cost += it.itemCost;
+    }
+    for (const k of Object.keys(dayAgg)) dayAgg[k].profit = dayAgg[k].revenue - dayAgg[k].cost;
+    const groupedByDay = Object.values(dayAgg).sort((a: any, b: any) => (a.key < b.key ? 1 : -1));
+
+    return {
+      data: { summary, dailyProfit, profitDetails, groupedByProduct, groupedByCustomer, groupedByDay },
+      error: null,
+    };
   }
 
   return { data: null, error: { code: 'PGRST116', message: 'RPC not found' } };

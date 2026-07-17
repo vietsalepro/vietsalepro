@@ -1,0 +1,306 @@
+# Repository State Verification
+
+**Program:** VietSalePro v7 — System Recovery Program  
+**Date:** 2026-07-17  
+**Scope:** Verify the Git repository state after Phase 4 Final Certification and Governance Transition Implementation.  
+**Objective:** Identify any remaining configuration-management blockers, specifically Blocker #4 in `PHASE5_READINESS_AUTHORIZATION.md`.
+
+---
+
+## 1. Full `git status` Output
+
+```text
+On branch master
+Your branch is ahead of 'origin/master' by 7 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   scripts/audit-rpc-contracts.ts
+	modified:   tests/mocks/supabase.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.hermes/plans/2026-07-13_131500-admin-dashboard-console-errors-handoff.md
+	ARCHITECTURE_DECISION_VERIFICATION_G1.md
+	AUDIT_REPORT.md
+	CANONICAL_MIGRATION_CHAIN_DEFINITION_STANDARD.md
+	CURRENT_PHASE.md
+	CURRENT_PHASE_UPDATE_REPORT.md
+	CURRENT_TASK-006_SUBSCRIPTION_CANONICAL_CONTRACT_DECISION.md
+	CURRENT_TASK-008_STORAGE_USAGE_CANONICAL_CONTRACT_DECISION.md
+	CURRENT_TASK-010_ALIAS_CANONICAL_BOUNDARY_DECISION.md
+	CURRENT_TASK-010_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-011_FACADE_BARREL_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-011_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-012_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-012_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-012_KICKOFF_PLAN.md
+	CURRENT_TASK-013_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-013_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-013_TEST_MOCK_CANONICAL_VALIDATION_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-014_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-014_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-014_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-015_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-015_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-015_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-016_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-016_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-016_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-017_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-017_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-017_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-017_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-018_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-018_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-018_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-018_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-019_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-019_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-019_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-020_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-020_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-020_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-020_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-021_ACCEPTANCE_RECORD.md
+	CURRENT_TASK-021_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-021_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-021_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-022_ACCEPTANCE_REMEDIATION_REPORT.md
+	CURRENT_TASK-022_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-022_ACCEPTANCE_REVIEW_v2.md
+	CURRENT_TASK-022_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-022_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-022_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-023_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-023_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-023_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-023_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-023_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-024_ACCEPTANCE_REMEDIATION.md
+	CURRENT_TASK-024_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-024_ACCEPTANCE_REVIEW_V2.md
+	CURRENT_TASK-024_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-024_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-024_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-024_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-025_ACCEPTANCE_REMEDIATION.md
+	CURRENT_TASK-025_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-025_ACCEPTANCE_REVIEW_V2.md
+	CURRENT_TASK-025_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-025_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-025_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-025_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-026_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-026_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-026_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-026_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-026_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-026_PROGRAM_STATUS_REVIEW.md
+	CURRENT_TASK-027_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-027_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-027_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-027_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-027_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-027_PROGRAM_STATUS_REVIEW.md
+	CURRENT_TASK-028_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-028_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-028_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-028_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-028_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-028_PROGRAM_STATUS_REVIEW.md
+	CURRENT_TASK-029_ACCEPTANCE_REVIEW.md
+	CURRENT_TASK-029_ARCHITECTURE_DECISION.md
+	CURRENT_TASK-029_ENGINEERING_KICKOFF.md
+	CURRENT_TASK-029_IMPLEMENTATION_REPORT.md
+	CURRENT_TASK-029_PROGRAM_AUTHORIZATION.md
+	CURRENT_TASK-029_PROGRAM_STATUS_REVIEW.md
+	CURRENT_TASK.md
+	D-P2-01_Canonical_Migration_Chain_Definition.md
+	D-P2-02_Orphan_SQL_Triage_Record.md
+	D-P2-03_Generated_Schema_Artifact.md
+	D-P2-03_Orphan_SQL_Disposition_Plan.md
+	D-P2-04_Generated_Type_Artifacts.md
+	D-P2-05_Acceptance_Review.md
+	D-P3-01_Reconciled_RPC_Contract.md
+	D-P3-02_Service_Layer_Contract_Consistency_Report.md
+	D-P3-03_RPC_Coverage_Validation_Evidence.md
+	D-P3-04_Migration_Updates_Required_for_Contract_Gaps.md
+	D-P4-02_CANONICAL_AUDIT_GATE_DEFINITION.md
+	DECISION_AND_ESCALATION_LOG.md
+	GIT_FORENSIC_INVESTIGATION_REPORT.md
+	MIGRATION_NAMING_AND_ORDERING_STANDARD.md
+	P3-01_Phase3_Initiation_Assessment.md
+	PHASE1_ACCEPTANCE_RECORD.md
+	PHASE2_ACCEPTANCE_RECORD.md
+	PHASE2_DELIVERABLE_ACCEPTANCE_MATRIX.md
+	PHASE2_GOVERNANCE_BASELINE.md
+	PHASE2_SCOPE_AND_EXCEPTION_CONTROL_NOTE.md
+	PHASE3_ACCEPTANCE_RECORD.md
+	PHASE3_ACCEPTANCE_REVIEW.md
+	PHASE3_EXIT_VALIDATION_REPORT.md
+	PHASE3_FINAL_ACCEPTANCE_REVIEW.md
+	PHASE4_ACCEPTANCE_RECORD.md
+	PHASE4_AUTHORIZATION_REVIEW.md
+	PHASE4_CLOSEOUT_REVIEW.md
+	PHASE4_CORRECTIVE_ACTION_REPORT.md
+	PHASE4_COVERAGE_RECONCILIATION_AUDIT.md
+	PHASE4_COVERAGE_ROADMAP.md
+	PHASE4_EXIT_REVIEW.md
+	PHASE4_FINAL_CERTIFICATION.md
+	PHASE4_FINAL_COMPLETION_AUDIT.md
+	PHASE4_FINAL_EXIT_REVIEW.md
+	PHASE4_FORENSIC_INVESTIGATION_REPORT.md
+	PHASE4_INTEGRATION_AND_COVERAGE_INVENTORY.md
+	PHASE4_OBSERVATION_001_VALIDATION.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_017.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_018.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_019.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_020.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_021.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_022.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_023.md
+	PHASE4_PROGRAM_STATUS_AFTER_CURRENT_TASK_025.md
+	PHASE4_PROGRAM_STATUS_AFTER_M1.md
+	PHASE4_PROGRAM_STATUS_AFTER_M2.md
+	PHASE4_PROGRAM_STATUS_AFTER_M3.md
+	PHASE4_PROGRAM_STATUS_REVIEW.md
+	PHASE4_REAUTHORIZATION_REVIEW.md
+	PHASE4_RECOVERY_MAPPING_VALIDATION.md
+	PHASE5_READINESS_AUTHORIZATION.md
+	PHASE_TRANSITION_CHANGE_PLAN.md
+	PHASE_TRANSITION_IMPLEMENTATION_REPORT.md
+	PHASE_TRANSITION_PLAN_REVIEW.md
+	PROGRAM_RECOVERY_AUTHORIZATION.md
+	PROGRAM_RECOVERY_AUTHORIZATION_ERRATA.md
+	Plan-Fix-Bug/
+	RECOVERY_DOMAIN_B_IMPLEMENTATION_REPORT.md
+	RECOVERY_DOMAIN_H1_IMPLEMENTATION_REPORT.md
+	RECOVERY_DOMAIN_H1_VERIFICATION_REPORT.md
+	RECOVERY_PACKAGE_01_IMPLEMENTATION_REPORT.md
+	RECOVERY_PACKAGE_01_VERIFICATION_REPORT.md
+	RECOVERY_WAVE_02_IMPLEMENTATION_REPORT.md
+	RECOVERY_WAVE_02_VERIFICATION_REPORT.md
+	RECOVERY_WAVE_03_IMPLEMENTATION_REPORT.md
+	RECOVERY_WAVE_03_VERIFICATION_REPORT.md
+	RECOVERY_WAVE_04_ACCEPTANCE_REVIEW.md
+	RECOVERY_WAVE_04_ARCHITECTURE_DECISION.md
+	RECOVERY_WAVE_04_AUTHORIZATION.md
+	RECOVERY_WAVE_04_ENGINEERING_KICKOFF.md
+	RECOVERY_WAVE_04_IMPLEMENTATION_REPORT.md
+	RECOVERY_WAVE_04_VERIFICATION_REPORT.md
+	RECOVERY_WAVE_05_ACCEPTANCE_REVIEW.md
+	RECOVERY_WAVE_05_ARCHITECTURE_DECISION.md
+	RECOVERY_WAVE_05_AUTHORIZATION.md
+	RECOVERY_WAVE_05_ENGINEERING_KICKOFF.md
+	RECOVERY_WAVE_05_IMPLEMENTATION_REPORT.md
+	RECOVERY_WAVE_05_VERIFICATION_REPORT.md
+	SCAR_PHASE1_REPORT.md
+	SCAR_PHASE2_REPORT.md
+	SCAR_PHASE3_REPORT.md
+	SCAR_PHASE4_REPORT.md
+	STRATEGIC_DECISION_REPORT.md
+	STRATEGIC_RECOVERY_ANALYSIS.md
+	SYSTEM_RECOVERY_MASTER_PLAN.md
+	SYSTEM_RECOVERY_PROGRAM_CHARTER.md
+	UNIFIED_PROGRAM_STATE.md
+
+no changes added to commit (use "git add" and/or "git commit -a")
+```
+
+---
+
+## 2. File Classification
+
+### A. Modified files
+
+| File | Classification |
+|------|----------------|
+| `scripts/audit-rpc-contracts.ts` | Script |
+| `tests/mocks/supabase.ts` | Test |
+
+### B. Untracked files
+
+All top-level untracked `.md` files are **Governance document** (plans, reports, records, reviews, architecture decisions, and acceptance artifacts). The `Plan-Fix-Bug/` directory is also an untracked directory containing governance documents.
+
+| File | Classification |
+|------|----------------|
+| `Plan-Fix-Bug/` | Governance document (directory) |
+| `Plan-Fix-Bug/ADMIN_DASHBOARD_REMEDIATION_ANALYSIS.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_GOVERNANCE.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/CURRENT_TASK-003.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/CURRENT_TASK-004.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/CURRENT_TASK-005.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/CURRENT_TASK.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_1.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_2.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_3.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_4.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_5.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_6.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_7.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_8.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/IMPLEMENTATION_MASTER_PLAN_INDEX.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/PROGRAM_STATE.md` | Governance document |
+| `Plan-Fix-Bug/IMPLEMENTATION_MASTER_PLAN/TASK_HANDOVER.md` | Governance document |
+| `Plan-Fix-Bug/RECONCILIATION_REPORT_TASK-DOC2-004.md` | Governance document |
+
+All remaining top-level untracked files listed in the full `git status` output above are **Governance document**.
+
+### C. Deleted files
+
+None.
+
+### D. Staged files
+
+None.
+
+---
+
+## 3. Special Target Check
+
+| File | Status |
+|------|--------|
+| `scripts/audit-rpc-contracts.ts` | Still modified (uncommitted, not staged) |
+| `tests/mocks/supabase.ts` | Still modified (uncommitted, not staged) |
+
+---
+
+## 4. Blocker #4 Assessment
+
+**Source:** `PHASE5_READINESS_AUTHORIZATION.md` §4.2, Blocker #4
+
+> Phase 4 artifacts and code changes are uncommitted — `git status` shows `PHASE4_ACCEPTANCE_RECORD.md`, `PHASE4_FINAL_CERTIFICATION.md`, `CURRENT_PHASE.md`, `CURRENT_TASK.md`, and other Phase 4 governance documents are untracked; `scripts/audit-rpc-contracts.ts` and `tests/mocks/supabase.ts` are modified but uncommitted. The canonical repository history does not yet reflect Phase 4 completion or the fixes that produced the 184/184 coverage. Transitioning to Phase 5 on an uncommitted working-tree state is a configuration-management and governance risk.
+
+### Evidence
+
+| File | State | Blocker relevance |
+|------|-------|---------------------|
+| `PHASE4_ACCEPTANCE_RECORD.md` | Untracked | Named in Blocker #4 |
+| `PHASE4_FINAL_CERTIFICATION.md` | Untracked | Named in Blocker #4 |
+| `CURRENT_PHASE.md` | Untracked | Named in Blocker #4 |
+| `CURRENT_TASK.md` | Untracked | Named in Blocker #4 |
+| `UNIFIED_PROGRAM_STATE.md` | Untracked | Related transition artifact |
+| `scripts/audit-rpc-contracts.ts` | Modified, unstaged | Named in Blocker #4 |
+| `tests/mocks/supabase.ts` | Modified, unstaged | Named in Blocker #4 |
+
+### Verdict
+
+**Blocker #4: Outstanding** — B. Còn tồn tại
+
+The canonical repository history still does not reflect Phase 4 completion because the key Phase 4 governance artifacts and the two implementation files remain uncommitted.
+
+---
+
+## 5. Conclusion
+
+The repository is **not ready** to re-run `PHASE5_READINESS_AUTHORIZATION.md`. Blocker #4 (uncommitted Phase 4 artifacts and code changes) persists:
+
+- Two source/test files remain modified and unstaged: `scripts/audit-rpc-contracts.ts` and `tests/mocks/supabase.ts`.
+- The Phase 4 governance artifacts referenced in `PHASE5_READINESS_AUTHORIZATION.md` remain untracked, alongside a large number of other governance documents.
+- No files are staged or deleted.
+
+**Required action before re-run:** Stage and commit the Phase 4 governance artifacts, the modified script, and the modified test mock so the canonical repository history reflects Phase 4 completion, then re-run the readiness authorization.

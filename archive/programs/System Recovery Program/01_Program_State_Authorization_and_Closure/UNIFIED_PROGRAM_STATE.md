@@ -3,7 +3,7 @@
 **Document ID:** UNIFIED_PROGRAM_STATE.md  
 **Program:** VietSalePro v7 — System Recovery Program  
 **Version:** 1.0  
-**Date:** 2026-07-17  
+**Date:** 2026-07-18  
 **Status:** Active — Accepted by Program Sponsor (formal acceptance recorded in `PHASE1_ACCEPTANCE_RECORD.md`)  
 **Supersedes:** All conflicting planning states identified during SCAR Phase 4.
 
@@ -26,11 +26,11 @@ This document is the single authoritative statement of program status for the Vi
 
 ## 3. Current Phase
 
-**Active Phase:** Phase 5 — Active  
-**Purpose:** Align all operational and architectural documentation with the actual repository state and the canonical contract.  
-**Entry Status:** All Phase 5 entry criteria from `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 5 are satisfied; `PHASE5_OPENING_AUTHORIZATION.md` (2026-07-17) formally opened Phase 5.  
-**Exit Status:** Not yet evaluated. Phase 5 exit criteria and deliverables will be verified and accepted before Phase 6 entry.  
-**Source Document:** `CURRENT_PHASE.md`, `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 5.
+**Active Phase:** Phase 6 — Active  
+**Purpose:** Ensure that the canonical migration chain and its derived artifacts can be applied deterministically to any environment and that operational processes reinforce the canonical source.  
+**Entry Status:** All Phase 6 entry criteria from `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 6 are satisfied; `PHASE6_OPENING_AUTHORIZATION.md` (2026-07-18) formally opens Phase 6.  
+**Exit Status:** Not yet evaluated. Phase 6 exit criteria and deliverables will be verified and accepted before Phase 7 entry.  
+**Source Document:** `CURRENT_PHASE.md`, `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 6.
 
 ---
 
@@ -64,9 +64,12 @@ The following documents are approved as the governing basis of the program. They
 |---|---|---|
 | `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` | Program charter and scope authority | Approved for Establishment |
 | `SYSTEM_RECOVERY_MASTER_PLAN.md` | Phase structure and recovery strategy | Proposed — Pending Program Sponsor Approval |
-| `CURRENT_PHASE.md` | Operational marker for the active phase | Active — Phase 5 |
+| `CURRENT_PHASE.md` | Operational marker for the active phase | Active — Phase 6 |
 | `PHASE5_OPENING_AUTHORIZATION.md` | Phase 5 opening authorization | Accepted / Opened |
 | `PHASE5_READINESS_AUTHORIZATION_RERUN.md` | Phase 5 readiness authorization | A. READY FOR PHASE 5 |
+| `PHASE5_FINAL_CERTIFICATION.md` | Phase 5 completion certification | CERTIFIED WITH OBSERVATIONS |
+| `PHASE6_READINESS_AUTHORIZATION.md` | Phase 6 readiness authorization | B. READY FOR PHASE 6 WITH OBSERVATIONS |
+| `PHASE6_OPENING_AUTHORIZATION.md` | Phase 6 opening authorization | PHASE 6 OPENED |
 | `STRATEGIC_DECISION_REPORT.md` | Selected recovery strategy (Option B) | Approved basis |
 | `STRATEGIC_RECOVERY_ANALYSIS.md` | Recoverability assessment and inventory | Approved basis |
 | SCAR Phase 1–4 Reports | Assessment evidence and findings | Approved basis |
@@ -95,10 +98,10 @@ All future status reporting must derive from this Unified Program State and the 
 | Area | State | Evidence |
 |---|---|---|
 | Program | Active, chartered | `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §1–§6 |
-| Phase | Phase 5 — Active; Phase 4 closed and certified complete; Recovery Program closed | `CURRENT_PHASE.md` §1, §3, §9; `PHASE5_OPENING_AUTHORIZATION.md`; `PHASE4_ACCEPTANCE_RECORD.md`; `PHASE4_FINAL_CERTIFICATION.md`; `PHASE5_READINESS_AUTHORIZATION_RERUN.md` |
-| Governance | Converged; all conflicting planning tracks superseded; Phase 4 certified complete; Phase 5 opened | This document, Section 6; `PHASE4_FINAL_CERTIFICATION.md`; `PHASE5_OPENING_AUTHORIZATION.md` |
+| Phase | Phase 6 — Active; Phase 5 closed and certified complete | `CURRENT_PHASE.md` §1, §3, §9; `PHASE5_FINAL_CERTIFICATION.md`; `PHASE5_OPENING_AUTHORIZATION.md`; `PHASE6_OPENING_AUTHORIZATION.md` |
+| Governance | Converged; all conflicting planning tracks superseded; Phase 5 certified complete; Phase 6 opened | This document, Section 6; `PHASE5_FINAL_CERTIFICATION.md`; `PHASE6_OPENING_AUTHORIZATION.md` |
 | Contract trust | Restored through accepted canonical migration chain, reconciled RPC contract, and validated test/audit gates (per Phase 3 and Phase 4 acceptance records) | `PHASE3_ACCEPTANCE_RECORD.md`; `PHASE4_ACCEPTANCE_RECORD.md`; `D-P3-01_Reconciled_RPC_Contract.md` |
-| Engineering work | Phase 5 opened; no Phase 5 `CURRENT_TASK` authorized until one is created per Phase 5 scope | `CURRENT_PHASE.md` §5, §8; `PHASE5_OPENING_AUTHORIZATION.md` §9 |
+| Engineering work | Phase 6 opened; no Phase 6 `CURRENT_TASK` authorized until one is created per Phase 6 scope | `CURRENT_PHASE.md` §5, §8; `PHASE6_OPENING_AUTHORIZATION.md` §9 |
 
 No other program status is active.
 
@@ -128,17 +131,18 @@ No other individual or document may override this authority on contract-layer ma
 
 ## 10. Scope Authority
 
-The **Program Manager** is responsible for enforcing the in-scope / out-of-scope boundaries defined in `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 5 and `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §4 and §5. Scope expansion requests must be documented, assessed against the charter, and approved by the Program Sponsor (with architecture input) before being accepted.
+The **Program Manager** is responsible for enforcing the in-scope / out-of-scope boundaries defined in `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 6 and `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §4 and §5. Scope expansion requests must be documented, assessed against the charter, and approved by the Program Sponsor (with architecture input) before being accepted.
 
-For the current phase, scope is limited to Phase 5 as defined in `SYSTEM_RECOVERY_MASTER_PLAN.md` §4:
+For the current phase, scope is limited to Phase 6 as defined in `SYSTEM_RECOVERY_MASTER_PLAN.md` §4:
 
-- Active plans, sub-phase plans, and implementation logs.
-- RPC contract documentation.
-- SQL fix documentation and audit reports.
-- Operational runbooks and feature-flag configuration references.
-- Any document that currently asserts completion that code reality contradicts.
+- Deployment process validation against the canonical migration chain.
+- Environment parity for migrations, generated types, and schema artifacts.
+- Operational runbooks that reference the canonical source.
+- Feature-flag wiring and configuration consumption.
+- Rollback coverage for future migrations.
+- Resolution of the deferred A9 canonical migration decision under Architecture Authority guidance.
 
-No Phase 6 engineering work, migration changes, feature development, architecture redesign, or unrelated bug fixing may begin until Phase 5 exit criteria are satisfied and Phase 6 is formally opened.
+No Phase 7 closure, program-completion activities, new feature development, architecture redesign, or unrelated bug fixing may begin until Phase 6 exit criteria are satisfied and Phase 6 is formally certified complete.
 
 ---
 
@@ -146,9 +150,9 @@ No Phase 6 engineering work, migration changes, feature development, architectur
 
 The next approved action is:
 
-1. The Program Manager authorizes the first Phase 5 `CURRENT_TASK` that maps directly to a Phase 5 objective, remains strictly within Phase 5 scope, and produces evidence required by one or more Phase 5 exit criteria or deliverables.
+1. The Program Manager authorizes the first Phase 6 `CURRENT_TASK` that maps directly to a Phase 6 objective, remains strictly within Phase 6 scope, and produces evidence required by one or more Phase 6 exit criteria or deliverables.
 
-No Phase 5 engineering implementation may begin until the first `CURRENT_TASK` is formally approved.
+No Phase 6 engineering implementation may begin until the first `CURRENT_TASK` is formally approved.
 
 ---
 
@@ -161,11 +165,14 @@ No Phase 5 engineering implementation may begin until the first `CURRENT_TASK` i
 | Phase 4 exit criteria accepted | `PHASE4_ACCEPTANCE_RECORD.md` (Status: Accepted, 2026-07-17); `PHASE4_FINAL_CERTIFICATION.md` (Verdict: A. Phase 4 Complete, 2026-07-17) |
 | Phase 5 entry criteria satisfied | `PHASE5_READINESS_AUTHORIZATION_RERUN.md` §5; `PHASE5_OPENING_AUTHORIZATION.md` §1–§2 |
 | Phase 5 formally opened | `PHASE5_OPENING_AUTHORIZATION.md` (Verdict: Phase 5 is formally opened, 2026-07-17) |
+| Phase 5 certified complete | `PHASE5_FINAL_CERTIFICATION.md` (Verdict: CERTIFIED WITH OBSERVATIONS, 2026-07-18) |
+| Phase 6 entry criteria satisfied | `PHASE6_READINESS_AUTHORIZATION.md` §8; `PHASE6_OPENING_AUTHORIZATION.md` §11 |
+| Phase 6 formally opened | `PHASE6_OPENING_AUTHORIZATION.md` (Verdict: PHASE 6 OPENED, 2026-07-18) |
 | Strategy = Option B | `STRATEGIC_DECISION_REPORT.md` §Executive Summary, §Final Strategic Decision |
 | Conflicting governance tracks exist | `STRATEGIC_DECISION_REPORT.md` §Current Architecture State — Governance; `STRATEGIC_RECOVERY_ANALYSIS.md` DG-5 |
 | Conflicting tracks superseded | This document, Section 6 |
 | Decision / architecture / scope authority defined | `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9 |
-| Phase 5 scope and constraints defined | `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 5; `CURRENT_PHASE.md` §2, §5 |
+| Phase 6 scope and constraints defined | `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 6; `CURRENT_PHASE.md` §2, §5 |
 | Only one program state exists | This document is the sole active `UNIFIED_PROGRAM_STATE.md`; no competing unified state document exists in the repository. |
 
 ---
@@ -175,19 +182,19 @@ No Phase 5 engineering implementation may begin until the first `CURRENT_TASK` i
 This Unified Program State is complete when the Program Sponsor records formal acceptance. Acceptance confirms that:
 
 1. Only one active program exists: VietSalePro v7 — System Recovery Program.
-2. The active phase is **Phase 5 — Active**. Phase 4 is closed and certified complete. Phase 5 is formally opened.
+2. The active phase is **Phase 6 — Active**. Phase 5 is closed and certified complete. Phase 4 is closed and certified complete. Phase 6 is formally opened.
 3. Only one authoritative program state exists: this document.
 4. All previously conflicting planning states remain formally superseded.
 5. The governance hierarchy, decision authority, architecture authority, and scope authority are acknowledged and in force.
-6. Phase 4 is closed and no Recovery Wave remains open.
-7. Phase 5 entry criteria are satisfied and Phase 5 is active. A Phase 5 `CURRENT_TASK` may be created when authorized.
+6. Phase 5 is closed and certified complete; no Phase 5 `CURRENT_TASK` remains open.
+7. Phase 6 entry criteria are satisfied and Phase 6 is active. A Phase 6 `CURRENT_TASK` may be created when authorized.
 
 **Acceptance Record**
 
 | Role | Name | Signature / Acknowledgment | Date |
 |---|---|---|---|
-| Program Sponsor | *(as named in `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9)* | Acknowledged — Phase 5 opened and active; Phase 4 closed | 2026-07-17 |
-| Program Manager | *(as named in `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9)* | Acknowledged — governance markers synchronized to Phase 5 Active | 2026-07-17 |
-| Architecture Authority | *(as named in `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9)* | Acknowledged — canonical source and contract state consistent | 2026-07-17 |
+| Program Sponsor | *(as named in `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9)* | Acknowledged — Phase 6 opened and active; Phase 5 closed and certified complete | 2026-07-18 |
+| Program Manager | *(as named in `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9)* | Acknowledged — governance markers synchronized to Phase 6 Active | 2026-07-18 |
+| Architecture Authority | *(as named in `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §9)* | Acknowledged — canonical source and contract state consistent; deployment readiness scope in force | 2026-07-18 |
 
-Acceptance of this Unified Program State transition is formally recorded. Full Phase 4 acceptance is documented in `PHASE4_ACCEPTANCE_RECORD.md` and final certification in `PHASE4_FINAL_CERTIFICATION.md`.
+Acceptance of this Unified Program State transition is formally recorded. Full Phase 5 acceptance and final certification are documented in `PHASE5_ACCEPTANCE_RECORD.md` and `PHASE5_FINAL_CERTIFICATION.md`.

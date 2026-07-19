@@ -1,20 +1,27 @@
 # CURRENT_TASK.md
 
-**Task ID:** SRP-P2-T005  
-**Title:** Canonical Migration Chain Definition Standard  
-**Program:** VietSalePro v7 — System Recovery Program  
-**Phase:** Phase 2 — Canonical Migration Chain Stabilization  
-**Status:** Closed — Superseded  
-**Date:** 2026-07-14  
-**Document Type:** Program governance task only
+**Task ID:** CURRENT_TASK-003  
+**Title:** Release Preparation - Non-Production Migration Validation and CLI Gates  
+**Program:** Production Deployment Program  
+**Milestone:** M2  
+**Phase:** Phase 2 - Release Preparation  
+**Status:** READY FOR AUTHORIZATION  
+**Date:** 2026-07-19  
+**Document Type:** Operational governance task
 
 ---
 
 ## 1. Objective
 
-**Define the Canonical Migration Chain Definition Standard.**
+Start Phase 2 release preparation by validating the repository-only migrations and closing the remaining local CLI gate observation from Repository Re-baseline.
 
-This task produces the standard that governs how the **Canonical Migration Chain Definition** (D-P2-01) must be constructed, documented, and accepted. It does not create the actual migration chain, perform repository analysis, or produce any derived artifact. The standard ensures that any future definition of the canonical chain is deterministic, gapless, traceable, and consistent with the `MIGRATION_NAMING_AND_ORDERING_STANDARD.md` produced under SRP-P2-T004.
+This task follows:
+
+- `REPOSITORY_REBASELINE_ACCEPTANCE_REVIEW.md`
+- `CURRENT_TASK-002_ACCEPTANCE.md`
+- `CURRENT_TASK-002_PROGRAM_STATUS_REVIEW.md`
+- `PHASE_1_EXIT_GATE_REVIEW.md`
+- `PHASE_2_RELEASE_PREPARATION_KICKOFF.md`
 
 ---
 
@@ -22,87 +29,90 @@ This task produces the standard that governs how the **Canonical Migration Chain
 
 ### 2.1 In Scope
 
-- Define the required structure of the **Canonical Migration Chain Definition** document.
-- Specify the mandatory sections of the definition (e.g., scope statement, chain inventory format, ordering table, gap-analysis criteria, orphan-file reference rules, evidence checklist).
-- Define the acceptance framework for the definition, including evidence standards and approving authority.
-- Define the authority and governance controls for creating, reviewing, and modifying the definition.
-- Define scope boundaries that prevent the definition task from expanding into implementation, repository analysis, or engineering planning.
-- Reference the applicable program governance documents and the `MIGRATION_NAMING_AND_ORDERING_STANDARD.md`.
+- Validate the 2 repository-only migrations in a non-production environment:
+  - `supabase/migrations/20260718000001_sp_7_1_set_tenant_subdomain.sql`
+  - `supabase/migrations/20260723000001_g1_add_max_storage_gb_to_tenant_subscriptions.sql`
+- Re-run local CLI gates once the local Supabase/Postgres environment is available:
+  - `npx supabase migration list --local`
+  - `npx supabase db lint`
+- Confirm the accepted canonical migration chain remains intact after the re-baseline commit.
+- Record results in a CURRENT_TASK-003 implementation and verification artifact.
 
 ### 2.2 Out of Scope
 
-- Inventorying, reading, or analyzing migration files in the repository.
-- Defining the actual ordered canonical migration chain from the current repository state.
-- Performing gap analysis against existing migrations.
-- Identifying, classifying, or dispositioning orphan SQL files.
-- Writing, modifying, reordering, or deleting migration SQL files.
-- Generating `schema.sql`, TypeScript types, or any derived artifact.
-- Producing the Orphan SQL Triage Record, Generated Schema Artifact, or Generated Type Artifacts.
-- Reconciling RPC contracts, service code, tests, or documentation.
-- Creating implementation work packages, sprint plans, or engineering task lists.
-- Feature development, bug fixing, architecture redesign, UI changes, or operational deployment.
-- Any work expanding into Phase 3 or later phases.
+- Production database migration execution.
+- Production deployment or release.
+- Release tag creation.
+- Production cutover.
+- Supabase MCP execution unless separately authorized.
+- SQL body modification unless a separate remediation is authorized.
+- Commit or push of unrelated files.
 
 ---
 
-## 3. Deliverables
+## 3. Background
+
+Repository Re-baseline was accepted with observations. The remaining observations are:
+
+| ID | Observation | Disposition |
+|---|---|---|
+| M1 | Local Supabase/Postgres connectivity prevented `npx supabase migration list --local` and `npx supabase db lint` from completing. | Resolve or disposition during Phase 2. |
+| M2 | 2 repository-only migrations have not yet been validated in a non-production environment. | Validate before any production deployment approval. |
+
+---
+
+## 4. Deliverables
 
 | # | Deliverable | Purpose | Acceptance Authority |
 |---|---|---|---|
-| D-1 | **Canonical Migration Chain Definition Standard** | Defines the structure, content, acceptance framework, and governance controls required to produce and maintain the Canonical Migration Chain Definition. | Program Manager, with architecture authority input |
+| D-1 | `CURRENT_TASK-003_PROGRAM_AUTHORIZATION.md` | Authorizes the Phase 2 validation task | Program Manager / Architecture Authority |
+| D-2 | `CURRENT_TASK-003_IMPLEMENTATION.md` | Records non-production validation and CLI gate execution | Engineering Implementation Authority |
+| D-3 | `CURRENT_TASK-003_VERIFICATION.md` | Independently verifies results and findings | Independent Verification Authority |
+| D-4 | `CURRENT_TASK-003_ACCEPTANCE.md` | Accepts or rejects the task outcome | Program Manager / Architecture Authority |
 
 ---
 
-## 4. Acceptance Criteria
+## 5. Acceptance Criteria
 
-1. The **Canonical Migration Chain Definition Standard** document is produced and references `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §6 (Guiding Principles), §8 (Exit Criteria), §9 (Program Governance), and §10 (Program Constraints); `SYSTEM_RECOVERY_MASTER_PLAN.md` §4 Phase 2; `PHASE2_GOVERNANCE_BASELINE.md`; and `MIGRATION_NAMING_AND_ORDERING_STANDARD.md`.
-2. The standard specifies:
-   - The required sections of a Canonical Migration Chain Definition.
-   - The format for the migration inventory and ordered chain table.
-   - The criteria for gap analysis and real-timestamp hotfix readiness.
-   - The rules for referencing, but not duplicating, the Orphan SQL Triage Record.
-   - The evidence required to accept the chain definition.
-   - The authority and governance controls for changes to the definition.
-3. The standard does not prescribe implementation tactics, tooling commands, sprint schedules, or repository-analysis procedures beyond what is necessary to express the rule.
-4. No implementation, code change, migration change, generated artifact, repository analysis, or engineering planning document is produced under this task.
-5. No scope expansion into implementation, deployment, or later phases is authorized.
+1. The 2 repository-only migrations are validated in a non-production environment, or a blocker is formally recorded.
+2. Local CLI gates are re-run, or M1 is formally dispositioned with evidence.
+3. No production database changes are performed.
+4. No production deployment is performed.
+5. No migration SQL body is modified without separate authorization.
+6. Findings are classified as Critical, High, Medium, or Low.
+7. A recommendation is made for the next release governance step.
 
 ---
 
-## 5. Constraints
+## 6. Constraints
 
-- This task is strictly program governance.
-- No code, migration, schema, type, test, service, or documentation changes are permitted.
-- No repository analysis, inventory, or migration-file inspection may be performed.
-- No implementation planning, engineering work packages, or sprint plans may be created.
-- `CURRENT_PHASE.md`, `UNIFIED_PROGRAM_STATE.md`, and other phase markers are treated as read-only.
-- All definitions must reference only the approved governance documents listed in **References**.
-- Any exception to Phase 2 scope requires documented assessment and Program Sponsor approval.
+- Phase 2 validation must stay non-production unless a separate production authorization is issued.
+- Deployment freeze, Release Candidate, production release, tagging, and cutover are separate governance activities.
+- Existing user or agent changes outside this task must not be reverted.
+- The repository baseline commit for re-baseline remains `fb398ce3`.
 
 ---
 
-## 6. References
+## 7. Next Required Action
 
-- `MIGRATION_NAMING_AND_ORDERING_STANDARD.md` — timestamp format, naming convention, ordering, hotfix, and rollback rules.
-- `SYSTEM_RECOVERY_PROGRAM_CHARTER.md` §3 (Program Objectives), §6 (Guiding Principles), §8 (Exit Criteria), §9 (Program Governance), §10 (Program Constraints).
-- `SYSTEM_RECOVERY_MASTER_PLAN.md` §2 (Execution Strategy), §3 (Program Structure), §4 "Recovery Phases — Phase 2" (Purpose, Scope, Entry Criteria, Exit Criteria, Deliverables, Validation), §6 (Governance Model), §7 (Quality Gates).
-- `PHASE2_GOVERNANCE_BASELINE.md` §3.1, §4, §5, §6, §7, §8.
-- `PHASE2_DELIVERABLE_ACCEPTANCE_MATRIX.md`.
-- `PHASE2_SCOPE_AND_EXCEPTION_CONTROL_NOTE.md`.
-- `CURRENT_PHASE.md`.
-- `UNIFIED_PROGRAM_STATE.md` §3, §7, §8, §9, §10.
-- `DECISION_AND_ESCALATION_LOG.md` §2, §3.
-- `PHASE1_ACCEPTANCE_RECORD.md`.
+Create and review:
+
+```text
+CURRENT_TASK-003_PROGRAM_AUTHORIZATION.md
+```
+
+No Phase 2 technical validation may begin until CURRENT_TASK-003 is explicitly authorized.
 
 ---
 
-## 7. Closure / Supersession
+## 8. Current Task Decision
 
-- **Closure date:** 2026-07-17
-- **Closure authority:** Program Manager / Program Governance Transition Review
-- **Reason:** The task was proposed for Phase 2 but was never approved or activated. Phases 2, 3, and 4 have since been completed; Phase 4 is formally accepted and certified complete. The proposed Phase 2 task is therefore superseded by subsequent program progress and no longer represents active program work.
-- **Replacement:** No replacement `CURRENT_TASK` is required at this transition point. Phase 4 work has been completed under its authorized Recovery Wave authorizations and `CURRENT_TASK` operational documents. A new `CURRENT_TASK` may only be created when Phase 5 is formally opened and a Phase 5 work unit is authorized.
+```text
+CURRENT_TASK-003:
 
-## 8. Completion Statement
+READY FOR AUTHORIZATION
+```
 
-This task is **closed and superseded**, not accepted as a deliverable. No further action is required.
+---
+
+*Basis: `PHASE_2_RELEASE_PREPARATION_KICKOFF.md`; `PHASE_1_EXIT_GATE_REVIEW.md`; commit `fb398ce3`.*

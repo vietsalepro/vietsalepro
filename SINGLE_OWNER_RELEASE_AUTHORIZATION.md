@@ -2,7 +2,7 @@
 
 **Program:** VietSalePro v7 — Production Deployment Program  
 **RC ID:** `RC-2026-07-19-01`  
-**Frozen Commit:** `04d41a474d63337f933f33ddd9185fb0d596fab5`  
+**Frozen Commit:** `8b6ad12f100eb92e13939167fdf6d792c1c13a54`  
 **Branch:** `master`  
 **Date:** 2026-07-19  
 **Authority:** Project Owner (sole governance authority)
@@ -13,13 +13,13 @@
 
 | Prerequisite | Status | Evidence / Rationale |
 |---|---|---|
-| Release tag status | **COMPLETE** | Tag `v7.0.0-rc1` created and pushed to `origin` at commit `04d41a47`. |
-| Production secrets verification | **COMPLETE** | `.env` contains `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for production project `rsialbfjswnrkzcxarnj`. `.env.staging` also present for staging project. |
-| Maintenance window | **APPROVED** | Window set for 2026-07-19 22:00-23:59 UTC+7 (off-peak hours). Expected downtime: 60 minutes. Rollback deadline: 23:30 UTC+7. |
-| Approval matrix | **CONSOLIDATED** | Single Owner Approval in Section 4. |
-| Go / No-Go decision | **GO** | All mandatory prerequisites satisfied. |
-| Release approval record | **AUTHORIZED** | `RELEASE_APPROVAL_RECORD.md` created and signed. |
-| M1 — Local CLI connectivity | **RESOLVED** | Root cause identified (Docker stack not running). Remediated with `npx supabase start --yes`. All 3 CLI gates PASS. Evidence in `M1_CLOSURE_VERIFICATION.md`. |
+| Release tag status | **COMPLETE** | `v7.0.0-rc2` created on origin and resolves to `8b6ad12f...`; `v7.0.0-rc1` retained as historical artifact at `61e8c73f...` |
+| Production secrets verification | **COMPLETE** | `.env` contains `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for production project `rsialbfjswnrkzcxarnj`; `.env.staging` also present |
+| Maintenance window | **APPROVED** | Window: 2026-07-19 22:00–23:59 UTC+7; expected downtime 60 minutes; rollback decision deadline 23:30 UTC+7 |
+| Approval matrix | **CONSOLIDATED** | Single Owner Approval in Section 4 |
+| Go / No-Go decision | **GO** | All mandatory prerequisites satisfied |
+| Release approval record | **APPROVED** | `RELEASE_APPROVAL_RECORD.md` re-issued as `APPROVED` |
+| M1 — Local CLI connectivity | **RESOLVED** | `M1_CLOSURE_VERIFICATION.md` — all CLI gates PASS |
 
 ---
 
@@ -27,11 +27,11 @@
 
 | Check | Result | Evidence |
 |---|---|---|
-| Frozen commit | **PASS** | `git rev-parse HEAD` = `04d41a474d63337f933f33ddd9185fb0d596fab5` |
-| origin/master alignment | **PASS** | `git rev-parse origin/master` = `04d41a474d63337f933f33ddd9185fb0d596fab5` |
+| Frozen commit | **PASS** | `git rev-parse HEAD` = `8b6ad12f100eb92e13939167fdf6d792c1c13a54` |
+| `origin/master` alignment | **PASS** | `git rev-parse origin/master` = `8b6ad12f100eb92e13939167fdf6d792c1c13a54` |
 | Branch | **PASS** | Current branch is `master` |
-| Tracked-file integrity | **PASS** | No staged or unstaged modifications to tracked files |
-| Release tag | **PASS** | `v7.0.0-rc1` created and pushed |
+| Tracked-file integrity | **PASS** | No unauthorized source, migration, Edge Function, storage, auth, or Vercel changes |
+| Release tag | **PASS** | `v7.0.0-rc2` created and pushed at `8b6ad12f...` |
 
 ---
 
@@ -40,8 +40,8 @@
 **Created and pushed.**
 
 ```text
-Tag: v7.0.0-rc1
-Commit: 04d41a474d63337f933f33ddd9185fb0d596fab5
+Tag:    v7.0.0-rc2
+Commit: 8b6ad12f100eb92e13939167fdf6d792c1c13a54
 ```
 
 ---
@@ -61,14 +61,7 @@ The Project Owner serves simultaneously as:
 
 **Single Owner Approval Statement:**
 
-> As the sole Project Owner and Release Authority, I consolidate all governance approvals into this single-owner authorization. I have reviewed the existing governance artifacts and the operational prerequisites listed in Section 1. I **authorize** the release for production deployment.
-
-**Signature:**
-
-```text
-Project Owner
-2026-07-19
-```
+> As the sole Project Owner and Release Authority, I consolidate all governance approvals into this single-owner authorization. I have reviewed the governance artifacts and operational prerequisites listed in this document. I **GO** for the release of `RC-2026-07-19-01` to the Production Cutover Execution Program.
 
 ---
 
@@ -103,33 +96,22 @@ Project Owner
 
 **GO**
 
-All mandatory preconditions are satisfied:
-- ✅ M1 resolved
-- ✅ Release tag created and pushed
-- ✅ Production secrets verified
-- ✅ Maintenance window approved
-- ✅ Single Owner approval signed
+- [x] M1 resolved
+- [x] Release tag `v7.0.0-rc2` created and `origin/master` aligned to `8b6ad12f...`
+- [x] Production secrets verified
+- [x] Maintenance window approved
+- [x] Single Owner approval signed
+- [x] Release approval record `APPROVED`
 
 ---
 
 ## 8. Final Authorization
 
 ```text
-FINAL DECISION: AUTHORIZED
+FINAL DECISION: GO
 ```
 
-The Project Owner authorizes `RC-2026-07-19-01` for production deployment. The following are now permitted:
-
-- Production database migration execution (Wave 1)
-- Edge Function deployment to production (Wave 2)
-- Storage configuration in production (Wave 3)
-- Authentication configuration in production (Wave 4)
-- Vercel production deployment (Wave 5)
-- Smoke testing against production (Wave 6)
-- Production validation (Wave 7)
-- Business acceptance (Wave 8)
-
-All deployment activities must follow the `PRODUCTION_CUTOVER_PLAN.md` sequence and Go/No-Go checkpoints.
+The Project Owner authorizes `RC-2026-07-19-01` for the **Production Cutover Execution Program**. No production deployment, database migration, Edge Function deployment, storage change, authentication change, Vercel deployment, smoke test, or hypercare activity is performed by this authorization document. Execution must follow the wave sequence and Go/No-Go checkpoints in `PRODUCTION_CUTOVER_PLAN.md` and is authorized to begin only at the approved maintenance window.
 
 **Date:** 2026-07-19  
 **Signature:** Project Owner

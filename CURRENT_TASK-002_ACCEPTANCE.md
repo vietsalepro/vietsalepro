@@ -82,7 +82,7 @@ CURRENT_TASK-002 is accepted. The program is ready to proceed to the CURRENT_TAS
 
 | Role | Name | Signature | Date |
 |------|------|-----------|------|
-| Independent Acceptance Authority | | | |
+| Independent Acceptance Authority | Project Owner | Approved | 2026-07-19 |
 | Program Manager | Project Owner | Approved | 2026-07-19 |
 
 ---

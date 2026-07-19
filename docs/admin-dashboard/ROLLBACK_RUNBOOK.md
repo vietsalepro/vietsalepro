@@ -10,6 +10,7 @@ Rollback code, migration, hoặc config khi deploy gây lỗi production.
 - Error rate tăng > 5% so với baseline.
 - User report hàng loạt.
 - RLS/function grant audit FAIL.
+- `D-034-01_Deployment_Validation_Gate_Definition.md` gate fail/abort during promotion.
 
 ## Owner
 
@@ -46,12 +47,12 @@ git push origin main
 
 ### 3. Rollback database migration
 
-> Lưu ý: Supabase migrations không hỗ trợ rollback tự động. Phải viết migration ngược hoặc restore PITR.
+> Lưu ý: Supabase migrations không hỗ trợ rollback tự động. Phải viết migration ngược dưới dạng file mới trong `supabase/migrations/` (ascending lexicographic sort) hoặc restore PITR. The canonical migration source is `supabase/migrations/*.sql`.
 
 Option A: Reverse migration
-1. Tạo migration mới undo thay đổi (ví dụ drop column, revoke grant).
+1. Tạo migration mới trong `supabase/migrations/` undo thay đổi (ví dụ drop column, revoke grant).
 2. Apply: `supabase migration up`.
-3. Verify.
+3. Verify against `D-034-01_Deployment_Validation_Gate_Definition.md` and `D-P3-01_Reconciled_RPC_Contract.md`.
 
 Option B: PITR restore
 1. Dùng Supabase dashboard restore về thời điểm trước migration.
@@ -59,9 +60,10 @@ Option B: PITR restore
 
 ### 4. Verify rollback
 
-- `npm run lint && npm run build && npx vitest run && npm run audit:rpc`.
+- `npm run lint && npm run build && npx vitest run && npm run audit:rpc` (audit validates against `D-P3-01_Reconciled_RPC_Contract.md`).
 - Health-check `ok: true`.
 - Smoke tests PASS.
+- Reference artifact checksums match `D-035-01_Deployment_Readiness_Evidence.md` §6.1 (`supabase/schema.sql`, `supabase/generated/database.types.ts`).
 
 ### 5. Post-rollback
 
@@ -75,6 +77,8 @@ Option B: PITR restore
 - [ ] Error rate trở lại baseline.
 - [ ] No new failed migrations.
 - [ ] Stakeholders notified.
+- [ ] `D-034-01` deployment validation gate PASS
+- [ ] `D-035-01` reference artifact checksums verified (`supabase/schema.sql`, `supabase/generated/database.types.ts`)
 
 ## Template: Reverse Migration
 

@@ -25,6 +25,8 @@
 - Xác nhận sự cố qua Uptime Robot, health-check edge function, hoặc báo cáo user.
 - Ping `https://rsialbfjswnrkzcxarnj.supabase.co/functions/v1/admin-health-check`.
 - Xác định SEV level.
+- Confirm the affected environment matches the canonical baseline recorded in `D-035-01_Deployment_Readiness_Evidence.md` and, for Staging, `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`.
+- Check `D-034-01_Deployment_Validation_Gate_Definition.md` for any gate exception that must be declared before the incident is closed.
 
 ### 2. Communicate (5 phút)
 
@@ -34,8 +36,8 @@
 ### 3. Contain (15 phút)
 
 - Nếu nghi ngờ security incident: rotate affected API keys, disable impersonation/feature flags.
-- Nếu lỗi deploy: xem `ROLLBACK_RUNBOOK.md`.
-- Nếu DB issue: xem `DISASTER_RECOVERY_RUNBOOK.md`.
+- Nếu lỗi deploy: xem `ROLLBACK_RUNBOOK.md`; treat as `D-034-01` gate abort and capture evidence in `D-034-02_Deployment_Validation_Evidence_Checklist.md`.
+- Nếu DB issue: xem `DISASTER_RECOVERY_RUNBOOK.md`; canonical restore source is `supabase/migrations/*.sql`.
 
 ### 4. Investigate
 
@@ -46,13 +48,16 @@
 ### 5. Resolve & Verify
 
 - Apply fix trên staging trước.
-- Chạy: `npm run lint && npm run build && npx vitest run && npm run audit:rpc`.
+- Chạy: `npm run lint && npm run build && npx vitest run && npm run audit:rpc` (audit validates against `D-P3-01_Reconciled_RPC_Contract.md`).
+- Verify reference artifact checksums against `D-035-01_Deployment_Readiness_Evidence.md` §6.1.
+- Confirm `D-034-01` post-deployment gate PASS before production promotion.
 - Deploy production, re-run health-check.
 
 ### 6. Post-Incident
 
 - Viết incident report vào `Plan/Log/INCIDENT-<timestamp>.md`.
-- Cập nhật runbook nếu cần.
+- Cập nhật runbook nếu cần; align references with `D-035-01_Deployment_Readiness_Evidence.md`, `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`, and `D-P3-01_Reconciled_RPC_Contract.md`.
+- Record that A9 (`20260724000000_sp4_4_webhook_delivery_hardening.sql`) remains deferred per `PHASE6_OPENING_AUTHORIZATION.md` §6.
 - Schedule follow-up action items.
 
 ## Verification

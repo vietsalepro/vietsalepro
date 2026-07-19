@@ -14,11 +14,14 @@ Phát hiện sớm sự cố, đo đạc SLO, và cung cấp dữ liệu cho inc
 - Health-check edge function: `https://rsialbfjswnrkzcxarnj.supabase.co/functions/v1/admin-health-check`
 - Uptime Robot ping mỗi 5 phút.
 - Alert channel: email `vietsalepro86@gmail.com`.
+- Deployment validation gate (`D-034-01_Deployment_Validation_Gate_Definition.md`) is the source of truth for promotion health.
+- Reference artifact checksums are tracked in `D-035-01_Deployment_Readiness_Evidence.md` §6.1.
 
 ## SLIs / SLOs
 
 | SLI | SLO | Alert threshold |
 |-----|-----|-----------------|
+| D-034-01 deployment validation gate | 100% of required checks PASS | Any gate check FAIL |
 | Admin dashboard uptime | 99.9% / tháng | < 99.9% over 5m |
 | Health-check response time | p95 < 2s | p95 > 3s over 5m |
 | API error rate | < 1% | > 5% over 5m |
@@ -36,7 +39,7 @@ Phát hiện sớm sự cố, đo đạc SLO, và cung cấp dữ liệu cho inc
 
 ### API / Database
 
-- RPC latency: `is_system_admin`, `get_top_tenants`, `get_tenants_admin`.
+- RPC latency: `is_system_admin`, `get_top_tenants`, `get_tenants_admin` (canonical RPC inventory: `D-P3-01_Reconciled_RPC_Contract.md`).
 - Error rate per RPC.
 - Row count growth: `tenants`, `tenant_memberships`, `app_audit_log`.
 - RLS violation attempts.
@@ -103,3 +106,5 @@ Chạy định kỳ (hàng ngày hoặc mỗi giờ) bằng Playwright hoặc cu
 - Health-check endpoint trả về `ok: true`.
 - Alert channel nhận được test alert.
 - Synthetic test PASS trong 24h qua.
+- Reference artifact checksums in `D-035-01_Deployment_Readiness_Evidence.md` §6.1 remain unchanged.
+- `D-034-01` deployment validation gate checks PASS.

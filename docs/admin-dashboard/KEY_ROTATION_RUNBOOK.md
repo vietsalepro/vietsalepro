@@ -56,15 +56,18 @@ Rotate các secret/key quan trọng: Supabase service role key, anon key, JWT se
 
 ## Verification
 
-- `admin-health-check` edge function trả về `ok: true`.
+- `admin-health-check` edge function trả về `ok: true` (exercises RPCs defined in `D-P3-01_Reconciled_RPC_Contract.md`).
+- Re-run `D-034-01` deployment validation gate checks PASS.
 - Login flow hoạt động.
 - Payment webhook test PASS.
+- RPC parity with `D-P3-01_Reconciled_RPC_Contract.md` PASS (`npm run audit:rpc`).
 - Không còn secret cũ trong env.
 
 ## Post-Rotation
 
 - Ghi log vào `Plan/Log/KEY_ROTATION-<timestamp>.md`.
 - Cập nhật bảng theo dõi rotation.
+- Re-confirm `D-034-01` deployment validation gate PASS and RPC parity with `D-P3-01_Reconciled_RPC_Contract.md`.
 - Review audit log để phát hiện hoạt động bất thường.
 
 ## Key Inventory

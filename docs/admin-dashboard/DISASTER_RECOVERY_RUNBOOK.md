@@ -19,6 +19,11 @@ Phục hồi hệ thống sau sự cố nghiêm trọng: mất dữ liệu, corr
 - Supabase project refs: staging `shbmzvfcenbybvyzclem`, production `rsialbfjswnrkzcxarnj`.
 - Access: Supabase dashboard, Supabase CLI, Vercel dashboard, DNS provider.
 - Backup locations: Supabase PITR + manual backups nếu có.
+- Canonical migration source: `supabase/migrations/*.sql` (138 files, ascending lexicographic order).
+- Deployment validation gate: `D-034-01_Deployment_Validation_Gate_Definition.md`.
+- Reference artifact checksums: `D-035-01_Deployment_Readiness_Evidence.md` §6.1.
+- Reconciled RPC contract: `D-P3-01_Reconciled_RPC_Contract.md`.
+- Staging canonicalization evidence: `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`.
 
 ## Steps
 
@@ -45,7 +50,7 @@ supabase projects restore --project-ref rsialbfjswnrkzcxarnj --target-time "2026
 #### Scenario B: Supabase project complete failure
 
 1. Tạo project mới hoặc dùng staging project.
-2. Apply migrations từ `supabase/migrations/` theo thứ tự.
+2. Apply migrations từ `supabase/migrations/*.sql` theo thứ tự tăng dần (ascending lexicographic sort) using the canonical migration chain.
 3. Restore data từ backup gần nhất.
 4. Cập nhật `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` trong Vercel env.
 5. Redeploy frontend.
@@ -71,11 +76,12 @@ supabase projects restore --project-ref rsialbfjswnrkzcxarnj --target-time "2026
 
 - [ ] DB accessible.
 - [ ] All migrations applied.
-- [ ] RPC contracts match `docs/admin-dashboard/RPC_CONTRACTS.md`.
+- [ ] RPC contracts match `D-P3-01_Reconciled_RPC_Contract.md` and `D-034-01` post-deployment gate (PV-02/PV-03) PASS.
 - [ ] Health-check endpoint PASS.
 - [ ] Critical admin flows smoke tested.
 
 ## Annual DR Drill
 
 - Thực hiện drill restore lên staging environment mỗi 6 tháng.
+- Compare drill results to the canonical baseline in `D-035-01_Deployment_Readiness_Evidence.md` and Staging evidence in `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`.
 - Ghi kết quả vào `Plan/Log/DR-DRILL-<timestamp>.md`.

@@ -4,9 +4,14 @@
 
 This runbook tracks the migration of `pages/SystemAdminDashboard.tsx` from a single-file monolith to a Basejump-inspired enterprise admin dashboard.
 
-- **Source plan**: `memory-zone/KE_HOACH/Admin_dashboard/PLAN_BASEJUMP_ADMIN_DASHBOARD_ENTERPRISE_UPGRADE.md`
-- **Sub-phase breakdown**: `memory-zone/KE_HOACH/Admin_dashboard/SUB_PHASE_BREAKDOWN_BASEJUMP_ADMIN_DASHBOARD.md`
-- **OpenSpec store**: `admin-dashboard` (validate with `openspec validate --changes --store admin-dashboard`)
+- **Canonical migration chain**: `supabase/migrations/*.sql` (138 files, ascending lexicographic order) — single source of schema/RPC truth
+- **Generated schema artifact**: `supabase/schema.sql` (SHA-256 `C3738BCBEAABA04D8FE7C86FEB1F89C19BD0E6B8F50E865F58CE235A24EC3689`)
+- **Generated type artifact**: `supabase/generated/database.types.ts` (SHA-256 `6C8767DDE630FC0A8F33DF955EAC468BB84DEF6119545B581ADF06C23CD81C8A`)
+- **Reconciled RPC contract**: `D-P3-01_Reconciled_RPC_Contract.md`
+- **Deployment validation gate**: `D-034-01_Deployment_Validation_Gate_Definition.md`
+- **Deployment validation evidence checklist**: `D-034-02_Deployment_Validation_Evidence_Checklist.md`
+- **Deployment readiness evidence**: `D-035-01_Deployment_Readiness_Evidence.md`
+- **Staging canonicalization report**: `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`
 
 ## Build / Test Commands
 
@@ -104,10 +109,12 @@ npx vitest run    # Unit + integration tests
 
 ### RPC Contract Compliance
 
-- Canonical contract: `docs/admin-dashboard/RPC_CONTRACTS.md`.
-- Audit script: `scripts/audit-rpc-contracts.ts` (run via `npm run audit:rpc`).
+- Canonical RPC contract: `D-P3-01_Reconciled_RPC_Contract.md` (reconciled from `supabase/migrations/`).
+- Audit script: `scripts/audit-rpc-contracts.ts` (run via `npm run audit:rpc`); validates service-layer RPCs against `D-P3-01`.
 - CI runs the audit after every build.
-- When adding a new RPC used by the admin dashboard, update the contract and the audit script will keep code and docs in sync.
+- When adding a new admin dashboard RPC, add it to the canonical migration chain under `supabase/migrations/`; `npm run audit:rpc` validates parity with `D-P3-01`.
+- Reference artifact checksums: `D-035-01_Deployment_Readiness_Evidence.md` §6.1.
+- Staging canonicalization evidence: `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`.
 
 ### Explicit Function Grants
 
@@ -177,6 +184,8 @@ Workflow steps:
 6. Deploy/redeploy `admin-health-check` edge function on production if needed.
 7. Re-run health-check on production and configure Uptime Robot to ping it every 5 minutes.
 
+All promotion steps are governed by `D-034-01_Deployment_Validation_Gate_Definition.md` and recorded in `D-034-02_Deployment_Validation_Evidence_Checklist.md`. The canonical migration source is `supabase/migrations/*.sql`; reference artifact checksums are captured in `D-035-01_Deployment_Readiness_Evidence.md` §6.1; Staging canonicalization evidence is in `docs/system-recovery/D-P6-03_STAGING_CANONICALIZATION_REPORT.md`.
+
 ### Production Deploy Checklist
 
 - [ ] `npm run lint` PASS
@@ -187,6 +196,9 @@ Workflow steps:
 - [ ] Smoke test on staging PASS
 - [ ] Recent production backup available
 - [ ] Deploy production only after staging tests PASS (timing decided by owner — see Component Ownership below).
+- [ ] `D-034-01` deployment validation gate PASS
+- [ ] `D-035-01` reference artifact checksums verified (`supabase/schema.sql`, `supabase/generated/database.types.ts`)
+- [ ] `D-P6-03` Staging canonicalization evidence reviewed
 
 ---
 
@@ -195,7 +207,7 @@ Workflow steps:
 | Component | Owner | Contact | Notes |
 |-----------|-------|---------|-------|
 | Admin Dashboard UI | VietSale Pro | vietsalepro86@gmail.com | React/Vite SPA under `pages/admin/`, `components/admin/` |
-| RPC Functions | VietSale Pro | vietsalepro86@gmail.com | `supabase/migrations/`, `RPC_CONTRACTS.md` |
+| RPC Functions | VietSale Pro | vietsalepro86@gmail.com | `supabase/migrations/` (canonical chain), `D-P3-01_Reconciled_RPC_Contract.md` |
 | Edge Functions | VietSale Pro | vietsalepro86@gmail.com | `supabase/functions/` |
 | Supabase Project | VietSale Pro | vietsalepro86@gmail.com | migrations, backups, monitoring |
 | Feature Flags | VietSale Pro | vietsalepro86@gmail.com | `tenants.settings->features`, `useAdminFeatureFlags` |

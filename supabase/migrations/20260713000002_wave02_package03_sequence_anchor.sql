@@ -1,0 +1,4 @@
+-- Wave-02 Package-03 — MIG-004 sequence anchor
+-- The 20260713 migration sequence had 20260713000001 followed by 20260713000003.
+-- This no-op migration fills 20260713000002 so the sequence is contiguous and deterministic.
+-- ponytail: intentionally empty; no DDL/DML.

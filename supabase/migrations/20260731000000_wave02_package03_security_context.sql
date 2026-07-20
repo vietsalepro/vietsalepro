@@ -1,0 +1,73 @@
+-- Wave-02 Package-03 — Migration Reconciliation and Security Context
+-- SOURCE_PATH: C:\PROJECT\vietsalepro\supabase\migrations\20260731000000_wave02_package03_security_context.sql
+--
+-- Issue traceability:
+--   RPC-002   : privileged RPCs now execute as SECURITY DEFINER with is_system_admin() guard
+--   MIG-001   : 21 _fix_ migrations inventoried and ratified as validated historical repairs
+--   MIG-002   : 27 post-SSOT migrations inventoried and ratified as validated drift
+--   MIG-003   : non-standard filename 20260710064509_f33_members_search_rpc.sql ratified as a
+--               historical production artifact (the remote DB applied this version)
+--   MIG-004   : missing 20260713000002 sequence entry filled by no-op anchor migration
+--   DRIFT-001 : folded into MIG-002
+--   DRIFT-003 : custom-domain flow documented in services/admin/tenantAdminService.ts
+--
+-- MIG-001 ratified fix migrations (21):
+--   20260708000003_fix_update_tenant_overload.sql
+--   20260708000004_fix_system_admin_rls.sql
+--   20260709000001_fix_security_definer_search_path.sql
+--   20260711000008_fix_rate_limit_logs_action_check.sql
+--   20260711000009_fix_tenant_delete_cascade_guardrail.sql
+--   20260711000010_fix_invite_seat_limit_and_plan_sync.sql
+--   20260711000011_fix_edge_functions_auth_query.sql
+--   20260712000001_fix_remove_tenant_member_rpc.sql
+--   20260712000002_fix_update_tenant_member_role_rpc.sql
+--   20260712000003_fix_toggle_tenant_member_active_rpc.sql
+--   20260712000004_fix_remove_system_admin_security_definer.sql
+--   20260712000005_fix_guardrail_trigger_status_active_filter.sql
+--   20260712000010_fix_get_tenant_usage_summary_tenant_admin.sql
+--   20260712000011_fix_is_system_admin_service_role.sql
+--   20260715000006_fix_handle_new_user_create_subscription.sql
+--   20260715000007_fix_audit_log_trigger_tenant_id.sql
+--   20260715000008_fix_audit_log_trigger_tenant_id_v2.sql
+--   20260715000009_fix_tenant_memberships_audit_action.sql
+--   20260715000010_fix_rls_helpers_enum_compare.sql
+--   20260715000011_fix_audit_log_trigger_tenant_delete.sql
+--   20260717000000_fix_admin_tenant_rpc_signatures.sql
+--
+-- MIG-002 ratified post-SSOT migrations (27):
+--   20260713053550_sp1_6_expand_audit_log_event_types.sql
+--   20260713053608_sp2_4_announcement_audience_active_range.sql
+--   20260713053615_sp_7_2_custom_domain_verification.sql
+--   20260713053622_sp2_6_global_config_rpc.sql
+--   20260713053644_sp_7_3_licenses.sql
+--   20260713053657_sp2_7_user_management_rpc.sql
+--   20260713053746_sp2_8_role_management_rpc.sql
+--   20260713053807_sp3_1_plans_crud_features.sql
+--   20260713053828_sp5_6_db_maintenance.sql
+--   20260714000001_accept_invitation_rpc.sql
+--   20260715000002_create_audit_triggers.sql
+--   20260715000003_admin_security_settings.sql
+--   20260715000004_login_audit_triggers.sql
+--   20260715000005_install_pgtap.sql
+--   20260715000006_fix_handle_new_user_create_subscription.sql
+--   20260715000007_fix_audit_log_trigger_tenant_id.sql
+--   20260715000008_fix_audit_log_trigger_tenant_id_v2.sql
+--   20260715000009_fix_tenant_memberships_audit_action.sql
+--   20260715000010_fix_rls_helpers_enum_compare.sql
+--   20260715000011_fix_audit_log_trigger_tenant_delete.sql
+--   20260716000000_admin_realtime_broadcast.sql
+--   20260716000001_admin_cron_jobs.sql
+--   20260716000002_gdpr_export_functions.sql
+--   20260717000000_fix_admin_tenant_rpc_signatures.sql
+--   20260718000000_phase6_3_support_ticket_sla.sql
+--   20260718000001_sp_7_1_set_tenant_subdomain.sql
+--   20260723000001_g1_add_max_storage_gb_to_tenant_subscriptions.sql
+--
+-- The duplicate RPC overloads retired in Package-01 are not listed above because
+-- their retirement was executed by 20260729000000_wave02_package01_log_view_rpc.sql.
+-- The four privileged RPCs below each already enforce is_system_admin() internally.
+
+ALTER FUNCTION public.delete_tenant_safe(UUID) SECURITY DEFINER;
+ALTER FUNCTION public.create_tenant_with_admin(TEXT, TEXT, TEXT, UUID) SECURITY DEFINER;
+ALTER FUNCTION public.update_tenant(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, JSONB) SECURITY DEFINER;
+ALTER FUNCTION public.update_tenant_subscription(UUID, TEXT, INTEGER, INTEGER, INTEGER, INTEGER, TEXT, TIMESTAMPTZ) SECURITY DEFINER;

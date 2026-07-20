@@ -186,6 +186,12 @@ export interface CustomDomainVerificationResult {
 
 export { isValidCustomDomain };
 
+// DRIFT-003 — custom-domain implementation note:
+// SSOT lists `get_or_create_custom_domain_token` as the tenant-admin RPC for custom-domain
+// token generation. The actual implementation uses the `verify-domain` Edge Function because
+// that function existed in production before the SSOT was ratified. This drift is accepted
+// under Program Owner Decision 1 (Hybrid Strategy) and is left as an Edge-Function call.
+// No service-layer code change is required; this comment documents the acceptance.
 export async function requestCustomDomainVerification(
   tenantId: string
 ): Promise<CustomDomainVerificationRequest> {

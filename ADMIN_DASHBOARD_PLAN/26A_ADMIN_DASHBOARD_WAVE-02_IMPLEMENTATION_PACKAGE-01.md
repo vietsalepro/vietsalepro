@@ -178,8 +178,9 @@ CREATE OR REPLACE FUNCTION public.create_tenant_with_admin(
 | Schema integrity | `git diff --stat` on `supabase/schema.sql` | 969 lines changed (768 removed duplicate blocks + 227 added log-view RPC section); no unauthorized objects modified |
 | Migration integrity | `git status` / `find` on `supabase/migrations/` | one new migration added; no deletions or re-sequencing |
 | Service alignment | Manual review of `services/tenantService.ts` call sites | `update_tenant`, `update_tenant_subscription`, `create_tenant_with_admin` calls use named parameters compatible with canonical signatures; no `services/admin/*.ts` changes required |
-| Supabase consistency | `supabase-mcp-server.execute_sql` against `pg_proc` | Staging already holds canonical signatures for the three consolidated functions; production untouched |
-| Vercel readiness | `vercel.get_project` / `vercel.list_deployments` | Project `vietsalepro` healthy; no production deployment triggered |
+| Supabase consistency | `supabase-mcp-server.execute_sql` against `pg_proc` on Staging | One overload each for `update_tenant`, `update_tenant_subscription`, `create_tenant_with_admin` with canonical argument lists; the four new log-view RPCs are not yet in Staging because no deployment was performed |
+| Supabase migration list | `supabase-mcp-server.list_migrations` on Staging | Latest migration `20260728000000_sp5_6_db_maintenance`; new `20260729000000_wave02_package01_log_view_rpc.sql` is in repo and not yet applied to Staging |
+| Vercel readiness | `vercel.get_project` / `vercel.list_deployments` | Project `vietsalepro` (`vite`) healthy; latest production deployment is commit `3a06a6d9` (`dpl_8rhXQm3qLawzjUSyBNpB2fN33eM5`, state `READY`); no new production deployment triggered |
 
 ------------------------------------------------------------------------
 
@@ -233,6 +234,6 @@ The sealed baseline commit `3a06a6d9` remains untouched and can be used for a fu
 - Package-01 scope is fully implemented.
 - Only the four authorized file categories were modified: `supabase/schema.sql`, `supabase/migrations/*.sql`, `ADMIN_DASHBOARD_PLAN/00...` (roadmap), and `ADMIN_DASHBOARD_PLAN/26A...`.
 - Production was not modified and no production deployment was triggered.
-- Wave-02 Implementation remains `IN PROGRESS` in the program charter; Wave-02 Verification, Acceptance, Deployment Synchronization, and Closeout are explicitly `NOT STARTED`.
+- `Package-01` is now `COMPLETE` in the program charter; `Wave-02 Implementation` remains `IN PROGRESS` pending Package-02 and Package-03. Wave-02 Verification, Acceptance, Deployment Synchronization, and Closeout remain `NOT STARTED`.
 
 **PACKAGE-01 COMPLETE WITH OBSERVATIONS**

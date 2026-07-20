@@ -56,6 +56,7 @@ import {
 import { Product, Customer, Supplier, Order, CartItem, ImportReceipt, ImportItemInput, ProductLot, InventoryCount, AppSettings, Reward, PointHistory, Invoice, Category, Brand, Promotion, AppliedPromotion, CustomerRankConfig, CustomerRankHistory } from './types';
 import { supabaseService } from './services/supabaseService';
 import { supabase } from './lib/supabase';
+import { isSystemAdmin as checkSystemAdmin } from './lib/permissions';
 import { offlineCache, offlineQueue, isOnline, isNetworkError, CheckoutOp, generateOpId } from './utils/offlineManager';
 import { generateInvoiceNumber, generateOfflineInvoiceNumber, isDuplicateInvoiceNumberError } from './utils/invoiceNumber';
 import { calculatePromotionDiscount } from './utils/promotionUtils';
@@ -209,12 +210,7 @@ function AppContent() {
     const check = async () => {
       setIsAdminLoading(true);
       try {
-        const { data } = await supabase
-          .from('system_admins')
-          .select('user_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (!cancelled) setIsSystemAdmin(!!data);
+        if (!cancelled) setIsSystemAdmin(await checkSystemAdmin());
       } catch (e) {
         if (!cancelled) setIsSystemAdmin(false);
       } finally {

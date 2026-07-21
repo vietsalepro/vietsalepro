@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// EDG-002: this Edge Function is intentionally public (verify_jwt: false) and rate-limited by IP.
+// It only reads tenant subdomain availability and writes an audit row per request (EDG-005).
 const RESERVED_SUBDOMAINS = new Set(['admin', 'www', 'api', 'app']);
 const SUBDOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -107,6 +109,18 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existsError) throw existsError;
+
+    // EDG-005: write an audit row for every public availability check.
+    await supabaseAdmin.from('app_audit_log').insert({
+      tenant_id: null,
+      user_id: null,
+      table_name: 'subdomain_checks',
+      record_id: null,
+      action: 'INSERT',
+      new_data: { subdomain: s, available: !existingTenant },
+      ip_address: ip,
+      user_agent: req.headers.get('user-agent'),
+    });
 
     return jsonResponse({ available: !existingTenant }, 200);
   } catch (err) {

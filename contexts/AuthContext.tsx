@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { writeAuditLog } from '../services/auditService';
 import { recordAdminLogin } from '../services/loginHistoryService';
 import { activateMembership } from '../services/admin/memberAdminService';
 import { isMfaRequired } from '../services/twoFactorService';
@@ -76,12 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       checkMfaAsync(newSession);
 
-      // Ghi audit log LOGIN khi đăng nhập thành công (bỏ qua INITIAL_SESSION khi reload).
+      // Ghi admin login history khi đăng nhập thành công (bỏ qua INITIAL_SESSION khi reload).
+      // ponytail: app_audit_log LOGIN/LOGOUT để tenant-scoped flows xử lý; AuthContext global không có tenant_id.
       if (event === 'SIGNED_IN' && newSession?.user) {
-        writeAuditLog('LOGIN', 'auth', {
-          recordId: newSession.user.id,
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-        }).catch(() => {});
         recordAdminLogin({
           userId: newSession.user.id,
           email: newSession.user.email,
@@ -107,14 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    try {
-      await writeAuditLog('LOGOUT', 'auth', {
-        recordId: user?.id ?? null,
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-      });
-    } catch (err) {
-
-    }
+    // ponytail: logout audit log is tenant-scoped; the global AuthContext has no tenant_id.
     await supabase.auth.signOut();
   };
 

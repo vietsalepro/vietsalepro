@@ -18,6 +18,7 @@ import {
   restoreTenant,
   getCurrentUserTenants as getCurrentUserTenantsBase,
   createTenantWithAdmin as createTenantWithAdminBase,
+  getTenantMembersWithEmail as getTenantMembersWithEmailBase,
 } from '../tenantService';
 
 // ponytail: thin admin wrapper around existing tenantService.
@@ -97,22 +98,9 @@ export async function getUserAccounts(userId: string): Promise<AccountWithRole[]
 }
 
 export async function getAccountMembers(accountId: string): Promise<TenantMembership[]> {
-  const { data, error } = await supabase
-    .from('tenant_memberships')
-    .select('*')
-    .eq('tenant_id', accountId);
-
-  if (error) throw error;
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    tenantId: row.tenant_id,
-    userId: row.user_id,
-    role: row.role,
-    status: row.status,
-    invitedBy: row.invited_by,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
+  // ponytail: use canonical get_tenant_members_with_email RPC (DIR-001).
+  // The RPC returns a superset of TenantMembership (with email/invitedByEmail).
+  return getTenantMembersWithEmailBase(accountId);
 }
 
 export async function setAccountActive(id: string, isActive: boolean): Promise<Tenant> {

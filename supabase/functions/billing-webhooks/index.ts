@@ -2,6 +2,10 @@
 // BILLING WEBHOOKS EDGE FUNCTION
 // Basejump reference: Section 3.6 (webhook handler)
 // Routes incoming provider webhooks to provider-specific handlers.
+//
+// EDG-003: This function uses provider-specific signatures (Stripe) or an
+// optional shared x-billing-webhook-key header (Momo/VNPay/bank_transfer).
+// EDG-004/EDG-005: Every processed webhook writes an audit row to app_audit_log.
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.97.0';
@@ -18,6 +22,22 @@ function jsonResponse(data: unknown, status: number) {
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders },
   });
+}
+
+const getClientIp = (req: Request): string => {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.headers.get('x-real-ip') || '0.0.0.0';
+};
+
+const isValidIp = (ip: string): boolean =>
+  /^((\d{1,3}\.){3}\d{1,3}|([0-9a-fA-F:]+))$/.test(ip);
+
+// EDG-003: generic shared-key gate for providers without a per-request signature.
+function verifyWebhookApiKey(req: Request): boolean {
+  const apiKey = Deno.env.get('BILLING_WEBHOOK_API_KEY');
+  if (!apiKey) return true; // shared-key gate not configured; rely on network/provider signatures.
+  return req.headers.get('x-billing-webhook-key') === apiKey;
 }
 
 function isValidProvider(name: string): name is 'stripe' | 'momo' | 'vnpay' | 'bank_transfer' {
@@ -132,13 +152,19 @@ serve(async (req) => {
     return jsonResponse({ error: `Unsupported provider: ${provider}` }, 400);
   }
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+  if (!verifyWebhookApiKey(req)) {
+    return jsonResponse({ error: 'Invalid billing webhook API key' }, 401);
+  }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const rawIp = getClientIp(req);
+  const ip = isValidIp(rawIp) ? rawIp : '0.0.0.0';
+
+  try {
     let result: unknown;
     switch (provider) {
       case 'stripe':
@@ -155,10 +181,35 @@ serve(async (req) => {
         break;
     }
 
+    // EDG-004/EDG-005: audit every processed webhook.
+    await admin.from('app_audit_log').insert({
+      tenant_id: null,
+      user_id: null,
+      table_name: 'billing_webhooks',
+      record_id: null,
+      action: 'INSERT',
+      new_data: { provider, result },
+      ip_address: ip,
+      user_agent: req.headers.get('user-agent'),
+    });
+
     return jsonResponse({ success: true, provider, result }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('billing-webhooks error:', message);
+
+    // EDG-004/EDG-005: audit webhook processing failures.
+    await admin.from('app_audit_log').insert({
+      tenant_id: null,
+      user_id: null,
+      table_name: 'billing_webhooks',
+      record_id: null,
+      action: 'INSERT',
+      new_data: { provider, error: message },
+      ip_address: ip,
+      user_agent: req.headers.get('user-agent'),
+    }).catch(() => {});
+
     return jsonResponse({ error: message, provider }, 500);
   }
 });

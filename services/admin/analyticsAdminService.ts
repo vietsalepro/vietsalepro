@@ -113,3 +113,10 @@ export async function getAdminCohortMetrics(
   const metrics = await getAdminChurnCohortMetrics(options);
   return metrics.cohort;
 }
+
+// DEP-003: overview RPC re-exports used by the admin dashboard overview tab.
+export {
+  getSystemOverview,
+  getTopTenants,
+  getTenantGrowth,
+} from '../tenantService';

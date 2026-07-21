@@ -6,9 +6,11 @@ import {
 } from '../../utils/subdomain';
 import {
   isValidDomain as isValidCustomDomain,
+  buildTxtRecord,
 } from '../../supabase/functions/_shared/domain-verification';
 import {
   mapTenantFromDB,
+  getTenantById,
   getAllTenants as getAllTenantsBase,
   searchTenants as searchTenantsBase,
   updateTenant as updateTenantBase,
@@ -60,17 +62,7 @@ export async function listAccounts(options: ListAccountsOptions = {}): Promise<L
 }
 
 export async function getAccount(id: string): Promise<Tenant | null> {
-  const { data, error } = await supabase
-    .from('tenants')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') return null;
-    throw error;
-  }
-  return mapTenantFromDB(data);
+  return getTenantById(id);
 }
 
 export async function updateAccountStatus(id: string, status: TenantStatus): Promise<Tenant> {
@@ -185,6 +177,15 @@ export interface CustomDomainVerificationResult {
 }
 
 export { isValidCustomDomain };
+
+// DEP-004: canonical RPC wrapper for custom-domain token generation.
+export async function getCustomDomainToken(tenantId: string): Promise<CustomDomainVerificationRequest> {
+  const { data, error } = await supabase.rpc('get_or_create_custom_domain_token', { p_tenant_id: tenantId });
+  if (error) throw error;
+  if (typeof data !== 'string') throw new Error('Phản hồi token không hợp lệ');
+  const token = data;
+  return { token, txtRecord: buildTxtRecord(token) };
+}
 
 // DRIFT-003 — custom-domain implementation note:
 // SSOT lists `get_or_create_custom_domain_token` as the tenant-admin RPC for custom-domain

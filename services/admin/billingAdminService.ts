@@ -22,6 +22,19 @@ export {
   setCompanyInfo,
 } from '../bankAccountService';
 
+export {
+  getPlans,
+  getPlanByKey,
+  createPlan,
+  updatePlan,
+  deletePlan,
+} from '../planService';
+
+export {
+  createInvoice,
+  confirmPayment,
+} from '../invoiceService';
+
 export async function getTenantSubscription(tenantId: string): Promise<TenantSubscription | null> {
   return getTenantSubscriptionBase(tenantId);
 }
@@ -44,73 +57,55 @@ export async function resetMonthlyOrderCounter(tenantId: string): Promise<Tenant
   return resetMonthlyOrderCounterBase(tenantId);
 }
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'suspended' | 'cancelled';
-
-export interface SubscriptionLifecycleInput {
-  status?: SubscriptionStatus;
-  plan?: string;
-  billingPeriod?: 'month' | 'year';
-  billingPeriodStart?: string;
-  billingPeriodEnd?: string;
-}
-
-export async function updateSubscriptionLifecycle(
-  tenantId: string,
-  input: SubscriptionLifecycleInput
-): Promise<TenantSubscription> {
-  const { data, error } = await supabase
-    .from('tenant_subscriptions')
-    .update({
-      status: input.status,
-      plan: input.plan,
-      plan_id: input.plan,
-      billing_period: input.billingPeriod,
-      billing_period_start: input.billingPeriodStart,
-      billing_period_end: input.billingPeriodEnd,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('tenant_id', tenantId)
-    .select()
-    .single();
-  if (error) throw error;
-  return {
-    id: data.id,
-    tenantId: data.tenant_id,
-    plan: data.plan,
-    planId: data.plan_id,
-    status: data.status,
-    maxUsers: data.max_users,
-    maxProducts: data.max_products,
-    maxOrdersPerMonth: data.max_orders_per_month,
-    maxStorageGb: data.max_storage_gb,
-    currentMonthOrders: data.current_month_orders,
-    currentMonthStart: data.current_month_start,
-    billingStatus: data.billing_status,
-    expiresAt: data.expires_at,
-    billingPeriod: data.billing_period,
-    billingPeriodStart: data.billing_period_start,
-    billingPeriodEnd: data.billing_period_end,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  } as TenantSubscription;
-}
+const mapSubscriptionFromDB = (row: any): TenantSubscription => ({
+  id: row.id,
+  tenantId: row.tenant_id,
+  plan: row.plan,
+  planId: row.plan_id,
+  status: row.status,
+  billingStatus: row.billing_status,
+  maxUsers: row.max_users,
+  maxProducts: row.max_products,
+  maxOrdersPerMonth: row.max_orders_per_month,
+  maxStorageGb: row.max_storage_gb,
+  currentMonthOrders: row.current_month_orders ?? 0,
+  currentMonthStart: row.current_month_start,
+  billingPeriod: row.billing_period,
+  billingPeriodStart: row.billing_period_start,
+  billingPeriodEnd: row.billing_period_end,
+  expiresAt: row.expires_at,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 export async function upgradeDowngradeSubscription(
   tenantId: string,
   plan: string,
   billingPeriod: 'month' | 'year' = 'month'
 ): Promise<TenantSubscription> {
-  return updateSubscriptionLifecycle(tenantId, {
-    plan,
-    billingPeriod,
-    status: 'active',
+  const { data, error } = await supabase.rpc('create_subscription', {
+    p_tenant_id: tenantId,
+    p_plan: plan,
+    p_billing_period: billingPeriod,
   });
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
 }
 
 export async function cancelSubscription(tenantId: string): Promise<TenantSubscription> {
-  return updateSubscriptionLifecycle(tenantId, { status: 'cancelled' });
+  const { data, error } = await supabase.rpc('cancel_subscription', { p_tenant_id: tenantId });
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
 }
 
 export async function renewSubscription(tenantId: string): Promise<TenantSubscription> {
-  return updateSubscriptionLifecycle(tenantId, { status: 'active' });
+  const current = await getTenantSubscription(tenantId);
+  if (!current) throw new Error('Không tìm thấy subscription cho tenant');
+  const { data, error } = await supabase.rpc('create_subscription', {
+    p_tenant_id: tenantId,
+    p_plan: current.plan,
+    p_billing_period: current.billingPeriod ?? 'month',
+  });
+  if (error) throw error;
+  return mapSubscriptionFromDB(data);
 }

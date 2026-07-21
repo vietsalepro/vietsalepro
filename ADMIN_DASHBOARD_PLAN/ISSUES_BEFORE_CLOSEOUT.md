@@ -8,27 +8,17 @@
 
 ## 1. Dead Artifacts — 3 file không còn được sử dụng
 
-### 1.1. `services/admin/permissions.ts`
+### 1.1. `services/admin/permissions.ts` — RESOLVED
 
-**Vị trí:** `c:\PROJECT\vietsalepro\services\admin\permissions.ts`
+**Status:** RESOLVED  
+**Decision:** REMOVED  
+**Reason:** Legacy wrapper removed after repository verification.
 
-**Nguồn gốc:**
-- File này là một wrapper (lớp bọc) được tạo ra trong quá trình phát triển Admin Dashboard để re-export (xuất lại) các hàm từ `lib/permissions.ts`.
-- Trong quá trình phát triển, có 2 file có chức năng tương tự nhau: `services/admin/permissions.ts` và `lib/permissions.ts`. Cả 2 đều cung cấp các hàm kiểm tra quyền như `isSystemAdmin()`.
-- Từ Phase A Investigation, phát hiện rằng việc có 2 file permission riêng biệt gây nhầm lẫn và khó bảo trì.
-- Trong Wave-01 Package-02, `lib/permissions.ts` đã được chuẩn hóa thành nguồn duy nhất cho các kiểm tra quyền. `services/admin/permissions.ts` trở nên không còn được sử dụng.
-
-**Bằng chứng không còn được dùng:**
-- Codebase Memory MCP (`codebase-memory`) đã chạy lệnh `trace_path(inbound, depth 3)` và `search_graph` trên file này. Kết quả: **0 callers** — không có module nào trong toàn bộ codebase import hoặc gọi đến file này.
-- Lệnh `grep -r "services/admin/permissions"` trong toàn bộ thư mục `src/`, `pages/`, `components/`, `services/` cho kết quả **0 matches**.
-
-**Tác động nếu xóa:**
-- **Không có tác động gì.** Xóa file này không ảnh hưởng đến bất kỳ chức năng nào của Admin Dashboard hay tenant app.
-
-**Hướng xử lý đề xuất:**
-- **Phương án A (khuyến nghị):** Xóa file. Không cần migration vì đây là file TypeScript, không phải database object.
-- **Phương án B:** Giữ lại, đánh dấu là deprecated bằng comment. Ít ý nghĩa vì không ai dùng.
-- **Phương án C:** Chuyển vào thư mục `archive/` để lưu trữ.
+**Verified:**
+- Codebase Memory `search_graph` for `services/admin/permissions.ts` returns no source Module node after re-index.
+- Source-code search for imports of `services/admin/permissions.ts` returns 0 matches in `ts`, `tsx`, `js`, and `jsx` files.
+- `lib/permissions.ts` remains the canonical permissions source.
+- `services/admin/permissions.ts` has been deleted from the working tree.
 
 ---
 

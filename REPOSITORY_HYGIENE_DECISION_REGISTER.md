@@ -10,7 +10,7 @@
 
 | # | Artifact | Decision | Status | Classification | Reason | Future Review Rule |
 |---|----------|----------|--------|----------------|--------|--------------------|
-| 1 | `services/admin/permissions.ts` | REMOVE | Completed | — | Zero repository callers; `lib/permissions.ts` is the canonical source. | N/A |
+| 1 | `services/admin/permissions.ts` | REMOVE | Completed | Dead Artifact | Legacy wrapper superseded by `lib/permissions.ts`. | N/A |
 | 2 | `supabase/functions/admin-health-check` | KEEP | Verified | Production Infrastructure Artifact | Active external monitoring endpoint. | Always verify Production before cleanup. |
 | 3 | `supabase/functions/deliver-webhook` | REMOVE | Completed | Dead Artifact | No repository callers; no production invocations; `webhook-delivery` is the hardened replacement and remains active. | N/A |
 

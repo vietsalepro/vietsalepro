@@ -81,7 +81,7 @@ const AdminHealth = React.lazy(() => import('./pages/admin/Health'));
 const AdminAnalytics = React.lazy(() => import('./pages/admin/Analytics'));
 const AdminCompliance = React.lazy(() => import('./pages/admin/Compliance'));
 const AdminOnboarding = React.lazy(() => import('./pages/admin/Onboarding'));
-import InvitationsAccept from './pages/admin/InvitationsAccept';
+const InvitationsAccept = React.lazy(() => import('./pages/admin/InvitationsAccept'));
 
 function AdminSuspense({ children }: { children: React.ReactNode }) {
   return (
@@ -1326,7 +1326,9 @@ function AppContent() {
     if (!user) return <Login redirectTo={location.pathname + location.search} />;
     return (
       <ToastProvider>
-        <InvitationsAccept />
+        <Suspense fallback={<LoadingState message="Đang tải lời mời..." />}>
+          <InvitationsAccept />
+        </Suspense>
       </ToastProvider>
     );
   }

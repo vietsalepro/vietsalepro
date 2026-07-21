@@ -19,8 +19,8 @@ import {
   getGdprRequests,
   getGdprExportData,
   deleteUserData,
-  downloadGdprExport,
 } from '../services/admin/complianceAdminService';
+import { downloadGdprExport } from './admin/complianceExport';
 import { useAuth } from '../contexts/AuthContext';
 import { isSystemAdmin } from '../lib/permissions';
 import FraudRetentionPanel from './FraudRetentionPanel';

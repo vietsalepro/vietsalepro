@@ -71,16 +71,26 @@ serve(async (req) => {
     const tableNames = [...new Set((tableRows || []).map((r: any) => r.table_name))].sort();
 
     const PAGE_SIZE = 1000;
+    const MAX_ROWS_PER_TABLE = 5000;
+    const MAX_TOTAL_ROWS = 50000;
     const tables: Record<string, unknown[]> = {};
+    let totalRows = 0;
+    let truncated = false;
+
     for (const table of tableNames) {
       const rows: unknown[] = [];
       let start = 0;
       while (true) {
+        if (totalRows >= MAX_TOTAL_ROWS || rows.length >= MAX_ROWS_PER_TABLE) {
+          truncated = true;
+          break;
+        }
+        const remaining = Math.min(PAGE_SIZE, MAX_TOTAL_ROWS - totalRows);
         const { data, error } = await supabaseAdmin
           .from(table)
           .select('*')
           .eq('tenant_id', tenantId)
-          .range(start, start + PAGE_SIZE - 1);
+          .range(start, start + remaining - 1);
         if (error) {
           // ponytail: skip tables we cannot read (e.g. locked) instead of failing the whole dump.
           console.error(`Backup table ${table} failed:`, error);
@@ -88,10 +98,15 @@ serve(async (req) => {
         }
         if (!data || data.length === 0) break;
         rows.push(...data);
-        if (data.length < PAGE_SIZE) break;
-        start += PAGE_SIZE;
+        totalRows += data.length;
+        if (data.length < remaining) break;
+        start += remaining;
       }
       tables[table] = rows;
+      if (totalRows >= MAX_TOTAL_ROWS) {
+        truncated = true;
+        break;
+      }
     }
 
     const exportedAt = new Date().toISOString();
@@ -102,6 +117,8 @@ serve(async (req) => {
         tenant,
         tables,
         exportedAt,
+        truncated,
+        limits: { maxRowsPerTable: MAX_ROWS_PER_TABLE, maxTotalRows: MAX_TOTAL_ROWS },
       },
       200,
       { 'Content-Disposition': `attachment; filename="${filename}"` }

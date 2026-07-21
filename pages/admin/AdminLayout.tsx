@@ -67,6 +67,7 @@ function getActiveId(pathname: string): string {
   if (rest.startsWith('tenants/')) return 'tenants';
   if (rest === 'billing/invoices') return 'invoices';
   if (rest === 'billing/payments') return 'payments';
+  if (rest === 'invitations/accept') return 'invitations';
   return rest || 'overview';
 }
 

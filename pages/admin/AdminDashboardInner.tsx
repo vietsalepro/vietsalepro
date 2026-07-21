@@ -6,14 +6,7 @@ import {
   Store, Users, ShoppingBag, AlertTriangle, Clock, TrendingUp,
 } from 'lucide-react';
 import AdminKpiCards from '../../components/AdminKpiCards';
-import { useConfirmDialog } from '../../hooks/useConfirmDialog';
-import VoucherManager from '../../components/VoucherManager';
-import TicketInbox from '../../components/TicketInbox';
-import EmailTemplateManager from '../../components/EmailTemplateManager';
-import NotificationManager from '../../components/NotificationManager';
-import TwoFactorManager from '../../components/TwoFactorManager';
 import ComplianceManager from '../../components/ComplianceManager';
-import ReadReplicaQueueManager from '../../components/ReadReplicaQueueManager';
 import '../Dashboard.css';
 import {
   SystemOverview,
@@ -29,19 +22,6 @@ import {
   getTenantGrowth,
 } from '../../services/admin/tenantAdminService';
 import {
-  RateLimitLog,
-  AdminLoginHistoryEntry,
-  AdminLoginAlert,
-  getRateLimitLogs,
-  getAdminLoginHistory,
-  getAdminLoginAlerts,
-} from '../../services/admin/auditAdminService';
-import {
-  SystemAdmin,
-  getSystemAdmins,
-  addSystemAdmin,
-  removeSystemAdmin,
-  createSystemAdmin,
   getSystemOverview,
   getDataRetentionStatus,
   getDefaultPlanLimits,
@@ -52,16 +32,7 @@ import {
 
 import { planLabel } from './adminUtils';
 
-// ponytail: lazy-load heavy admin panels so the AdminDashboardInner chunk stays ≤ 200 kB;
-// each panel is only fetched when its tab is activated.
 const LazySystemHealthPanel = React.lazy(() => import('../../components/SystemHealthPanel'));
-const LazyErrorPerformancePanel = React.lazy(() => import('../../components/ErrorPerformancePanel'));
-const LazyStorageBackupPanel = React.lazy(() => import('../../components/StorageBackupPanel'));
-const LazyBulkMaintenancePanel = React.lazy(() => import('../../components/BulkMaintenancePanel'));
-const LazyApiKeyManager = React.lazy(() => import('../../components/ApiKeyManager'));
-const LazyWebhookManager = React.lazy(() => import('../../components/WebhookManager'));
-const LazyIntegrationMarketplace = React.lazy(() => import('../../components/IntegrationMarketplace'));
-const LazyWhiteLabelManager = React.lazy(() => import('../../components/WhiteLabelManager'));
 
 function PanelLoader() {
   return (
@@ -76,43 +47,7 @@ function LazyPanel({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PanelLoader />}>{children}</Suspense>;
 }
 
-function Pagination({
-  page,
-  pageSize,
-  total,
-  onPageChange,
-}: {
-  page: number;
-  pageSize: number;
-  total: number;
-  onPageChange: (p: number) => void;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-      <p className="text-sm text-gray-600">Trang {page} / {totalPages} · {total} kết quả</p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={page <= 1}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Trước
-        </button>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={page >= totalPages}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Sau
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export type AdminTab = 'overview' | 'rateLimit' | 'systemAdmins' | 'loginHistory' | 'operations' | 'vouchers' | 'tickets' | 'emails' | 'notifications' | 'health' | 'errors' | 'storage' | 'bulkMaintenance' | 'apiKeys' | 'webhooks' | 'integrations' | 'twoFactor' | 'compliance' | 'whiteLabel' | 'readReplicaQueue' | 'security' | 'settings';
+export type AdminTab = 'overview' | 'settings' | 'compliance' | 'health';
 
 export interface AdminDashboardInnerProps {
   activeTab: AdminTab;
@@ -128,24 +63,6 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
   const [topTenants, setTopTenants] = useState<TopTenant[]>([]);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
-  const [rateLimitLogs, setRateLimitLogs] = useState<RateLimitLog[]>([]);
-  const [rateLimitCount, setRateLimitCount] = useState(0);
-  const [rateLimitPage, setRateLimitPage] = useState(1);
-  const [rateLimitLoading, setRateLimitLoading] = useState(false);
-  const [systemAdmins, setSystemAdmins] = useState<SystemAdmin[]>([]);
-  const [systemAdminsLoading, setSystemAdminsLoading] = useState(false);
-  const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [newAdminPassword, setNewAdminPassword] = useState('');
-  const [systemAdminSubmitting, setSystemAdminSubmitting] = useState(false);
-
-  const [loginHistory, setLoginHistory] = useState<AdminLoginHistoryEntry[]>([]);
-  const [loginHistoryCount, setLoginHistoryCount] = useState(0);
-  const [loginHistoryPage, setLoginHistoryPage] = useState(1);
-  const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
-  const [loginHistoryStatus, setLoginHistoryStatus] = useState<'success' | 'failed' | ''>('');
-  const [loginAlerts, setLoginAlerts] = useState<AdminLoginAlert[]>([]);
-  const [loginAlertsLoading, setLoginAlertsLoading] = useState(false);
-
   const [retentionStatus, setRetentionStatus] = useState<DataRetentionStatus | null>(null);
   const [retentionLoading, setRetentionLoading] = useState(false);
   const [defaultLimits, setDefaultLimits] = useState<DefaultPlanLimits | null>(null);
@@ -154,7 +71,6 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
   const [maintenance, setMaintenance] = useState<MaintenanceMode>({ enabled: false, message: '' });
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [maintenanceSubmitting, setMaintenanceSubmitting] = useState(false);
-  const { openConfirmDialog, confirmDialog } = useConfirmDialog();
 
 
   // --- Overview tab ---
@@ -184,66 +100,7 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
     }
   }, [activeTab, loadOverview]);
 
-  // --- Audit & security tabs ---
-
-  const loadRateLimitLogs = useCallback(async (p: number) => {
-    setRateLimitLoading(true);
-    setError(null);
-    try {
-      const res = await getRateLimitLogs({ limit: 50, offset: (p - 1) * 50 });
-      setRateLimitLogs(res.data);
-      setRateLimitCount(res.count);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải rate limit logs.');
-    } finally {
-      setRateLimitLoading(false);
-    }
-  }, []);
-
-  const loadSystemAdmins = useCallback(async () => {
-    setSystemAdminsLoading(true);
-    setError(null);
-    try {
-      const list = await getSystemAdmins();
-      setSystemAdmins(list);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải danh sách system admin.');
-    } finally {
-      setSystemAdminsLoading(false);
-    }
-  }, []);
-
-  const loadLoginHistory = useCallback(async (p: number, status: 'success' | 'failed' | '') => {
-    setLoginHistoryLoading(true);
-    setError(null);
-    try {
-      const res = await getAdminLoginHistory({
-        limit: 50,
-        offset: (p - 1) * 50,
-        status: status || null,
-      });
-      setLoginHistory(res.data);
-      setLoginHistoryCount(res.count);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải login history.');
-    } finally {
-      setLoginHistoryLoading(false);
-    }
-  }, []);
-
-  const loadLoginAlerts = useCallback(async () => {
-    setLoginAlertsLoading(true);
-    try {
-      const list = await getAdminLoginAlerts(24);
-      setLoginAlerts(list);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải login alerts.');
-    } finally {
-      setLoginAlertsLoading(false);
-    }
-  }, []);
-
-  // --- Operations tab ---
+  // --- Settings tab ---
 
   const loadOperations = useCallback(async () => {
     setRetentionLoading(true);
@@ -294,100 +151,8 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
     }
   };
 
-
-  const [addExistingUserId, setAddExistingUserId] = useState('');
-  const [addExistingSubmitting, setAddExistingSubmitting] = useState(false);
-
-  // FIX [6.7]: Add UI flow for addSystemAdmin(userId) - thêm system admin từ user đã tồn tại
-  const handleAddExistingSystemAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const userId = addExistingUserId.trim();
-    if (!userId) {
-      setError('Vui lòng nhập User ID.');
-      return;
-    }
-    setAddExistingSubmitting(true);
-    setError(null);
-    try {
-      await addSystemAdmin(userId);
-      setAddExistingUserId('');
-      await loadSystemAdmins();
-      setSuccess('Đã thêm system admin từ user có sẵn.');
-    } catch (err: any) {
-      setError(err?.message || 'Thêm system admin thất bại.');
-    } finally {
-      setAddExistingSubmitting(false);
-    }
-  };
-
-  const handleAddSystemAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate email format
-    const email = newAdminEmail.trim().toLowerCase();
-    if (!email || !email.includes('@')) {
-      setError('Email không hợp lệ.');
-      return;
-    }
-    
-    // Validate password length
-    const password = newAdminPassword.trim();
-    if (!password || password.length < 6) {
-      setError('Password phải có ít nhất 6 ký tự.');
-      return;
-    }
-    
-    setSystemAdminSubmitting(true);
-    setError(null);
-    try {
-      await createSystemAdmin(email, password);
-      setNewAdminEmail('');
-      setNewAdminPassword('');
-      await loadSystemAdmins();
-    } catch (err: any) {
-      setError(err?.message || 'Thêm system admin thất bại.');
-    } finally {
-      setSystemAdminSubmitting(false);
-    }
-  };
-
-  const handleRemoveSystemAdmin = (userId: string) => {
-    openConfirmDialog({
-      title: 'Xóa quyền system admin',
-      message: 'Xóa quyền system admin của user này?',
-      onConfirm: async () => {
-        setError(null);
-        try {
-          await removeSystemAdmin(userId);
-          await loadSystemAdmins();
-        } catch (err: any) {
-          setError(err?.message || 'Xóa system admin thất bại.');
-        }
-      },
-    });
-  };
-
   useEffect(() => {
-    if (activeTab === 'rateLimit') {
-      loadRateLimitLogs(rateLimitPage);
-    }
-  }, [activeTab, rateLimitPage, loadRateLimitLogs]);
-
-  useEffect(() => {
-    if (activeTab === 'systemAdmins') {
-      loadSystemAdmins();
-    }
-  }, [activeTab, loadSystemAdmins]);
-
-  useEffect(() => {
-    if (activeTab === 'loginHistory') {
-      loadLoginHistory(loginHistoryPage, loginHistoryStatus);
-      loadLoginAlerts();
-    }
-  }, [activeTab, loginHistoryPage, loginHistoryStatus, loadLoginHistory, loadLoginAlerts]);
-
-  useEffect(() => {
-    if (activeTab === 'operations') {
+    if (activeTab === 'settings') {
       loadOperations();
     }
   }, [activeTab, loadOperations]);
@@ -561,274 +326,7 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
           </div>
         )}
 
-    {(activeTab === 'rateLimit' || activeTab === 'security') && (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Rate limit logs</h2>
-          {rateLimitLoading && rateLimitLogs.length === 0 ? (
-            <p className="text-gray-600">Đang tải...</p>
-          ) : rateLimitLogs.length === 0 ? (
-            <p className="text-gray-500">Chưa có bản ghi rate limit nào.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 font-medium text-gray-600">Thời gian</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">IP</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Hành động</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Số lần thử</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Window start</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {rateLimitLogs.map(log => (
-                    <tr key={log.id}>
-                      <td className="px-6 py-4 text-gray-700">{new Date(log.createdAt).toLocaleString('vi-VN')}</td>
-                      <td className="px-6 py-4 text-gray-700 font-mono text-xs">{log.ipAddress}</td>
-                      <td className="px-6 py-4 text-gray-700">{log.action}</td>
-                      <td className="px-6 py-4 text-gray-700">{log.attemptCount}</td>
-                      <td className="px-6 py-4 text-gray-700">{new Date(log.windowStart).toLocaleString('vi-VN')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <Pagination
-            page={rateLimitPage}
-            pageSize={50}
-            total={rateLimitCount}
-            onPageChange={setRateLimitPage}
-          />
-        </div>
-      </div>
-    )}
-
-    {(activeTab === 'systemAdmins' || activeTab === 'security') && (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Thêm system admin</h2>
-          
-          {/* FIX [6.7]: Thêm system admin từ user đã tồn tại (bằng User ID) */}
-          <div className="mb-6 p-4 rounded-lg border border-indigo-100 bg-indigo-50">
-            <h3 className="text-sm font-medium text-indigo-800 mb-2">Thêm từ user có sẵn</h3>
-            <form onSubmit={handleAddExistingSystemAdmin} className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-indigo-700 mb-1">User ID</label>
-                <input
-                  type="text"
-                  value={addExistingUserId}
-                  onChange={(e) => setAddExistingUserId(e.target.value)}
-                  placeholder="UUID của user đã tồn tại trong hệ thống"
-                  className="w-full px-3 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={addExistingSubmitting || !addExistingUserId.trim()}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 text-sm whitespace-nowrap"
-              >
-                {addExistingSubmitting ? 'Đang thêm...' : 'Thêm bằng User ID'}
-              </button>
-            </form>
-          </div>
-
-          <div className="border-t border-gray-200 pt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Hoặc tạo mới</h3>
-            <form onSubmit={handleAddSystemAdmin} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={newAdminEmail}
-                    onChange={(e) => setNewAdminEmail(e.target.value)}
-                    placeholder="admin@example.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input
-                    type="password"
-                    value={newAdminPassword}
-                    onChange={(e) => setNewAdminPassword(e.target.value)}
-                    placeholder="Tối thiểu 6 ký tự"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    minLength={6}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={systemAdminSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {systemAdminSubmitting ? 'Đang thêm...' : 'Thêm'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800">Danh sách system admins</h2>
-          </div>
-          {systemAdminsLoading && systemAdmins.length === 0 ? (
-            <p className="p-6 text-gray-600">Đang tải...</p>
-          ) : systemAdmins.length === 0 ? (
-            <p className="p-6 text-gray-500">Chưa có system admin nào.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 font-medium text-gray-600">User ID</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Email</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Ngày thêm</th>
-                    <th className="px-6 py-3 font-medium text-gray-600"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {systemAdmins.map(admin => (
-                    <tr key={admin.userId}>
-                      <td className="px-6 py-4 text-gray-700 font-mono text-xs">{admin.userId}</td>
-                      <td className="px-6 py-4 text-gray-700">{admin.email || '-'}</td>
-                      <td className="px-6 py-4 text-gray-700">{admin.createdAt ? new Date(admin.createdAt).toLocaleDateString('vi-VN') : '-'}</td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleRemoveSystemAdmin(admin.userId)}
-                          className="px-3 py-1.5 text-sm text-red-700 bg-red-50 hover:bg-red-100 rounded-lg"
-                        >
-                          Xóa
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-    )}
-
-    {(activeTab === 'loginHistory' || activeTab === 'security') && (
-      <div className="space-y-6">
-        {/* Alerts panel */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Cảnh báo bất thường (24 giờ qua)</h2>
-          {loginAlertsLoading && loginAlerts.length === 0 ? (
-            <p className="text-gray-600">Đang tải...</p>
-          ) : loginAlerts.length === 0 ? (
-            <p className="text-gray-500">Không phát hiện hoạt động bất thường.</p>
-          ) : (
-            <div className="space-y-3">
-              {loginAlerts.map((alert, idx) => {
-                const baseClass = 'p-4 rounded-lg border';
-                if (alert.type === 'failed_burst') {
-                  return (
-                    <div key={idx} className={`${baseClass} border-red-200 bg-red-50`}>
-                      <p className="font-medium text-red-800">Nhiều lần đăng nhập thất bại</p>
-                      <p className="text-sm text-red-700">
-                        {alert.email || alert.userId}: {alert.failedCount} lần thất bại từ IP {alert.ipAddress || '-'}
-                        {' '}({new Date(alert.windowStart).toLocaleString('vi-VN')} - {new Date(alert.windowEnd).toLocaleString('vi-VN')})
-                      </p>
-                    </div>
-                  );
-                }
-                if (alert.type === 'new_device') {
-                  return (
-                    <div key={idx} className={`${baseClass} border-amber-200 bg-amber-50`}>
-                      <p className="font-medium text-amber-800">Thiết bị / trình duyệt mới</p>
-                      <p className="text-sm text-amber-700">
-                        {alert.email || alert.userId} đăng nhập từ {alert.userAgent || 'thiết bị không xác định'}
-                        {' '}lúc {new Date(alert.createdAt).toLocaleString('vi-VN')}
-                        {alert.ipAddress ? ` (IP: ${alert.ipAddress})` : ''}
-                      </p>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={idx} className={`${baseClass} border-blue-200 bg-blue-50`}>
-                    <p className="font-medium text-blue-800">Đăng nhập liên tục</p>
-                    <p className="text-sm text-blue-700">
-                      {alert.email || alert.userId}: {alert.successCount} lần thành công trong 15 phút
-                      {' '}({new Date(alert.windowStart).toLocaleString('vi-VN')} - {new Date(alert.windowEnd).toLocaleString('vi-VN')})
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Login history table */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Lịch sử đăng nhập admin</h2>
-            <select
-              value={loginHistoryStatus}
-              onChange={(e) => { setLoginHistoryStatus(e.target.value as 'success' | 'failed' | ''); setLoginHistoryPage(1); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="success">Thành công</option>
-              <option value="failed">Thất bại</option>
-            </select>
-          </div>
-          {loginHistoryLoading && loginHistory.length === 0 ? (
-            <p className="text-gray-600">Đang tải...</p>
-          ) : loginHistory.length === 0 ? (
-            <p className="text-gray-500">Chưa có bản ghi đăng nhập nào.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 font-medium text-gray-600">Thời gian</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Email</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">IP</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Trình duyệt</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Trạng thái</th>
-                    <th className="px-6 py-3 font-medium text-gray-600">Lý do thất bại</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {loginHistory.map(entry => (
-                    <tr key={entry.id}>
-                      <td className="px-6 py-4 text-gray-700">{new Date(entry.createdAt).toLocaleString('vi-VN')}</td>
-                      <td className="px-6 py-4 text-gray-700">{entry.email || '-'}</td>
-                      <td className="px-6 py-4 text-gray-700 font-mono text-xs">{entry.ipAddress || '-'}</td>
-                      <td className="px-6 py-4 text-gray-700 max-w-xs truncate" title={entry.userAgent || undefined}>{entry.userAgent || '-'}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${entry.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {entry.status === 'success' ? 'Thành công' : 'Thất bại'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-700">{entry.failureReason || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <Pagination
-            page={loginHistoryPage}
-            pageSize={50}
-            total={loginHistoryCount}
-            onPageChange={setLoginHistoryPage}
-          />
-        </div>
-      </div>
-    )}
-
-    {(activeTab === 'operations' || activeTab === 'settings') && (
+    {activeTab === 'settings' && (
       <div className="space-y-6">
         {/* Data retention */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -836,17 +334,21 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
           {retentionLoading && !retentionStatus ? (
             <p className="text-gray-600">Đang tải...</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-lg border border-gray-100 bg-gray-50">
-                <p className="text-sm text-gray-600">Đơn hàng đã archive</p>
-                <p className="text-2xl font-bold text-gray-900">{retentionStatus?.archivedOrdersCount ?? 0}</p>
+                <p className="text-sm text-gray-600">Orders</p>
+                <p className="text-2xl font-bold text-gray-900">{(retentionStatus as any)?.ordersCount ?? 0}</p>
               </div>
               <div className="p-4 rounded-lg border border-gray-100 bg-gray-50">
-                <p className="text-sm text-gray-600">Dòng sản phẩm đã archive</p>
-                <p className="text-2xl font-bold text-gray-900">{retentionStatus?.archivedOrderItemsCount ?? 0}</p>
+                <p className="text-sm text-gray-600">Order items</p>
+                <p className="text-2xl font-bold text-gray-900">{(retentionStatus as any)?.orderItemsCount ?? 0}</p>
               </div>
               <div className="p-4 rounded-lg border border-gray-100 bg-gray-50">
-                <p className="text-sm text-gray-600">Rate limit logs hiện tại</p>
+                <p className="text-sm text-gray-600">Audit logs</p>
+                <p className="text-2xl font-bold text-gray-900">{(retentionStatus as any)?.auditLogsCount ?? 0}</p>
+              </div>
+              <div className="p-4 rounded-lg border border-gray-100 bg-gray-50">
+                <p className="text-sm text-gray-600">Rate-limit logs</p>
                 <p className="text-2xl font-bold text-gray-900">{retentionStatus?.rateLimitLogsCount ?? 0}</p>
               </div>
               <div className="p-4 rounded-lg border border-gray-100 bg-gray-50 md:col-span-3">
@@ -991,38 +493,9 @@ export default function AdminDashboardInner({ activeTab }: AdminDashboardInnerPr
       </div>
     )}
 
-
-    {activeTab === 'vouchers' && <VoucherManager />}
-
-    {activeTab === 'tickets' && <TicketInbox />}
-
-    {activeTab === 'emails' && <EmailTemplateManager />}
-
-    {activeTab === 'notifications' && <NotificationManager />}
-
-    {activeTab === 'health' && <LazyPanel><LazySystemHealthPanel /></LazyPanel>}
-
-    {activeTab === 'errors' && <LazyPanel><LazyErrorPerformancePanel /></LazyPanel>}
-
-    {activeTab === 'storage' && <LazyPanel><LazyStorageBackupPanel /></LazyPanel>}
-
-    {activeTab === 'bulkMaintenance' && <LazyPanel><LazyBulkMaintenancePanel /></LazyPanel>}
-
-    {activeTab === 'apiKeys' && <LazyPanel><LazyApiKeyManager /></LazyPanel>}
-
-    {activeTab === 'webhooks' && <LazyPanel><LazyWebhookManager /></LazyPanel>}
-
-    {activeTab === 'integrations' && <LazyPanel><LazyIntegrationMarketplace /></LazyPanel>}
-
-    {activeTab === 'twoFactor' && <TwoFactorManager />}
-
     {activeTab === 'compliance' && <ComplianceManager />}
 
-    {activeTab === 'whiteLabel' && <LazyPanel><LazyWhiteLabelManager /></LazyPanel>}
-
-    {activeTab === 'readReplicaQueue' && <ReadReplicaQueueManager />}
-
-      {confirmDialog}
+    {activeTab === 'health' && <LazyPanel><LazySystemHealthPanel /></LazyPanel>}
     </>
   );
 }

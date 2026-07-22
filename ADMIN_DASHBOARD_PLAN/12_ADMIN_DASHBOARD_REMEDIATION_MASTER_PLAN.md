@@ -611,9 +611,17 @@ Every Phase B wave must pass the following five gates. The gate criteria are man
 - **Independent sign-off.** The Independent Enterprise Technical Review Board or designated reviewer approves.
 - **Program Owner acknowledgment.** The Program Owner acknowledges acceptance or records an explicit waiver.
 
-## 9.5 Closeout Gate
+## 9.5 Deployment Synchronization Gate
 
-- **Wave artifacts archived.** Code, migrations, tests, verification evidence, and documentation are committed and tagged.
+- **Acceptance complete.** The wave has been formally accepted and the accepted repository revision is frozen.
+- **Synchronization scope defined.** The target environment and the artifact classes to be synchronized are identified in the Wave Authorization or a deployment instruction approved by the Program Owner.
+- **Repository-to-environment match verified.** Evidence confirms that Repository, Supabase Database, RPC, Edge Functions, Environment Configuration, Vercel Deployment, and Runtime Behaviour match the accepted revision, or that every deviation is explicitly recorded as an observation.
+- **Deployment report completed.** A Deployment Synchronization Report records the synchronization method, environment state, and verification evidence.
+- **Release authority sign-off.** The Enterprise Release Manager or PMO confirms that the synchronization evidence is sufficient to support Wave Closeout.
+
+## 9.6 Closeout Gate
+
+- **Wave artifacts archived.** Code, migrations, tests, verification evidence, deployment synchronization evidence, and documentation are committed and tagged.
 - **Baseline updated if required.** If the wave produced a new approved baseline delta, the `AD-Baseline-1.0` reference is updated with a version suffix and approved.
 - **No open follow-ups.** All follow-up issues are recorded as new `AD-Baseline-1.0` references or deferred with Program Owner approval.
 - **Status report submitted.** The wave status is reported to the Program Owner and the PMO.
@@ -643,6 +651,7 @@ Every Phase B wave must pass the following five gates. The gate criteria are man
 | Engineering Kickoff | Program Owner, after Wave Authorization and all gating decisions |
 | SSOT Amendment | Program Owner + Principal Architect |
 | Wave Acceptance | Independent Technical Review Board + Program Owner acknowledgment |
+| Wave Deployment Synchronization | Enterprise Release Manager / PMO, after Wave Acceptance |
 | Program Certification | Program Owner, with PMO and Principal Architect certification |
 
 ## 10.3 Verification Hierarchy
@@ -718,16 +727,18 @@ Wave-04 Implementation Readiness Review       COMPLETE (50)
         ↓
 Wave-04 Implementation                        COMPLETE (51)
         ↓
-Wave-04 Verification                          NOT STARTED
+Wave-04 Verification                          PASS WITH OBSERVATIONS (52)
         ↓
-Wave-04 Acceptance                            NOT STARTED
+Wave-04 Acceptance                            COMPLETE (53)
         ↓
-Wave-04 Closeout                              NOT STARTED
+Wave-04 Deployment Synchronization            READY TO START
+        ↓
+Wave-04 Closeout                              BLOCKED BY DEPLOYMENT SYNCHRONIZATION
         ↓
 Program Certification                         NOT STARTED
 ```
 
-After the first wave is accepted, the cycle repeats for each subsequent Wave Authorization → Engineering Kickoff → Implementation → Verification → Acceptance. The final program milestone is **Program Certification**, which confirms all 43 unique `AD-Baseline-1.0` issues are remediated, verified, accepted, and documented.
+After the first wave is accepted, the cycle repeats for each subsequent Wave Authorization → Engineering Kickoff → Implementation → Verification → Acceptance → Deployment Synchronization → Closeout. The final program milestone is **Program Certification**, which confirms all 43 unique `AD-Baseline-1.0` issues are remediated, verified, accepted, synchronized, and documented.
 
 # 12A. Repository Baseline Evolution
 
@@ -816,13 +827,13 @@ This section is permanent project memory. Future AI Agents reading the roadmap s
 | **Wave-04 Engineering Kickoff** | COMPLETE WITH OBSERVATIONS (document) |
 | **Wave-04 Implementation Readiness Review** | COMPLETE (50) |
 | **Wave-04 Implementation** | COMPLETE (51) |
-| **Wave-04 Verification** | NOT STARTED |
-| **Wave-04 Acceptance** | NOT STARTED |
+| **Wave-04 Verification** | PASS WITH OBSERVATIONS (52) |
+| **Wave-04 Acceptance** | ACCEPTED WITH OBSERVATIONS (53) |
 | **Wave-04 Closeout** | NOT STARTED |
 | **Program Certification** | NOT STARTED |
-| **Overall Program Status** | WAVE-04 IMPLEMENTATION COMPLETE — READY FOR VERIFICATION |
+| **Overall Program Status** | WAVE-04 ACCEPTANCE ACCEPTED WITH OBSERVATIONS — READY FOR CLOSEOUT |
 
-(Updated by `51_ADMIN_DASHBOARD_WAVE-04_IMPLEMENTATION.md`, 2026-07-22)
+(Updated by `53_ADMIN_DASHBOARD_WAVE-04_ACCEPTANCE_REVIEW.md`, 2026-07-22)
 
 The four Program Owner decisions are resolved in `13_ADMIN_DASHBOARD_PROGRAM_OWNER_DECISION_RECORD.md`:
 
@@ -843,10 +854,12 @@ These decisions are now consumed by the Wave-04 authorization. No decision has b
 | **Phase B** | **ACTIVE** |
 | **Wave Planning** | **COMPLETE** |
 | **Wave Authorization** | **AUTHORIZED (Wave-04)** |
-| **Engineering** | **NOT AUTHORIZED** |
-| **Implementation** | **NOT STARTED** |
+| **Engineering** | **COMPLETE** |
+| **Implementation** | **COMPLETE (51)** |
+| **Verification** | **PASS WITH OBSERVATIONS (52)** |
+| **Acceptance** | **ACCEPTED WITH OBSERVATIONS (53)** |
 
-This master plan is the strategic remediation blueprint for Phase B. Wave-04 is authorized with observations. No Wave-04 implementation, verification, acceptance, or closeout may begin until the Engineering Kickoff and Implementation Readiness Review gates are completed.
+This master plan is the strategic remediation blueprint for Phase B. Wave-04 is authorized with observations. Wave-04 Engineering Kickoff, Implementation Readiness Review, Implementation, Verification, and Acceptance are complete. Wave-04 Closeout may begin only after formal Program Owner authorization.
 
 ------------------------------------------------------------------------
 

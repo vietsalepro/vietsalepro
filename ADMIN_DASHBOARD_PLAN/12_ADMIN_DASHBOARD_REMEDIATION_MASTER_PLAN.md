@@ -577,7 +577,7 @@ Every Phase B remediation wave must adhere to the following mandatory engineerin
 
 # 9. Quality Gates
 
-Every Phase B wave must pass the following five gates. The gate criteria are mandatory; waivers require Program Owner approval recorded in the Wave Authorization.
+Every Phase B wave must pass the following mandatory Quality Gates. The gate criteria are mandatory; waivers require Program Owner approval recorded in the Wave Authorization.
 
 ## 9.1 Entry Gate
 

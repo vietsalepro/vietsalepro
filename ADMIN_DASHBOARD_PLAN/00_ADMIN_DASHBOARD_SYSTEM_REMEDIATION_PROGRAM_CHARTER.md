@@ -383,17 +383,18 @@ Enterprise Browser Runtime Validation                 : COMPLETE (58B) — FAIL
 58B2 Preview Environment Remediation                  : COMPLETE
 58B3 Preview Runtime Verification                     : COMPLETE
 58B Enterprise Browser Runtime Validation Re-run      : COMPLETE (58BR) — PASS
-Wave-04 Production Deployment Authorization            : READY TO START (59)
-Wave-04 Production Deployment Synchronization         : NOT AUTHORIZED
-Wave-04 Closeout                                    : BLOCKED BY DEPLOYMENT SYNCHRONIZATION
+Wave-04 Production Deployment Authorization            : AUTHORIZED WITH OBSERVATIONS (59R)
+Wave-04 Production Deployment Synchronization         : COMPLETE (60)
+Wave-04 Production Deployment Verification            : READY TO START (61)
+Wave-04 Closeout                                    : BLOCKED BY PRODUCTION DEPLOYMENT VERIFICATION (61)
 Wave-01 Progress                         : COMPLETE
   Package-01                             : COMPLETE
   Package-02                             : COMPLETE
   Package-03                             : COMPLETE
   Wave-01 Implementation                 : COMPLETE
-Overall Completion                                  : Wave-04 Staging Deployment Validation COMPLETE (58); Enterprise Browser Runtime Validation COMPLETE (58B) — FAIL; 58B0 Staging Runtime Configuration Investigation COMPLETE; 58B1 Preview Environment Remediation Authorization COMPLETE; 58B2 Preview Environment Remediation COMPLETE; 58B3 Preview Runtime Verification COMPLETE; 58B Enterprise Browser Runtime Validation Re-run COMPLETE (58BR) — PASS; Wave-04 Production Deployment Authorization READY TO START (59)
-Program Status                                      : READY FOR WAVE-04 PRODUCTION DEPLOYMENT AUTHORIZATION
-(Updated by 58B_ENTERPRISE_BROWSER_RUNTIME_VALIDATION_RERUN.md and 58BA_ENTERPRISE_BROWSER_RUNTIME_VALIDATION_RERUN_REPORT.md, 2026-07-22)
+Overall Completion                                  : Wave-04 Staging Deployment Validation COMPLETE (58); Enterprise Browser Runtime Validation COMPLETE (58B) — FAIL; 58B0 Staging Runtime Configuration Investigation COMPLETE; 58B1 Preview Environment Remediation Authorization COMPLETE; 58B2 Preview Environment Remediation COMPLETE; 58B3 Preview Runtime Verification COMPLETE; 58B Enterprise Browser Runtime Validation Re-run COMPLETE (58BR) — PASS; Wave-04 Production Deployment Authorization AUTHORIZED WITH OBSERVATIONS (59R); Wave-04 Production Deployment Synchronization COMPLETE (60)
+Program Status                                      : WAVE-04 PRODUCTION DEPLOYMENT SYNCHRONIZED — READY FOR PRODUCTION DEPLOYMENT VERIFICATION (61)
+(Updated by 60_WAVE04_PRODUCTION_DEPLOYMENT_SYNCHRONIZATION.md and 60A_WAVE04_PRODUCTION_DEPLOYMENT_SYNCHRONIZATION_REPORT.md, 2026-07-22)
 ```
 
 Wave-03 established the Repository Hygiene governance model.

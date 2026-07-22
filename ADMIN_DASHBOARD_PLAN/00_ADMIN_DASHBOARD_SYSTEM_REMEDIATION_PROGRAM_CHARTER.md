@@ -357,15 +357,25 @@ Wave-03 Package-03 Implementation Readiness Review : COMPLETE
 Wave-03 Package-03 Implementation        : IMPLEMENTED WITH OBSERVATIONS
 Wave-03 Package-03 Verification          : COMPLETE
 Wave-03 Package-03 Acceptance Review     : COMPLETE
-Wave-03 Acceptance Review                : READY TO START
+Wave-03 Acceptance Review                : COMPLETE
+Wave-03 Closeout Readiness Review        : COMPLETE
+Wave-03 Closeout                         : COMPLETE
+Wave-04 Authorization                    : AUTHORIZED WITH OBSERVATIONS
+Wave-04 Engineering Kickoff              : COMPLETE WITH OBSERVATIONS
+Wave-04 Repository Readiness Remediation : COMPLETE
+Wave-04 Implementation Readiness Review  : READY TO START
+Wave-04 Implementation                   : NOT STARTED
+Wave-04 Verification                     : NOT STARTED
+Wave-04 Acceptance                       : NOT STARTED
+Wave-04 Closeout                         : NOT STARTED
 Wave-01 Progress                         : COMPLETE
   Package-01                             : COMPLETE
   Package-02                             : COMPLETE
   Package-03                             : COMPLETE
   Wave-01 Implementation                 : COMPLETE
-Overall Completion                       : 1 / 1 Wave-03 Packages (100%)
-Program Status                           : PACKAGE-03 ACCEPTED WITH OBSERVATIONS
-(Updated by 44_ADMIN_DASHBOARD_WAVE-03_PACKAGE-03_ACCEPTANCE_REVIEW.md, 2026-07-21)
+Overall Completion                       : Wave-04 Repository Readiness Remediation COMPLETE
+Program Status                           : WAVE-04 AUTHORIZED — READY FOR IMPLEMENTATION READINESS REVIEW
+(Updated by 48_ADMIN_DASHBOARD_WAVE-04_ENGINEERING_KICKOFF.md, 2026-07-22)
 ```
 
 Wave-03 established the Repository Hygiene governance model.
@@ -452,7 +462,31 @@ Future engineering work shall classify repository artifacts before proposing the
 
 ------------------------------------------------------------------------
 
-# 14. AI Development Infrastructure Policy
+# 14. Repository Decision Hierarchy
+
+Repository disposition decisions shall always follow the following evidence hierarchy:
+
+``` text
+Highest priority
+
+Production Behaviour
+        ↓
+Approved Architecture (SSOT)
+        ↓
+Governance Evidence
+        ↓
+Repository Evidence
+        ↓
+Repository Appearance
+```
+
+-   Repository appearance alone shall never override higher-order evidence.
+-   Repository search results alone shall never justify deletion.
+-   Every repository disposition decision shall identify the highest level of evidence supporting the decision.
+
+------------------------------------------------------------------------
+
+# 15. AI Development Infrastructure Policy
 
 ## `.codebase-memory`
 
@@ -480,23 +514,83 @@ Future engineers shall not remove or classify these files as obsolete solely bec
 
 ------------------------------------------------------------------------
 
-# 15. Repository Hygiene Methodology
+# 16. Knowledge Preservation Policy
 
-Repository Hygiene is the controlled process for identifying, evaluating, and removing or preserving repository artifacts. The methodology requires the following sequence:
+Every completed Wave shall evaluate whether new permanent knowledge has been created.
 
-1.  Repository evidence
-2.  Production verification
-3.  Dependency verification
-4.  Governance review
-5.  Disposition decision
-6.  Independent verification
-7.  Acceptance
+Permanent knowledge includes:
+
+-   architecture
+-   repository policy
+-   engineering methodology
+-   AI tooling
+-   governance process
+-   operational policy
+-   repository classification
+
+When permanent knowledge is created, the following documents shall be reviewed:
+
+-   Program Charter
+-   Master Plan
+-   Roadmap
+-   Knowledge Base
+
+or equivalent governance documents.
+
+Knowledge Preservation is an official governance deliverable.
+
+------------------------------------------------------------------------
+
+# 17. Repository Hygiene Methodology
+
+Repository Hygiene is the controlled process for identifying, evaluating, and removing or preserving repository artifacts. The methodology explicitly requires:
+
+1.  Problem Identification
+2.  Evidence Collection
+3.  Production Verification
+4.  Dependency Verification
+5.  Architectural Verification
+6.  Governance Review
+7.  Disposition Decision
+8.  Independent Verification
+9.  Acceptance
+10. Knowledge Preservation
+
+Repository Hygiene is complete only after Knowledge Preservation has been performed.
 
 Repository cleanup shall always follow this sequence.
 
 ------------------------------------------------------------------------
 
-# 16. Production Infrastructure Policy
+# 18. Repository Knowledge Lifecycle
+
+Repository knowledge evolves through the following lifecycle:
+
+``` text
+Repository Observation
+        ↓
+Investigation
+        ↓
+Evidence
+        ↓
+Governance Decision
+        ↓
+Implementation
+        ↓
+Verification
+        ↓
+Acceptance
+        ↓
+Knowledge Preservation
+        ↓
+Permanent Governance
+```
+
+Repository knowledge evolves through this lifecycle.
+
+------------------------------------------------------------------------
+
+# 19. Production Infrastructure Policy
 
 The following permanent governance rule applies to infrastructure artifacts:
 
@@ -506,7 +600,59 @@ The following permanent governance rule applies to infrastructure artifacts:
 
 ------------------------------------------------------------------------
 
-# 17. Governance Deliverables Policy
+# 20. Governance Feedback Loop
+
+Every completed governance activity shall improve the governance system itself whenever justified by evidence.
+
+The governance framework is therefore self-improving.
+
+Future Waves inherit all validated governance improvements.
+
+------------------------------------------------------------------------
+
+# 21. Governance Traceability Levels
+
+Each engineering decision should be traceable through the following chain:
+
+``` text
+Program Charter
+        ↓
+Master Plan
+        ↓
+Wave Authorization
+        ↓
+Engineering Kickoff
+        ↓
+Implementation
+        ↓
+Verification
+        ↓
+Acceptance
+        ↓
+Closeout
+        ↓
+Knowledge Preservation
+```
+
+This is the mandatory governance chain.
+
+------------------------------------------------------------------------
+
+# 22. AI Agent Governance
+
+Future AI Agents shall:
+
+-   understand repository classifications before proposing changes
+-   consult governance documents before deleting repository artifacts
+-   treat AI Development Infrastructure separately from application code
+-   preserve historical governance records
+-   update governance documents whenever permanent project knowledge changes
+
+AI Agents are expected to preserve organizational knowledge, not merely modify source code.
+
+------------------------------------------------------------------------
+
+# 23. Governance Deliverables Policy
 
 Governance artifacts are official project outputs. Examples include:
 
@@ -519,6 +665,37 @@ Governance artifacts are official project outputs. Examples include:
 -   PROGRAM STATUS REVIEW
 -   EXECUTION REPORT
 
+## Governance Deliverable Classification
+
+Governance deliverables are classified into the following categories:
+
+### Strategic Governance
+
+-   Program Charter
+-   Master Plan
+-   Roadmap
+
+Strategic governance documents establish the constitutional, architectural, and directional foundations of the program. They provide the authority and long-term context for all engineering and governance activities.
+
+### Operational Governance
+
+-   Authorization
+-   Engineering Kickoff
+-   Implementation Review
+-   Verification
+-   Acceptance
+-   Closeout
+
+Operational governance documents authorize, record, and validate the execution of program work. They form the evidence chain that every Wave and package has been properly governed.
+
+### Historical Governance
+
+-   Closed Reviews
+-   Historical Decisions
+-   Archived Reports
+
+Historical governance documents preserve the decision context of completed activities. They provide enterprise traceability and protect against repeated mistakes or disputed decisions.
+
 These documents preserve the enterprise decision chain.
 
 They are not temporary documentation.
@@ -527,7 +704,7 @@ They are part of the project's permanent governance evidence.
 
 ------------------------------------------------------------------------
 
-# 18. Lessons Learned
+# 24. Lessons Learned
 
 The evolution of the program has produced the following permanent lessons:
 
@@ -536,3 +713,20 @@ The evolution of the program has produced the following permanent lessons:
 -   Enterprise governance prevents accidental production regressions.
 -   Architectural decisions must be preserved beyond implementation.
 -   Future AI Agents should understand repository semantics rather than relying only on repository searches.
+-   Repository semantics are more important than repository appearance.
+-   Governance maturity increases after every completed Wave.
+-   AI tooling requires governance just like production software.
+-   Knowledge preservation reduces future engineering risk.
+-   Enterprise memory is a strategic asset.
+
+------------------------------------------------------------------------
+
+# 25. Final Governance Statement
+
+The Program Charter is the constitutional governance document for the Admin Dashboard System Remediation Program.
+
+Its purpose is not only to authorize work, but also to preserve the engineering methodology, organizational knowledge, architectural rationale, and governance evolution throughout the lifetime of the project.
+
+Future governance documents derive from this Charter.
+
+Future AI Agents and engineers are expected to follow its principles before performing investigation, implementation, repository cleanup, or architectural modification.
